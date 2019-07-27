@@ -175,6 +175,9 @@ def plot_live(cumsum, i):
     plt.draw()
     plt.pause(0.01)
 
+
+
+
 # normalize to first row
 def normalize(df):
     return df/df.iloc[0,:]
@@ -347,7 +350,7 @@ def get_data_from_disc(symbol, skipFirstLines, size_output = 2):
     df1['mom20' ]  = wr                       (df1["High"],df1["Low"],df1["Close"], lbp=20 , fillna=True)
     df1['mom50' ]  = wr                       (df1["High"],df1["Low"],df1["Close"], lbp=50 , fillna=True)
 
-    df1['sma10' ] = df1['Close'].rolling(window=10 ).mean()
+    df1['sma10' ] = df1['Close'].rolling(window=10 ).mean()#.shift(1, axis = 0)
     df1['sma20' ] = df1['Close'].rolling(window=20 ).mean()
     df1['sma50' ] = df1['Close'].rolling(window=50 ).mean()
     df1['sma200'] = df1['Close'].rolling(window=200).mean()

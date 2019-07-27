@@ -285,11 +285,13 @@ class MlpTrading(object):
         model.summary()
         return model
 
+
+
     def _model_create_lstm(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
-#input_shape = (input_length, input_dim)
-#input_shape=(self.size_input,)   equals to    input_dim = self.size_input
-#X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
-#X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+        #input_shape = (input_length, input_dim)
+        #input_shape=(self.size_input,)   equals to    input_dim = self.size_input
+        #X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+        #X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
 
         # X_train = []
         # Y_train = []
@@ -307,6 +309,11 @@ class MlpTrading(object):
         # self.x_test = format_to_lstm(self.x_test)
         self.x_train = np.reshape(self.x_train, (self.x_train.shape[0], lookback, self.size_input))
         self.x_test  = np.reshape(self.x_test , (self.x_test.shape [0], lookback, self.size_input))
+
+        #self.x_train, self.y_train = create_dataset(self.x_train, self.y_train, look_back = lookback)
+        #self.x_test , self.y_test  = create_dataset(self.x_test , self.y_test , look_back = lookback)
+
+
         print('after adding 1 dimension for lstm')
         print('self.x_train.shape=',self.x_train.shape)#format_to_lstm(df)
         print('self.x_test.shape=',self.x_test.shape)#format_to_lstm(df)
@@ -373,13 +380,14 @@ class MlpTrading(object):
         print('\nplot_accuracy_loss_vs_time...')
         history_dict = history.history
         print(history_dict.keys())
-        plot_stat_loss_vs_time(history_dict, title='model Loss over time'+title)
+
+        plot_stat_loss_vs_time    (history_dict, title='model Loss over time'+title)
         plot_stat_accuracy_vs_time(history_dict, title='model Accuracy over time'+title)
+        plot_stat_loss_vs_accuracy(history_dict, title='model Loss, Accuracy over time'+title)
+
         hist = pd.DataFrame(history.history)
         hist['epoch'] = history.epoch
         print(hist.tail())
-        plot_stat_loss_vs_accuracy(history_dict, title='model Loss, Accuracy over time'+title)
-
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
@@ -406,8 +414,8 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     def _model_save(self, model, filename):
         folder = 'files/output/'
-        print(f'\nSave model as {folder}{filename}.model')
-        model.save(f'{folder}{filename}.model')
+        print(f'\nSave model as {folder}model{filename}.model')
+        model.save(f'{folder}model{filename}.model')
 
     # |--------------------------------------------------------|
     # |                                                        |
