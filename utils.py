@@ -39,6 +39,11 @@ def kpi_risk(df):
 def kpi_sharpeRatio():
     return 2
 
+# reshape  because   LSTM receives  [samples, timesteps, features]
+def format_to_lstm(df):
+    X = np.array(df)
+    return np.reshape(   X
+                      , (X.shape[0]  ,   1  ,   X.shape[1]))
 
 
 

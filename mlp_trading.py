@@ -1,7 +1,9 @@
+import datetime
+
 from tensorflow.python.keras.utils import normalize
 
 from utils import get_data_from_disc, plot_selected, plot_stat_loss_vs_time, \
-    plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_histogram
+    plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_histogram, format_to_lstm
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
 from keras.models import Sequential
@@ -37,6 +39,7 @@ class MlpTrading(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def execute(self, skip_days    = 3600
+                    , modelType    = 'mlp'
                     , epochs       = 5000
                     , size_hidden  = 15
                     , batch_size   = 128
@@ -53,7 +56,7 @@ class MlpTrading(object):
         print('\n======================================')
         print('\nLoading the data')
         print('\n======================================')
-        df_all = self._load_data(skip_days)
+        df_all = self._data_load(skip_days)
 
         print('\n======================================')
         print('\nPlotting features')
@@ -63,82 +66,103 @@ class MlpTrading(object):
         print('\n======================================')
         print('\nSplitting the data to train & test data')
         print('\n======================================')
-        self._split_to_train_and_test_data(df_all, percent_test_split)
+        self._data_split(df_all, percent_test_split)
 
         print('\n======================================')
         print('\nLabeling the data')
         print('\n======================================')
-        self._labeling(df_all, percent_test_split)
+        self._data_label(df_all, percent_test_split)
 
         print('\n======================================')
         print('\nCleaning the data')
         print('\n======================================')
-        self._clean_data()
+        self._data_clean()
 
         print('\n======================================')
         print('\nNormalizing the data')
         print('\n======================================')
-        self._normalize_data()
+        self._data_normalize()
 
         print('\n======================================')
         print('\nRebalancing Data')
         print('\n======================================')
-        self._rebalance_data()
+        self._data_rebalance()
 
         print('\n======================================')
         print('\nTransform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
               '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
         print('\n======================================')
-        self._transform_data()
+        self._data_transform()
 
         print('\n======================================')
         print('\nCreating the model')
         print('\n======================================')
-        #model = self._create_model_mlp (size_hidden, dropout, kernel_init)
-        model = self._create_model_lstm(size_hidden, dropout, kernel_init)
+        if modelType == 'mlp':
+             model = self._model_create_mlp (size_hidden, dropout, kernel_init)
+        elif modelType == 'lstm':
+             model = self._model_create_lstm(size_hidden, dropout, kernel_init)
+        else:
+            print('unsupported model. supported only, lstm, mlp')
+            exit(0)
 
         print('\n======================================')
         print('\nCompiling the model')
         print('\n======================================')
-        self._compile_mode(model, loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+        self._model_compile(model, loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
 
         print('\n======================================')
         print(f"\nTrain model for {epochs} epochs...")
         print('\n======================================')
-        history = self._train_model(model, epochs, batch_size, verbose)
+        history = self._model_fit(model, epochs, batch_size, verbose)
 
         print('\n======================================')
         print('\nPrinting history')
         print('\n======================================')
-        self._print_history(history)
+        #model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
+        #model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
+        params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
+        self._plot_evaluation(history, params)
 
         print('\n======================================')
         print('\nEvaluate the model with unseen data. pls validate that test accuracy =~ train accuracy and near 1.0')
         print('\n======================================')
-        self._evaluate(model)
+        self._model_evaluate(model)
 
         print('\n======================================')
         print('\nPredict unseen data with 2 probabilities for 2 classes(choose the highest)')
         print('\n======================================')
-        self._predict(model)
+        self._model_predict(model)
 
         print('\n======================================')
         print('\nSaving the model')
         print('\n======================================')
-        self._save_model(model, epochs, size_hidden)
+
+        self._model_save(model, params)
 
         print('\n======================================')
         print('\nPlotting histograms')
         print('\n======================================')
-        self._plot_histograms(df_all)
+        self._plot_features_hstg(df_all)
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _load_data(self, skip_days):
+    def _data_load(self, skip_days):
         df_all = get_data_from_disc(self.symbol, skip_days, size_output=self.size_output)
+        # print('df_all.shape=',df_all.shape)
+        # df_all = format_to_lstm(df_all)
+        # print('df_all.shape=',df_all.shape)
+        #columns = [df_all.shift(i) for i in range()]
+        #df_all = pd.concat(columns, axis=1)
+        # samples    = df_all.shape[0]
+        # timestamps = 3
+        # features   = df_all.shape[1]
+        # #df_all = df_all.reshape ((df_all.shape[0], df_all.shape[1], 1))
+        #  https://www.oipapio.com/question-3322022
+        # df_all = df_all.values.reshape(samples,timestamps,features)
         print(df_all.tail())
         return df_all
+
 
     # |--------------------------------------------------------|
     # |                                                        |
@@ -161,11 +185,14 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _split_to_train_and_test_data(self, df_all, percent_test_split):
+    def _data_split(self, df_all, percent_test_split):
         elements = df_all.size
         shape = df_all.shape
 
         df_data = df_all.loc[:, self.names_input]
+        # today = datetime.date.today()
+        # file_name = self.symbol+'_prepared_'+str(today)+'.csv'
+        # df_data.to_csv(file_name)
         print('columns=', df_data.columns)
         print('\ndata describe=\n', df_data.describe())
         print('shape=', str(shape), " elements=" + str(elements), ' rows=', str(shape[0]))
@@ -186,7 +213,7 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _labeling(self, df_all, percent_test_split):
+    def _data_label(self, df_all, percent_test_split):
         df_y = df_all['isUp']  # np.random.randint(0,2,size=(shape[0], ))
         print(df_y)
         (self.y_train, self.y_test) = train_test_split(df_y.values, test_size=percent_test_split, shuffle=False)
@@ -206,13 +233,13 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _clean_data(self):
+    def _data_clean(self):
         pass
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _normalize_data(self):
+    def _data_normalize(self):
         self.x_train = normalize(self.x_train, axis=1)
         self.x_test = normalize(self.x_test, axis=1)
         # print('columns=', self.x_train.columns)
@@ -226,13 +253,13 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _rebalance_data(self):
+    def _data_rebalance(self):
         pass
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _transform_data(self):
+    def _data_transform(self):
         self.y_train = to_categorical(self.y_train, self.size_output)
         self.y_test = to_categorical(self.y_test, self.size_output)
         print('self.y_train[0]=', self.y_train[0])
@@ -241,7 +268,7 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _create_model_mlp(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
+    def _model_create_mlp(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
 
         model = Sequential()  # stack of layers
 
@@ -258,27 +285,49 @@ class MlpTrading(object):
         model.summary()
         return model
 
-    def _create_model_lstm(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
+    def _model_create_lstm(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
 #input_shape = (input_length, input_dim)
 #input_shape=(self.size_input,)   equals to    input_dim = self.size_input
 #X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
 #X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+
+        # X_train = []
+        # Y_train = []
+        #
+        # for i in range(60, 2035):
+        #     X_train.append(self.x_train[i-60:i, 0])
+        #     Y_train.append(self.x_train[i, 0])
+        # X_train, Y_train = np.array(X_train), np.array(Y_train)
+        #
+        # X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+        lookback = 1
+
+        print('b4 adding 1 dimension for lstm')
+        # self.x_train = format_to_lstm(self.x_train)
+        # self.x_test = format_to_lstm(self.x_test)
+        self.x_train = np.reshape(self.x_train, (self.x_train.shape[0], lookback, self.size_input))
+        self.x_test  = np.reshape(self.x_test , (self.x_test.shape [0], lookback, self.size_input))
+        print('after adding 1 dimension for lstm')
+        print('self.x_train.shape=',self.x_train.shape)#format_to_lstm(df)
+        print('self.x_test.shape=',self.x_test.shape)#format_to_lstm(df)
+
+        lookback = 1
         model = Sequential()
 
-        model.add(LSTM(units = 50, activation='tanh', return_sequences = True, input_shape = (self.size_input, 1)))
+        model.add(LSTM(units = size_hidden, activation='relu', return_sequences = True, input_shape = (lookback, self.size_input)))
         model.add(Dropout(dropout))
 
-        model.add(LSTM(units = 50, activation='tanh', return_sequences = True))
+        model.add(LSTM(units = size_hidden, activation='relu', return_sequences = True))
         model.add(Dropout(dropout))
 
-        model.add(LSTM(units = 50, activation='tanh', return_sequences=False))
+        model.add(LSTM(units = size_hidden, activation='relu', return_sequences=False))
         model.add(Dropout(dropout))
 
         model.add(Dense  (units=self.size_output, activation='softmax'))
         model.summary()
         return model
 
-    def _create_model_lstm2(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
+    def _model_create_lstm2(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
         #input_shape = (input_length, input_dim)
         #input_shape=(self.size_input,)   equals to    input_dim = self.size_input
         #X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
@@ -297,7 +346,7 @@ class MlpTrading(object):
     # |                                                  ,       |
     # |--------------------------------------------------------|
     @staticmethod
-    def _compile_mode(model, loss='categorical_crossentropy', lr=0.00001, rho=0.9, epsilon=None, decay=0.0):
+    def _model_compile(model, loss='categorical_crossentropy', lr=0.00001, rho=0.9, epsilon=None, decay=0.0):
         model.compile( loss=loss  # measure how accurate the model during training
                       ,optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)  # this is how model is updated based on data and loss function
                       ,metrics=['accuracy'])
@@ -305,7 +354,7 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _train_model(self, model, epochs, batch_size, verbose=0):
+    def _model_fit(self, model, epochs, batch_size, verbose=0):
         return model.fit(self.x_train,
                          self.y_train,
                          batch_size=batch_size,
@@ -317,25 +366,24 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _print_history(self, history):
+    def _plot_evaluation(self, history, title=''):
         print(f'\nsize.model.features(size_input) = {self.size_input}')
         print(f'\nsize.model.target  (size_output)= {self.size_output}')
 
         print('\nplot_accuracy_loss_vs_time...')
         history_dict = history.history
         print(history_dict.keys())
-        plot_stat_loss_vs_time(history_dict)
-        plot_stat_accuracy_vs_time(history_dict)
+        plot_stat_loss_vs_time(history_dict, title='model Loss over time'+title)
+        plot_stat_accuracy_vs_time(history_dict, title='model Accuracy over time'+title)
         hist = pd.DataFrame(history.history)
         hist['epoch'] = history.epoch
         print(hist.tail())
-
-        plot_stat_loss_vs_accuracy(history_dict)
+        plot_stat_loss_vs_accuracy(history_dict, title='model Loss, Accuracy over time'+title)
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _evaluate(self, model):
+    def _model_evaluate(self, model):
         score = model.evaluate(self.x_test, self.y_test, verbose=0)
         print(f'Test loss:    {score[0]} (is it close to 0 ?)')
         print(f'Test accuracy:{score[1]} (is it close to 1 and close to train accuracy ?)')
@@ -343,7 +391,7 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _predict(self, model):
+    def _model_predict(self, model):
         y_pred = model.predict(self.x_test)
         print(f'labeled   as {self.y_test[0]} highest confidence for {np.argmax(self.y_test[0])}')
         print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
@@ -356,17 +404,16 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _save_model(self, model, epochs, size_hidden):
+    def _model_save(self, model, filename):
         folder = 'files/output/'
-        filename = f'mlpt_{self.symbol}_epc{epochs}_hid{size_hidden}_inp{self.size_input}_out{self.size_output}.model'
-        print(f'\nSave model as {folder}{filename}')
-        model.save(f'{folder}{filename}')
+        print(f'\nSave model as {folder}{filename}.model')
+        model.save(f'{folder}{filename}.model')
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
     @staticmethod
-    def _plot_histograms(df_all):
+    def _plot_features_hstg(df_all):
         plot_histogram(x=df_all['range']
                        , bins=100
                        , title='TA-diff bw open and close - Gaussian data '
