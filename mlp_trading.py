@@ -1,9 +1,9 @@
 import datetime
 
-from tensorflow.python.keras.utils import normalize
+
 
 from utils import get_data_from_disc, plot_selected, plot_stat_loss_vs_time, \
-    plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_histogram, format_to_lstm
+    plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_histogram, format_to_lstm, normalize1, normalize0
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
 from keras.models import Sequential
@@ -240,8 +240,8 @@ class MlpTrading(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self):
-        self.x_train = normalize(self.x_train, axis=1)
-        self.x_test = normalize(self.x_test, axis=1)
+        self.x_train = normalize0(self.x_train, axis=1)
+        self.x_test = normalize0(self.x_test, axis=1)
         # print('columns=', self.x_train.columns)
         # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range']])
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])
@@ -318,6 +318,7 @@ class MlpTrading(object):
         print('self.x_train.shape=',self.x_train.shape)#format_to_lstm(df)
         print('self.x_test.shape=',self.x_test.shape)#format_to_lstm(df)
 
+        lookback = 2# Error when checking input: expected lstm_1_input to have shape (2, 39) but got array with shape (1, 39)
         lookback = 1
         model = Sequential()
 

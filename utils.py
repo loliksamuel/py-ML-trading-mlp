@@ -175,19 +175,20 @@ def plot_live(cumsum, i):
     plt.draw()
     plt.pause(0.01)
 
-
-
+from tensorflow.python.keras.utils import normalize
+def normalize0(df, axis):
+    return normalize(df, axis=1)
 
 # normalize to first row
-def normalize(df):
-    return df/df.iloc[0,:]
+def normalize1(df, axis):
+    return df/df[0]
 
 
-def normalize2(x):
+def normalize2(x, axis):
     train_stats = x.describe()
     return (x - train_stats['mean']) / train_stats['std']
 
-def normalize3(x):
+def normalize3(x, axis):
 
     scaler = StandardScaler()
     x_norm = scaler.fit_transform(x.values)
@@ -311,7 +312,7 @@ def get_data_from_disc(symbol, skipFirstLines, size_output = 2):
     """Read stock data (adjusted close) for given symbols from CSV files.
     https://finance.yahoo.com/quote/%5EGSPC/history?period1=-630986400&period2=1563138000&interval=1d&filter=history&frequency=1d
     """
-
+    print(f'get_data_from_disc {symbol}, {skipFirstLines}, {size_output}')
     df1 = pd.read_csv(  symbol_to_path(symbol)
                           , index_col  = 'Date'
                           , parse_dates= True

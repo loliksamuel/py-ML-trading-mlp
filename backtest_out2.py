@@ -1,4 +1,5 @@
 import pandas_datareader.data as pdr
+from tensorflow.python.keras.utils import normalize
 import yfinance as fix
 import numpy as np
 import tensorflow as tf
@@ -12,7 +13,7 @@ import matplotlib.pyplot as plt
 fix.pdr_override()
 
 
-def back_test(filename, symbol, skipRows, names_input,names_output, start_date, end_date):
+def back_test(filename, symbol, skipRows, names_input, names_output, start_date, end_date):
     """
     A simple back test for a given date period
     :param model     : the chosen strategy. Note to have already formed the model, and fitted with training data.
@@ -23,15 +24,16 @@ def back_test(filename, symbol, skipRows, names_input,names_output, start_date, 
     :return: Percentage errors array that gives the errors for every test in the given date range
     """
 
-    print('\nLoading model')
-    model    = tf.keras.models.load_model('files/output/'+filename)
+    print('\nLoading model ',filename)
+    model    = tf.keras.models.load_model(filename)
 
-    print('\nLoading data of symbol ', symbol)
-    df_all =  get_data_from_disc(symbol,skipRows )
+    print(f'\nLoading data of symbol {symbol} skipRows={skipRows} names_output={names_output} names_input={names_input}',)
+    df_all =  get_data_from_disc(symbol, skipRows , size_output=len(names_output))
 
     print('\nExtrating x')
     df_x = df_all.loc[:,   names_input]
     df_oc = df_all.loc[:,   [ 'range', 'Open' , 'Close' ]]
+    print ('df_x=',df_x.shape, '\n', df_x.loc[:, ['nvo', 'rel_bol_hi10','rel_bol_hi20','rel_bol_hi50','rel_bol_hi200']])
 
     print('\nExtrating y')
     df_y_observed = df_all['isUp']
@@ -40,7 +42,7 @@ def back_test(filename, symbol, skipRows, names_input,names_output, start_date, 
     print('df_y=',df_y_observed.shape, '\n', df_y_observed)
 
     print('\nNormalizing... ')
-    df_x = tf.keras.utils.normalize(df_x, axis=1)
+    df_x = normalize(df_x, axis=1)
 
     print('\nPredicting... ')
     df_y_pred = model.predict(df_x)
@@ -235,16 +237,27 @@ print('\n=========================================')
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width'      , 1000)
 
+
 symbol      ='^GSPC'# ^GSPC = SP500 3600, DJI 300
-skipRows    = 3600#3600 6600
-epochs      = 600
-size_hidden = 512
+skip_days     =3600
+modelType     ='mlp'#mlp lstm drl
+epochs        =5000#best 5000
+size_hidden   =15
+batch_size    =128
+lr           = 1e-05#default=0.001   best=0.00001 (1e-05) for mlp, 0.0001 for lstm
+dropout      = 0.2 # 0.0 - 1.0
+
 names_input   = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50', 'rel_bol_hi200', 'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
 names_output  = ['Green bar', 'Red Bar']#, 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
 size_input   = len(names_input) # 39#x_train.shape[1] # no of features
 size_output  = len(names_output)#  2 # there are 3 classes (buy.sell. hold) or (green,red,hold)
-filename = 'mlpt_'+symbol+'_epc'+str(epochs)+'_hid'+str(size_hidden)+'_inp'+str(size_input)+'_out'+str(size_output)+'.model'
 
+folder = 'files/output/'
+params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{symbol}_inp{size_input}_out{size_output}_{modelType}'
+filename = folder+'model'+params+'.model'#+symbol+'_epc'+str(epochs)+'_hid'+str(size_hidden)+'_inp'+str(size_input)+'_out'+str(size_output)+'.model'
+print(f'\nSave model as {filename}')
+seed = 7
+np.random.seed(seed)
 
 print('trying to backtest with model ',filename ,' and input values = ', names_input)
-back_test(filename, symbol, skipRows, names_input, names_output, start_date='1970-01-03', end_date='2019-05-05')
+back_test(filename, symbol, skip_days, names_input, names_output, start_date='1970-01-03', end_date='2019-05-05')
