@@ -43,11 +43,6 @@ def kpi_risk(df):
 def kpi_sharpeRatio():
     return 2
 
-# reshape  because   LSTM receives  [samples, timesteps, features]
-def format_to_lstm(df):
-    X = np.array(df)
-    return np.reshape(   X
-                      , (X.shape[0]  ,   1  ,   X.shape[1]))
 
 
 
@@ -573,7 +568,7 @@ def plot_conf_mtx(Y_true, Y_pred, target_names):
     # Plot non-normalized confusion matrix
     plt.figure()
     plt.subplot(1, 2, 1)
-    title='un-normalized'
+    title='not normalized'
     plot_confusion_matrix(cnf_matrix, classes=target_names,
                           title=title)
     plt.subplot(1, 2, 2)
@@ -602,8 +597,22 @@ def plot_barchart2(y, title="BT_pred vs observed", ylabel="Price", xlabel="Date"
     pl.savefig('files/output/'+title+'.png')
     #pl.show()
 
+# reshape  because   LSTM receives  [samples, look_back, features]
+def format_to_lstm(df, look_back = 1):
+    X = np.array(df)
+    return np.reshape(   X
+                      , (X.shape[0]  ,   look_back  ,   X.shape[1]))
 
 
+def format_to_lstm_regression(dataset, look_back = 1):
+    dataX, dataY = [], []
+    for i in range(len(dataset) - look_back):  #for i in range(look_back, len(dataset)):
+        x = dataset[i   :(i + look_back), 0]   # [i-look_back:i, 0]
+        y = dataset[i + look_back       , 0]   # [i, 0]
+        dataX.append(x)
+        dataY.append(y)
+    return np.array(dataX), np.array(dataY)
+    # X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
 y_pred  = [0,0,0,1,1,1,0,0,1,0,1,0,0,1,0,0,0,1,1,1,0,0,1,0,1,0,0,1,0,0,0,1,1,1,0,0,1,0,1,0,0,1]
 Y_test  = [0,0,1,1,1,0,0,1,0,1,0,0,1,0,0,0,1,1,1,0,0,1,0,1,0,0,1,0,0,0,1,1,1,0,0,1,0,1,0,0,1,1]
