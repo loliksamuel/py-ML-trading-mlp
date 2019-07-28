@@ -2,22 +2,20 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import itertools
 import os
 
+import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import itertools
 import pandas_datareader.data as pdr
-from alpha_vantage.timeseries     import TimeSeries
 from alpha_vantage.techindicators import TechIndicators
+from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
-from sklearn.utils.multiclass import unique_labels
-
 from ta import *
+
 np.set_printoptions(precision=2)
 
 def kpi_returns(prices):
@@ -582,7 +580,6 @@ def plot_conf_mtx(Y_true, Y_pred, target_names):
     plt.savefig('files/output/Confusion matrix.png')
 
 
-import matplotlib.pylab as pl
 
 def plot_barchart2(y, title="BT_pred vs observed", ylabel="Price", xlabel="Date"):
     l = len(y)
