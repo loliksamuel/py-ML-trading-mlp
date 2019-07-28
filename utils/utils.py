@@ -22,13 +22,13 @@ def kpi_returns(prices):
     return ((prices-prices.shift(-1))/prices)[:-1]
 
 
-
 def kpi_sharpeRatio():
 
     risk_free_rate = 2.25 # 10 year US-treasury rate (annual) or 0
     sharpe = 2
     #  ((mean_daily_returns[stocks[0]] * 100 * 252) -  risk_free_rate ) / (std[stocks[0]] * 100 * np.sqrt(252))
     return sharpe
+
 
 def kpi_commulativeReturn():
     return 2
@@ -38,10 +38,94 @@ def kpi_risk(df):
     return df.std()
 
 
-def kpi_sharpeRatio():
-    return 2
+def plot_histogram(x, bins, title, xlabel, ylabel):
+    plt.clf()
+    plt.hist(x, bins=bins)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig('files/output/'+title+'.png')
 
 
+def plot_confusion_matrix(cm,
+                          classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+def plot_conf_mtx(Y_true, Y_pred, target_names):
+    print('\nplot_conf_mtx')
+    count = len(Y_true)
+    ones = np.count_nonzero(Y_true)
+    zero = count - ones
+
+    cm = confusion_matrix(Y_true, Y_pred).ravel()
+    tn, fp, fn, tp = cm.ravel()
+    cm = ConfusionMatrix(actual_vector=Y_true, predict_vector=Y_pred)
+    cm.print_matrix()
+    cm.print_normalized_matrix()
+    cnf_matrix = confusion_matrix(Y_true, Y_pred)
+    np.set_printoptions(precision=2)
+
+    # Plot non-normalized confusion matrix
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    title='not normalized'
+    plot_confusion_matrix(cnf_matrix, classes=target_names,
+                          title=title)
+    plt.subplot(1, 2, 2)
+    #plt.savefig('files/output/'+title+'.png')
+    # Plot normalized confusion matrix
+    #plt.figure()
+    title='normalized'
+    plot_confusion_matrix(cnf_matrix, classes=target_names, normalize=True,
+                          title=title)
+
+    plt.savefig('files/output/Confusion matrix.png')
+
+
+
+def plot_barchart2(y, title="BT_pred vs observed", ylabel="Price", xlabel="Date"):
+    l = len(y)
+    greater_than_zero = y == True
+    lesser_than_zero  = y == False
+
+    pl.clf()
+    cax = pl.subplot(111)
+    cax.bar(np.arange(l)[greater_than_zero], y[greater_than_zero], color='blue')
+    cax.bar(np.arange(l)[lesser_than_zero ], y[lesser_than_zero ], color='red')
+    pl.title(title+"TP+TN="+str(sum(y))+'#, ' +str(round(sum(y)/l*100,2))+"%")
+    pl.savefig('files/output/'+title+'.png')
+    #pl.show()
 
 
 def plot_selected(df, title='title', columns=[], shouldNormalize = True, symbol='any stock'):
@@ -59,8 +143,6 @@ def plot_selected(df, title='title', columns=[], shouldNormalize = True, symbol=
     plot_data(df, title=title, ylabel=ylabel)
 
 
-
-
 def plot_data(df, title="normalized Stock prices", ylabel="Price", xlabel="Date" ):
     """Plot stock prices with a custom title and meaningful axis labels."""
     plt.clf()
@@ -69,6 +151,7 @@ def plot_data(df, title="normalized Stock prices", ylabel="Price", xlabel="Date"
     ax.set_ylabel(ylabel)
     plt.savefig('files/output/'+title+'.png')
 
+
 def plot_list(list, title="TA-normalized Stock prices", ylabel="Price", xlabel="Date", dosave=1):
     plt.plot(list)
     plt.xlabel(xlabel)
@@ -76,7 +159,6 @@ def plot_list(list, title="TA-normalized Stock prices", ylabel="Price", xlabel="
     plt.title(title)
     if dosave == 1:
         plt.savefig('files/output/'+title+'.png')
-
 
 
 def plot_barchart(list, title="BT", ylabel="Price", xlabel="Date", colors='green'):
@@ -91,6 +173,7 @@ def plot_barchart(list, title="BT", ylabel="Price", xlabel="Date", colors='green
     plt.title(title)
     plt.savefig('files/output/'+title+'.png')
 
+
 def plot_image(df, title):
     plt.figure()
     plt.imshow(df[0])#, cmap=plt.cm.binary)
@@ -98,6 +181,7 @@ def plot_image(df, title):
     plt.gca().grid(False)
     plt.title(title)
     plt.show()
+
 
 def plot_images(x,y, title):
     plt.figure(figsize=(10,10))
@@ -109,6 +193,7 @@ def plot_images(x,y, title):
         plt.imshow(x[i], cmap=plt.cm.binary)
         plt.xlabel(y[i])
     plt.show()
+
 
 def plot_stat_loss_vs_accuracy(history_dict, title='model Loss, accuracy over time') :
     acc_train  = history_dict['acc']
@@ -128,6 +213,7 @@ def plot_stat_loss_vs_accuracy(history_dict, title='model Loss, accuracy over ti
     plt.legend()
     plt.savefig('files/output/'+title+'.png')
 
+
 def plot_stat_loss_vs_time(history_dict, title='model loss over time') :
     acc_train  = history_dict['acc']
     acc_test   = history_dict['val_acc']
@@ -144,8 +230,6 @@ def plot_stat_loss_vs_time(history_dict, title='model loss over time') :
     plt.ylabel('Loss')
     plt.legend()
     plt.savefig('files/output/'+title+'.png')
-
-
 
 
 def plot_stat_accuracy_vs_time(history_dict, title='model accuracy over time') :
@@ -165,25 +249,28 @@ def plot_stat_accuracy_vs_time(history_dict, title='model accuracy over time') :
     plt.savefig('files/output/'+title+'.png')
 
 
-
-#live plot of profits (a little bit slow)
+'''live plot of profits (a little bit slow)'''
 def plot_live(cumsum, i):
     plt.plot(i, cumsum[i], '.b')  # - is line , b is blue
     plt.draw()
     plt.pause(0.01)
+
 
 from tensorflow.python.keras.utils import normalize
 # Test accuracy:0.68978194505275206
 def normalize0(df, axis):
     return normalize(df, axis=1)
 
+
 # normalize to first row  : Test accuracy:0.4978194505275206
 def normalize1(df, axis):
     return df/df.iloc[0,:]#df/df[0]
 
+
 def normalize2(x, axis):
     train_stats = x.describe()
     return (x - train_stats['mean']) / train_stats['std']
+
 
 def normalize3(x, axis):
 
@@ -216,8 +303,6 @@ def get_data_from_disc_join(symbols, dates):
             df = df.dropna(subset=["GOOG"])
 
     return df
-
-
 
 
 'from year 2000 only https://www.alphavantage.co'
@@ -300,9 +385,6 @@ def rebalance(unbalanced_data):
     data_upsampled.target.value_counts()
 
     return data_upsampled
-
-
-
 
 
 def get_data_from_disc(symbol, skipFirstLines, size_output = 2):
@@ -475,13 +557,13 @@ Date
 #     prices = data['Adj Close']
 #     prices = prices.astype(float)
 #     return prices
-
 def get_data_from_web2(symbol):
     start, end = '1970-01-03','2019-07-12'#'2007-05-02', '2016-04-11'
     data = pdr.get_data_yahoo(symbol, start, end)
     closePrice = data["Close"]
     print(closePrice)
     return closePrice
+
 
 def get_state(parameters, t, window_size = 20):
     outside = []
@@ -500,99 +582,6 @@ def get_state(parameters, t, window_size = 20):
         outside.append(res)
     return np.array(outside).reshape((1, -1))
 
-
-def kpi_sharpeRatio():
-    return 2
-
-
-def plot_histogram(x, bins, title, xlabel, ylabel):
-    plt.clf()
-    plt.hist(x, bins=bins)
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.savefig('files/output/'+title+'.png')
-
-
-def plot_confusion_matrix(cm,
-                          classes,
-                          normalize=False,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Blues):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
-    print(cm)
-
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-
-def plot_conf_mtx(Y_true, Y_pred, target_names):
-    print('\nplot_conf_mtx')
-    count = len(Y_true)
-    ones = np.count_nonzero(Y_true)
-    zero = count - ones
-
-    cm = confusion_matrix(Y_true, Y_pred).ravel()
-    tn, fp, fn, tp = cm.ravel()
-    cm = ConfusionMatrix(actual_vector=Y_true, predict_vector=Y_pred)
-    cm.print_matrix()
-    cm.print_normalized_matrix()
-    cnf_matrix = confusion_matrix(Y_true, Y_pred)
-    np.set_printoptions(precision=2)
-
-    # Plot non-normalized confusion matrix
-    plt.figure()
-    plt.subplot(1, 2, 1)
-    title='not normalized'
-    plot_confusion_matrix(cnf_matrix, classes=target_names,
-                          title=title)
-    plt.subplot(1, 2, 2)
-    #plt.savefig('files/output/'+title+'.png')
-    # Plot normalized confusion matrix
-    #plt.figure()
-    title='normalized'
-    plot_confusion_matrix(cnf_matrix, classes=target_names, normalize=True,
-                          title=title)
-
-    plt.savefig('files/output/Confusion matrix.png')
-
-
-
-def plot_barchart2(y, title="BT_pred vs observed", ylabel="Price", xlabel="Date"):
-    l = len(y)
-    greater_than_zero = y == True
-    lesser_than_zero  = y == False
-
-    pl.clf()
-    cax = pl.subplot(111)
-    cax.bar(np.arange(l)[greater_than_zero], y[greater_than_zero], color='blue')
-    cax.bar(np.arange(l)[lesser_than_zero ], y[lesser_than_zero ], color='red')
-    pl.title(title+"TP+TN="+str(sum(y))+'#, ' +str(round(sum(y)/l*100,2))+"%")
-    pl.savefig('files/output/'+title+'.png')
-    #pl.show()
 
 # reshape  because   LSTM receives  [samples, look_back, features]
 def format_to_lstm(df, look_back = 1):
