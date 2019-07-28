@@ -7,16 +7,18 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
+import itertools
 import pandas_datareader.data as pdr
 from alpha_vantage.timeseries     import TimeSeries
 from alpha_vantage.techindicators import TechIndicators
+from pycm import ConfusionMatrix
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
 from sklearn.utils.multiclass import unique_labels
 
 from ta import *
+np.set_printoptions(precision=2)
 
 def kpi_returns(prices):
     return ((prices-prices.shift(-1))/prices)[:-1]
@@ -519,24 +521,15 @@ def plot_histogram(x, bins, title, xlabel, ylabel):
     plt.savefig('files/output/'+title+'.png')
 
 
-def plot_confusion_matrix2(y_true, y_pred, classes,
+def plot_confusion_matrix(cm,
+                          classes,
                           normalize=False,
-                          title=None,
+                          title='Confusion matrix',
                           cmap=plt.cm.Blues):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
     """
-    if not title:
-        if normalize:
-            title = 'Normalized confusion matrix'
-        else:
-            title = 'Confusion matrix, without normalization'
-
-    # Compute confusion matrix
-    cm = confusion_matrix(y_true, y_pred)
-    # Only use the labels that appear in the data
-    classes = classes[unique_labels(y_true, y_pred)]
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
@@ -545,123 +538,51 @@ def plot_confusion_matrix2(y_true, y_pred, classes,
 
     print(cm)
 
-    fig, ax = plt.subplots()
-    im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
-    ax.figure.colorbar(im, ax=ax)
-    # We want to show all ticks...
-    ax.set(xticks=np.arange(cm.shape[1]),
-           yticks=np.arange(cm.shape[0]),
-           # ... and label them with the respective list entries
-           xticklabels=classes, yticklabels=classes,
-           title=title,
-           ylabel='True label',
-           xlabel='Predicted label')
-
-    # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-             rotation_mode="anchor")
-
-    # Loop over data dimensions and create text annotations.
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            ax.text(j, i, format(cm[i, j], fmt),
-                    ha="center", va="center",
-                    color="white" if cm[i, j] > thresh else "black")
-    fig.tight_layout()
-    return ax
-
-def plot_confusion_matrix(cm,
-                          target_names,
-                          title='Confusion matrix',
-                          cmap=None,
-                          normalize=True):
-    """
-    given a sklearn confusion matrix (cm), make a nice plot
-
-    Arguments
-    ---------
-    cm:           confusion matrix from sklearn.metrics.confusion_matrix
-
-    target_names: given classification classes such as [0, 1, 2]
-                  the class names, for example: ['high', 'medium', 'low']
-
-    title:        the text to display at the top of the matrix
-
-    cmap:         the gradient of the values displayed from matplotlib.pyplot.cm
-                  see http://matplotlib.org/examples/color/colormaps_reference.html
-                  plt.get_cmap('jet') or plt.cm.Blues
-
-    normalize:    If False, plot the raw numbers
-                  If True, plot the proportions
-
-    Usage
-    -----
-    plot_confusion_matrix(cm           = cm,                  # confusion matrix created by
-                                                              # sklearn.metrics.confusion_matrix
-                          normalize    = True,                # show proportions
-                          target_names = y_labels_vals,       # list of names of the classes
-                          title        = best_estimator_name) # title of graph
-
-    Citiation
-    ---------
-    http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
-
-    """
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import itertools
-
-    accuracy = np.trace(cm) / float(np.sum(cm))
-    misclass = 1 - accuracy
-
-    if cmap is None:
-        cmap = plt.get_cmap('Blues')
-
-    plt.figure(figsize=(8, 6))
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
 
-    if target_names is not None:
-        tick_marks = np.arange(len(target_names))
-        plt.xticks(tick_marks, target_names, rotation=45)
-        plt.yticks(tick_marks, target_names)
-
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-
-
-    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        if normalize:
-            plt.text(j, i, "{:0.4f}".format(cm[i, j]),
-                     horizontalalignment="center",
-                     color="white" if cm[i, j] > thresh else "black")
-        else:
-            plt.text(j, i, "{:,}".format(cm[i, j]),
-                     horizontalalignment="center",
-                     color="white" if cm[i, j] > thresh else "black")
-
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
     plt.ylabel('True label')
-    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
-    plt.savefig('files/output/'+title+'.png')
-    #plt.show()
+    plt.xlabel('Predicted label')
 
 def plot_conf_mtx(Y_true, Y_pred, target_names):
+    print('\nplot_conf_mtx')
     count = len(Y_true)
     ones = np.count_nonzero(Y_true)
     zero = count - ones
 
     cm = confusion_matrix(Y_true, Y_pred).ravel()
     tn, fp, fn, tp = cm.ravel()
-    print(
-        f'Confusion matrix : tp={tp} ({round(100 * tp / ones, 2)}%), tn={tn} ({round(100 * tn / zero, 2)}%), fp {fp} ({round(100 * fp / ones, 2)}%), fn {fn} ({round(100 * fn / zero, 2)}%)')
-    #plot_confusion_matrix2(Y_true, Y_pred, target_names, title='Confusion matrix, without normalization', normalize=False)
-    #plot_confusion_matrix2(Y_true, Y_pred, target_names, title='Confusion matrix, with    normalization', normalize=True)
+    cm = ConfusionMatrix(actual_vector=Y_true, predict_vector=Y_pred)
+    cm.print_matrix()
+    cm.print_normalized_matrix()
+    cnf_matrix = confusion_matrix(Y_true, Y_pred)
+    np.set_printoptions(precision=2)
+
+    # Plot non-normalized confusion matrix
+    plt.figure()
+    title='Confusion matrix, unnormalized'
+    plot_confusion_matrix(cnf_matrix, classes=target_names,
+                          title=title)
+    plt.savefig('files/output/'+title+'.png')
+    # Plot normalized confusion matrix
+    plt.figure()
+    title='Confusion matrix, normalized'
+    plot_confusion_matrix(cnf_matrix, classes=target_names, normalize=True,
+                          title=title)
+
+    plt.savefig('files/output/'+title+'.png')
 
 
 import matplotlib.pylab as pl
