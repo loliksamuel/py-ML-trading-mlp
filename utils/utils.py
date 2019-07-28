@@ -308,11 +308,11 @@ def rebalance(unbalanced_data):
 
 
 
-def get_data_from_disc(symbol, skipFirstLines, size_output = 2):
+def get_data_from_disc(symbol, skip_first_lines, size_output = 2):
     """Read stock data (adjusted close) for given symbols from CSV files.
     https://finance.yahoo.com/quote/%5EGSPC/history?period1=-630986400&period2=1563138000&interval=1d&filter=history&frequency=1d
     """
-    print(f'get_data_from_disc {symbol}, {skipFirstLines}, {size_output}')
+    print(f'get_data_from_disc {symbol}, {skip_first_lines}, {size_output}')
     df1 = pd.read_csv(  symbol_to_path(symbol)
                           , index_col  = 'Date'
                           , parse_dates= True
@@ -357,7 +357,7 @@ def get_data_from_disc(symbol, skipFirstLines, size_output = 2):
     df1['sma200'] = df1['Close'].rolling(window=200).mean()
     df1['sma400'] = df1['Close'].rolling(window=400).mean()
     #df1['mom']=pandas.stats.
-    df1 = df1[-(df1.shape[0]-skipFirstLines):]  # skip 1st x rows, x years due to NAN in sma, range
+    df1 = df1[-(df1.shape[0] - skip_first_lines):]  # skip 1st x rows, x years due to NAN in sma, range
 
     df1['nvo'  ]      = df1['Volume'] /  df1['sma10'] / 100 # normalized volume
 

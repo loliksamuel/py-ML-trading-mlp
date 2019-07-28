@@ -1,7 +1,9 @@
 import numpy as np
 
+from data_splitter.abstract_data_splitter import AbstractDataSplitter
 
-class PurgedKFold:
+
+class PurgedKFoldDataSplitter(AbstractDataSplitter):
     def __init__(self, n_splits=3, gap_percentage=1.0):
         self.n_splits = n_splits
         self.gap_percentage = gap_percentage
@@ -12,6 +14,8 @@ class PurgedKFold:
             (i[0], i[-1] + 1) for i in np.array_split(np.arange(x.shape[0]),
                                                       self.n_splits)
         ]
+
+        iteration_index = 0
         for i, j in test_starts:
             gap = int(((j - i) * self.gap_percentage) / 100)
 
@@ -28,4 +32,5 @@ class PurgedKFold:
                 test_indices = indices[i + gap:j - gap]
                 train_indices = np.concatenate((indices[min_index: i - 2 * gap], indices[j + 2 * gap: max_index]))
 
-            yield train_indices, test_indices
+            iteration_index += 1
+            yield train_indices, test_indices, f'cv_{iteration_index}_'

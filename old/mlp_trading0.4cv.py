@@ -13,7 +13,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import tensorflow as tf
 
-from cv.purged_k_fold import PurgedKFold
+from data_splitter.purged_k_fold_data_splitter import PurgedKFoldDataSplitter
 from utils import *
 from sklearn.model_selection import TimeSeriesSplit
 
@@ -103,14 +103,14 @@ df_y = df_all['isUp']  # np.random.randint(0,2,size=(shape[0], ))
 # df_y['isUp'] = y
 print(df_y)
 
-ts_cv = PurgedKFold    (n_splits=5, gap_percentage=2.5)
+ts_cv = PurgedKFoldDataSplitter    (n_splits=5, gap_percentage=2.5)
 #ts_cv = StratifiedKFold(n_splits=5, shuffle=False)
 
 # ts_cv = TimeSeriesSplit(n_splits=5)
 cv_scores = []
-for train_index, test_index in ts_cv.split(df_data.values):
-    x_train = df_data.values[train_index]
-    x_test = df_data.values[test_index]
+for train_indices, test_indices in ts_cv.split(df_data.values):
+    x_train = df_data.values[train_indices]
+    x_test = df_data.values[test_indices]
     print('x_train shape=', str(x_train.shape))
     print('x_test shape=', str(x_test.shape))
 
@@ -123,8 +123,8 @@ for train_index, test_index in ts_cv.split(df_data.values):
     print('\ntrain data', x_train.shape)
     print('\ntest data', x_test.shape)
 
-    y_train = df_y.values[train_index]
-    y_test = df_y.values[test_index]
+    y_train = df_y.values[train_indices]
+    y_test = df_y.values[test_indices]
     print('y_train shape=', str(y_train.shape))
     print('y_test shape=', str(y_test.shape))
 

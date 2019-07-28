@@ -55,11 +55,12 @@ class AbstractMlTradingModel(object):
         score = self._model.evaluate(x_test, y_test, verbose=0)
         print(f'Test loss:    {score[0]} (is it close to 0 ?)')
         print(f'Test accuracy:{score[1]} (is it close to 1 and close to train accuracy ?)')
+        return score
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def plot_evaluation(self, size_input, size_output, title=''):
+    def plot_evaluation(self, size_input, size_output, iteration_id, title=''):
         print(f'\nsize.model.features(size_input) = {size_input}')
         print(f'\nsize.model.target  (size_output)= {size_output}')
 
@@ -67,9 +68,9 @@ class AbstractMlTradingModel(object):
         history_dict = self._history.history
         print(history_dict.keys())
 
-        plot_stat_loss_vs_time(history_dict, title='model Loss over time' + title)
-        plot_stat_accuracy_vs_time(history_dict, title='model Accuracy over time' + title)
-        plot_stat_loss_vs_accuracy(history_dict, title='model Loss, Accuracy over time' + title)
+        plot_stat_loss_vs_time(history_dict, title=f'{iteration_id}model Loss over time{title}')
+        plot_stat_accuracy_vs_time(history_dict, title=f'{iteration_id}model Accuracy over time{title}')
+        plot_stat_loss_vs_accuracy(history_dict, title=f'{iteration_id}model Loss, Accuracy over time{title}')
 
         hist = pd.DataFrame(self._history.history)
         hist['epoch'] = self._history.epoch
@@ -91,6 +92,6 @@ class AbstractMlTradingModel(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def save(self, folder, filename):
-        print(f'\nSave model as {folder}model{filename}.model')
-        self._model.save(f'{folder}model{filename}.model')
+    def save(self, folder, filename, iteration_id):
+        print(f'\nSave model as {folder}{iteration_id}model{filename}.model')
+        self._model.save(f'{folder}{iteration_id}model{filename}.model')
