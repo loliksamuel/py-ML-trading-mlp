@@ -572,17 +572,19 @@ def plot_conf_mtx(Y_true, Y_pred, target_names):
 
     # Plot non-normalized confusion matrix
     plt.figure()
-    title='Confusion matrix, unnormalized'
+    plt.subplot(1, 2, 1)
+    title='un-normalized'
     plot_confusion_matrix(cnf_matrix, classes=target_names,
                           title=title)
-    plt.savefig('files/output/'+title+'.png')
+    plt.subplot(1, 2, 2)
+    #plt.savefig('files/output/'+title+'.png')
     # Plot normalized confusion matrix
-    plt.figure()
-    title='Confusion matrix, normalized'
+    #plt.figure()
+    title='normalized'
     plot_confusion_matrix(cnf_matrix, classes=target_names, normalize=True,
                           title=title)
 
-    plt.savefig('files/output/'+title+'.png')
+    plt.savefig('files/output/Confusion matrix.png')
 
 
 import matplotlib.pylab as pl
