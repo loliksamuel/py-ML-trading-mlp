@@ -535,9 +535,9 @@ Date
     print('\ndf1=\n', df1.loc[:, ['bb_lo10', 'bb_lo20', 'bb_lo50', 'bb_lo200']])  # , 'sma4002']])
     print('\ndf1=\n', df1.loc[:, ['rel_bol_hi10', 'rel_bol_hi20', 'rel_bol_hi50', 'rel_bol_hi200']])  # , 'sma4002']])
     print('\ndf1[ 0]=\n', df1.iloc[0])  # , 'sma4002']])
-    print('\ndf1[ 1]=\n', df1.iloc[1])  # , 'sma4002']])
+    #print('\ndf1[ 1]=\n', df1.iloc[1])  # , 'sma4002']])
     #print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
-    print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
+    #print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
     print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
     # df = pd.DataFrame(record, columns = ['Name', 'Age', 'Stream', 'Percentage'])
     # rslt_df = df[df1['isUp'] == 1]
@@ -565,7 +565,8 @@ def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 
                       , usecols=usecols
                       , na_values=['nan'])
 
-
+    print('raw columns=', df1.columns)
+    print('\nraw df1=\n', df1)
     return df1
 
 

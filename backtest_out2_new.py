@@ -36,7 +36,7 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
 
     print('\nExtrating x')
     df_x  = df_all.loc[:,   names_input]
-    df_oc = df_all.loc[:,   [ 'range', 'Open' , 'Close' ]]
+    df_oc = df_all.loc[:,   [ 'Date','Open','High','Low','Close', 'Volume', 'range']]
     print ('df_x=',df_x.shape, '\n', df_x.loc[:, ['nvo', 'rel_bol_hi10','rel_bol_hi20','rel_bol_hi50','rel_bol_hi200']])
 
     print('\nExtrating y')
@@ -142,7 +142,10 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
 
         # print('predict=',prediction, ' isUp?', y_pred, ' range=',profit, ' y_pred=',y_pred)
         currBarPredicion = y_pred[(i+0):(i+1)]
-        #currBarPredicion = model.predict(transform(currBar))
+        #df_trans = data_transform     (currBar,  skip_first_lines=0, size_output=2)
+        #df_selec = data_select(df_trans)
+        #df_norm = normalize0     (df_selec)
+        #currBarPredicion = model.predict(df_norm)
         if  currBarPredicion == 1 :# green bar prediction
             pointsCurr  = bar_range
             percentCurr = bar_range/open*100
