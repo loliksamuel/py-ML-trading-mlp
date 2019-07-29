@@ -3,7 +3,7 @@ import pandas as pd
 from abc import abstractmethod
 from keras.optimizers import RMSprop
 
-from utils.utils import plot_stat_loss_vs_time, plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy
+from utils.utils import plot_stat_loss_vs_time, plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_conf_mtx
 
 
 class AbstractMlTradingModel(object):
@@ -79,7 +79,7 @@ class AbstractMlTradingModel(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def predict(self,  x_test, y_test):
+    def predict(self,  x_test, y_test, names_output=[0,1], iteration_id=''):
         y_pred = self._model.predict(x_test)
         print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
         print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
@@ -88,7 +88,9 @@ class AbstractMlTradingModel(object):
         # y_pred = self._model.predict(x_all)
         # print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
         # print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
-
+        Y_true = np.argmax(y_test, axis=1)
+        Y_pred = np.argmax(y_pred, axis=1)
+        plot_conf_mtx(Y_true, Y_pred,  names_output, f'files/output/{iteration_id}Confusion matrix.png')
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|

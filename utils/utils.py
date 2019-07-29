@@ -81,7 +81,7 @@ def plot_confusion_matrix(cm,
     plt.xlabel('Predicted label')
 
 
-def plot_conf_mtx(Y_true, Y_pred, target_names):
+def plot_conf_mtx(Y_true, Y_pred, target_names, file_name='files/output/Confusion matrix.png'):
     print('\nplot_conf_mtx')
     count = len(Y_true)
     ones = np.count_nonzero(Y_true)
@@ -109,7 +109,7 @@ def plot_conf_mtx(Y_true, Y_pred, target_names):
     plot_confusion_matrix(cnf_matrix, classes=target_names, normalize=True,
                           title=title)
 
-    plt.savefig('files/output/Confusion matrix.png')
+    plt.savefig(file_name)
 
 
 def plot_barchart2(y, title="BT_pred vs observed", ylabel="Price", xlabel="Date"):
@@ -260,8 +260,13 @@ from tensorflow.python.keras.utils import normalize
 
 
 # Test accuracy:0.68978194505275206
-def normalize0(df, axis):
-    return normalize(df, axis=1)
+def data_normalize0(df, axis=1):
+    print('\n============================================================================')
+    print(f'#normalizing data axis = {axis}')
+    print('===============================================================================')
+    dfn = normalize(df, axis=1)
+    print ('dfn=',dfn)
+    return dfn
 
 
 # normalize to first row  : Test accuracy:0.4978194505275206
@@ -386,14 +391,24 @@ def rebalance(unbalanced_data):
 
     return data_upsampled
 
+def data_select(df, columns_input):
+    print('\n============================================================================')
+    print(f'#Selecting columns {columns_input}')
+    print('===============================================================================')
+    dfs = df[columns_input]
+    print ('dfs=',dfs)
+    return dfs
+
 def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2):
     df = get_data_from_disc(symbol, usecols)
     df1 = data_transform(df, skip_first_lines , size_output)
     return df1
 
 
-def data_transform(df1, skip_first_lines = 1, size_output=2):
-
+def data_transform(df1, skip_first_lines = 400, size_output=2):
+    if  skip_first_lines < 400:
+        print (f'error: skip_first_lines must be > 400 existing...')
+        exit(1)
     print('\n============================================================================')
     print(f'#Transform raw data skip_first_lines={skip_first_lines}, size_output={size_output}')
     print('===============================================================================')

@@ -49,26 +49,34 @@ Actual\Predics    0          1
   0              127        1999
   1              145        2315
 '''
-
-epochs    = 50#5000
+symbol='^GSPC'
+epochs    = 2
 cv_scores = [0]
+skip_first_lines=3600 #>400
+size_output=2
 
-data_raw = get_data_from_disc (symbol='^GSPC', usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Volume'])
-all_data = data_transform     (data_raw,  skip_first_lines=3600, size_output=2)
+data_raw    = get_data_from_disc (symbol=symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Volume'])
+df_all      = data_transform     (data_raw, skip_first_lines=skip_first_lines, size_output=size_output)
 
 
-# n_splits  = 5
-# print('\n\n\n============================================================================')
-# print(f'==        {n_splits}    Cross      Validation       MODE  ')
-# print('============================================================================')
-# (cv_scores, _, _)  = execute_model_train_and_test(all_data,  epochs=epochs, data_splitter=PurgedKFoldDataSplitter(n_splits=n_splits, gap_percentage=1.0))
+# df_features      = data_select     (df_all, names_input)
+# df_features_norm = data_normalize0 (df_features.values, axis=1)
+# df_y_observed    = data_select     (df_all, 'isUp')
+
+
+
+n_splits  = 5
+print('\n\n\n============================================================================')
+print(f'==        {n_splits}    Cross      Validation       MODE  ')
+print('============================================================================')
+(cv_scores, _, _)  = execute_model_train_and_test(df_all,  epochs=epochs, data_splitter=PurgedKFoldDataSplitter(n_splits=n_splits, gap_percentage=1.0))
 
 
 
 print('\n\n\nֿ\n\n\nֿ\n\n\nֿ============================================================================')
 print('#      1  SIMPLE   SPLIT   MODE      ')
 print('============================================================================')
-(_, model, params)  = execute_model_train_and_test(all_data, epochs=epochs, data_splitter=TrainTestPercentageDataSplitter(33))
+(_, model, params)  = execute_model_train_and_test(df_all, epochs=epochs, data_splitter=TrainTestPercentageDataSplitter(33))
 
 
 

@@ -27,35 +27,43 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
     """
 
     print('\nLoading model ',filename)
-    model    = tf.keras.models.load_model(filename)
-
     print(f'\nLoading data of symbol {symbol} skipRows={skipRows} names_output={names_output} names_input={names_input}',)
+
+    model    = tf.keras.models.load_model(filename)
     size_output  = len(names_output)
-    #df_all =  get_data_from_disc(symbol, skipRows , size_output=len(names_output))
-    df_all = data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low',  'Volume'], skip_first_lines=skipRows, size_output=size_output)
 
-    print('\nExtrating x')
-    df_x  = df_all.loc[:,   names_input]
-    df_oc = df_all.loc[:,   [ 'Date','Open','High','Low','Close', 'Volume', 'range']]
-    print ('df_x=',df_x.shape, '\n', df_x.loc[:, ['nvo', 'rel_bol_hi10','rel_bol_hi20','rel_bol_hi50','rel_bol_hi200']])
-
-    print('\nExtrating y')
-    df_y_observed = df_all['isUp']
-    print('\nall data+prediction \n',df_all.tail())
-    print(df_all.shape)
-    print('df_y=',df_y_observed.shape, '\n', df_y_observed)
-
-    print('\nNormalizing... df_x.shape',df_x.shape)
-    df_x = normalize0(df_x.values, axis=1)
-
-    print('\nPredicting... ')
-    df_y_pred_tuples = model.predict(df_x)
+    '''
+     predicted=[1 0 0 0 0 1 0 0 1 0 0 0 0 0 1 1 0 0 0 1 0 0 1 0 1 1 1 1 0 0 0 0 1 1 1 1 1
+    1 1 1 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 0 1 0 0 1 1 1 1 1 1 1 1
+    1 0 0 0 0 0 1 0 1 1 1 1 1 1 1 1 1 1 0 0 1 1 1 1 1 0 1 1 1 0 1 0 1 1 1 0 1
+    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 0 0 1 1
+    0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 1 1 1 0 0 1 0 1 0 0 1 1 0
+    0 0 0 0 0 1 0 0 0 0 1 1 1 1 1 1 1 0 0 0 0 1 0 1 0 0 0 1 0 1 1 1 1 1 1 1 1
+    0 1 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 1 1 1 1 0 0 0 0 1 1
+    1 1 1 1 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 1 1 1 1 0 1 1 1 1 0 0 0
+    0 0 1 1 1 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 1 0 0 1 1 1 0 0 1 1 0 0 0 0 0 0 0
+    0 0 0 1 0 1 1 1 1 1 0 0 0 0 0 1 1 0 0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 0
+    1 1 1 1 0 0 0 1 0 0 1 1 1 1 1 1 0 0 0 1 1 1 1 1 1 1 1 1 1 1 0 1 0 0 0 0 0
+    1 1 1 1 1 1 1 0 1 0 0 0 0 0 1 1 1 1 1 1 1 0 1 1 1 1 1 0 0 1 1 1 1 1 1 1 0
+    0 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 1 1 1 1 0
+    0 0 0 0 1 1 1 1 0 0 1 1 1 1 0 0 0 0 0 1 1 0 1]
+      '''
+    df_raw   = get_data_from_disc (symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'])
+    df_trans = data_transform     (df_raw,  skip_first_lines=skipRows, size_output=2)
+    df_features = data_select     (df_trans, names_input)
+    df_y_observed = data_select   (df_trans, 'isUp')
+    df_norm  = data_normalize0    (df_features.values, axis=1)
+    df_y_pred_tuples = model.predict(df_norm)
     y_pred = np.argmax(df_y_pred_tuples, axis=1)
+    print ('\ndf_features=',df_features.shape  , '\n', df_features.loc[:, ['nvo', 'rel_bol_hi10','rel_bol_hi20','rel_bol_hi50','rel_bol_hi200']])
+    print('\ndf_trans='    ,df_trans.shape     , '\n', df_trans.tail())
+    print('y_observed='    ,df_y_observed.shape, '\n', df_y_observed)
+    print(f'Predicted={y_pred}')
 
 
-    lenxx = df_x.shape[0]#len(df_y_observed)
-    y = keras.utils.to_categorical(df_y_observed, size_output)
-    #print('len=',lenxx,' y=',y)
+
+    lenxx = df_norm.shape[0]#len(df_y_observed)
+    #y = keras.utils.to_categorical(df_y_observed, size_output)
     # data = pdr.get_data_yahoo(symbol, start_date, end_date)
     # closePrice = data["Close"]
     # print(closePrice)
@@ -121,11 +129,30 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
       profits from longs  : 0 $ ,  -0.0 % of total
       profits from shorts : -23907.65 $ ,  100.0 % of total
     total positions    :  8384 # ,  46.61 % won 
+    
+    t=0
+    symbol= ^GSPC
+period= 504  bars
+strategy= files/output/model_hid15_RMS1e-05_epc5000_batch128_dropout0.2_sym^GSPC_inp39_out2_mlp.model
+initial  deposit : 1
+Expected payoff  : (all/long/short/win/lose)   :  9.21  /  8.51  /  10.06  /  15.37  /  -7.74  points
+absolute drawdown: 
+
+total net profit :  4633.51 $,  463350.98%
+  profits from longs  : 2349.05 $ ,  50.7 % of total
+  profits from shorts : 2284.46 $ ,  49.3 % of total
+total positions    :  503 # ,  73.36 % won 
+  longs positions  : 276 # ,  54.87 % of total,  2349.05 $,  75.72 % won, largest= 104.58 $, smallest= -33.22
+  shorts positions : 227 # ,  45.13 % of total,  2284.46 $,  70.48 % won, largest= 104.01 $, smallest= -80.36
+  winner positions :  369 # ,  73.36 % of total,  5670.66 $
+  loser  positions :  134 # ,  26.64 % of total,  -1037.15 $
+
     '''
-    for i in range(start,lenxx):#0 to 13894   #for index, row in df_oc.iterrows():
-        currBar      = df_oc[(i+0):(i+1)]
+    t = 0
+    for i in range(start,lenxx-1):#0 to 13894   #for index, row in df_oc.iterrows():
+        currBar      = df_trans[(i+0):(i+1)]
         #nextBar     = df_oc[(i+1):(i+2)]
-        currBarIsUpObserved  = df_y_observed[(i+0):(i+1)]
+        currBarIsUpObserved  = df_y_observed[(i+0+t):(i+1+t)]
         print('\n#',(i+1),'out of ',lenxx,'. curr Bar =', currBar)
         bar_range = currBar['range'].iloc[0]  #  bar_range = row['range']
         open      = currBar[ 'Open'].iloc[0]  #  bar_range = row['Open']
@@ -141,11 +168,8 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
         # print(' data[i]=', closePrice[i])
 
         # print('predict=',prediction, ' isUp?', y_pred, ' range=',profit, ' y_pred=',y_pred)
-        currBarPredicion = y_pred[(i+0):(i+1)]
-        #df_trans = data_transform     (currBar,  skip_first_lines=0, size_output=2)
-        #df_selec = data_select(df_trans)
-        #df_norm = normalize0     (df_selec)
-        #currBarPredicion = model.predict(df_norm)
+        currBarPredicion = y_pred[(i+0+t):(i+1+t)]
+
         if  currBarPredicion == 1 :# green bar prediction
             pointsCurr  = bar_range
             percentCurr = bar_range/open*100
@@ -260,7 +284,7 @@ pd.set_option('display.width'      , 1000)
 
 
 symbol      ='^GSPC'# ^GSPC = SP500 3600, DJI 300
-skip_days     =17300#3600
+skip_days     =17000#3600 #total rows= 17505   must be > 400 due to sma(400)
 modelType     ='mlp'#MlModel.MLP'#MlModel.MLP mlp lstm drl
 epochs        =5000#best 5000
 size_hidden   =15

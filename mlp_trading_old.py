@@ -240,8 +240,8 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self):
-        self.x_train = normalize0(self.x_train, axis=1)
-        self.x_test  = normalize0(self.x_test, axis=1)
+        self.x_train = data_normalize0(self.x_train, axis=1)
+        self.x_test  = data_normalize0(self.x_test, axis=1)
         # print('columns=', self.x_train.columns)
         # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range']])
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])

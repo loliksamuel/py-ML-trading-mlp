@@ -1,6 +1,6 @@
 from model.enum import MlModel
 from model.model_factory import MlModelFactory
-from utils.utils import plot_selected, plot_histogram, normalize0
+from utils.utils import plot_selected, plot_histogram, data_normalize0
 from keras.utils import to_categorical
 import numpy as np
 
@@ -88,7 +88,7 @@ class MlpTrading(object):
         print('\n======================================')
         print(f'#{iteration_id}Predict unseen data with 2 probabilities for 2 classes(choose the highest)')
         print('======================================')
-        model.predict( x_test=self.x_test, y_test=self.y_test)
+        model.predict( x_test=self.x_test, y_test=self.y_test, names_output=['dn','up'], iteration_id=iteration_id)
 
 
         print('\n======================================')
@@ -173,8 +173,8 @@ class MlpTrading(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self):
-        self.x_train = normalize0(self.x_train, axis=1)
-        self.x_test = normalize0(self.x_test, axis=1)
+        self.x_train = data_normalize0(self.x_train, axis=1)
+        self.x_test = data_normalize0(self.x_test, axis=1)
         # print('columns=', self.x_train.columns)
         # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range']])
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])
