@@ -27,4 +27,4 @@ class MlpTradingModel(AbstractMlTradingModel):
         self._model.add(Dropout(self.dropout))  # regularization technique by removing some nodes
 
         self._model.add(Dense(units=self.size_output, activation='softmax'))
-        self._model.summary()
+        # self._model.summary()

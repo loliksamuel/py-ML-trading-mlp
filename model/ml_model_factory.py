@@ -10,7 +10,7 @@ class MlModelFactory(object):
     def __init__(self) -> None:
         super().__init__()
         self.models = dict()
-        self.models[MlModel.MLP] = MlpTradingModel
+        self.models[MlModel.MLP]  = MlpTradingModel
         self.models[MlModel.LSTM] = LstmTradingModel
 
     def create(self, model_type, size_hidden, size_input, size_output, dropout=0.2, kernel_init='glorot_uniform'):

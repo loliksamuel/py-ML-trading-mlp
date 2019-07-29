@@ -45,89 +45,68 @@ class MlpTrading(object):
                 kernel_init='glorot_uniform',
                 dropout=0.2,
                 verbose=0):
-        print('\n======================================')
-        print('Plotting features')
-        print('======================================')
-        self._plot_features(df_all, iteration_id)
+        # print('\n======================================')
+        # print('Plotting features')
+        # print('======================================')
+        # self._plot_features(df_all, iteration_id)
 
         print('\n======================================')
-        print('Splitting the data to train & test data')
+        print(f'#{iteration_id}Splitting the data to train & test data')
         print('======================================')
         self._prepare_input_data(df_all, train_data_indices, test_data_indices)
 
         print('\n======================================')
-        print('Labeling the data')
+        print(f'#{iteration_id}Labeling the data')
         print('======================================')
         self._prepare_output_data(df_all, train_data_indices, test_data_indices)
 
         print('\n======================================')
-        print('Cleaning the data')
-        print('======================================')
-        self._data_clean()
-
-        print('\n======================================')
-        print('Normalizing the data')
+        print(f'#{iteration_id}Normalizing the data')
         print('======================================')
         self._data_normalize()
 
         print('\n======================================')
-        print('Rebalancing Data')
-        print('======================================')
-        self._data_rebalance()
-
-        print('\n======================================')
-        print('Transform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
+        print(f'#{iteration_id}Transform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
               '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
         print('======================================')
         self._data_transform()
 
         print('\n======================================')
-        print('Creating the model')
+        print(f'#{iteration_id}Creating  model')
         print('======================================')
         model = MlModelFactory().create(model_type=model_type, size_hidden=size_hidden, size_input=self.size_input,
                                         size_output=self.size_output, dropout=dropout, kernel_init=kernel_init)
-
-        print('\n======================================')
-        print('Compiling the model')
-        print('======================================')
         model.compile(loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
 
+
         print('\n======================================')
-        print(f'Train model for {epochs} epochs...')
+        print(f'#{iteration_id}Train model for {epochs} epochs...')
         print('======================================')
         model.fit(x_train=self.x_train, y_train=self.y_train, x_test=self.x_test, y_test=self.y_test, epochs=epochs,
                   batch_size=batch_size, verbose=verbose)
 
+
         print('\n======================================')
-        print('Printing history')
+        print(f'#{iteration_id}Evaluate model with unseen data. pls validate that test accuracy =~ train accuracy and near 1.0')
         print('======================================')
-        # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
-        # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
         params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
         model.plot_evaluation(size_input=self.size_input, size_output=self.size_output, iteration_id=iteration_id,
                               title=params)
-
-        print('\n======================================')
-        print('Evaluate the model with unseen data. pls validate that test accuracy =~ train accuracy and near 1.0')
-        print('======================================')
         scores = model.evaluate(x_test=self.x_test, y_test=self.y_test)
 
+
         print('\n======================================')
-        print('Predict unseen data with 2 probabilities for 2 classes(choose the highest)')
+        print(f'#{iteration_id}Predict unseen data with 2 probabilities for 2 classes(choose the highest)')
         print('======================================')
         model.predict(x_train=self.x_train, x_test=self.x_test, y_test=self.y_test)
 
-        print('\n======================================')
-        print('Saving the model')
-        print('======================================')
-        model.save(folder='files/output/', filename=params, iteration_id=iteration_id)
 
-        print('\n======================================')
-        print('Plotting histograms')
-        print('======================================')
-        self._plot_features_hstg(df_all, iteration_id)
+        # print('\n======================================')
+        # print('Plotting histograms')
+        # print('======================================')
+        # self._plot_features_hstg(df_all, iteration_id)
 
-        return scores
+        return scores, model, params
 
     # |--------------------------------------------------------|
     # |                                                        |

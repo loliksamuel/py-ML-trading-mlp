@@ -7,9 +7,9 @@ import numpy as np
 
 
 def load_data():
-    print('\n======================================')
-    print('Loading the data')
-    print('======================================')
+    print('\n\n\n============================================================================')
+    print('===     Loading      data')
+    print('===============================================================================')
     df_all = get_data_from_disc(symbol='^GSPC', skip_first_lines=3600, size_output=2)
     return df_all
 
@@ -18,40 +18,62 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs):
     cv_scores = []
     for train_indices, test_indices, iteration_id in data_splitter.split(full_data_frame.values):
         mlp_trading = MlpTrading(symbol='^GSPC')
-        scores = mlp_trading.execute(df_all=full_data_frame,
-                                     train_data_indices=train_indices,
-                                     test_data_indices=test_indices,
-                                     iteration_id=iteration_id,
-                                     model_type=MlModel.MLP,
-                                     epochs=epochs,
-                                     size_hidden=15,
-                                     batch_size=128,
-                                     loss='categorical_crossentropy',
-                                     lr=0.00001,
-                                     rho=0.9,
-                                     epsilon=None,
-                                     decay=0.0,
-                                     kernel_init='glorot_uniform',
-                                     dropout=0.2,
-                                     verbose=2)
+        (scores, model, params) = mlp_trading\
+                                                .execute(df_all=full_data_frame,
+                                                         train_data_indices=train_indices,
+                                                         test_data_indices=test_indices,
+                                                         iteration_id=iteration_id,
+                                                         model_type=MlModel.MLP,
+                                                         epochs=epochs,
+                                                         size_hidden=15,
+                                                         batch_size=128,
+                                                         loss='categorical_crossentropy',
+                                                         lr=0.00001,
+                                                         rho=0.9,
+                                                         epsilon=None,
+                                                         decay=0.0,
+                                                         kernel_init='glorot_uniform',
+                                                         dropout=0.2,
+                                                         verbose=0)
         cv_scores.append(scores[1] * 100)
-    return cv_scores
+
+
+    return cv_scores, model, params
+
+
+
 
 
 all_data = load_data()
 
-print('\n======================================')
-print('Cross Validation Test')
-print('======================================')
-cv_accuracies = execute_model_train_and_test(all_data,
-                                             PurgedKFoldDataSplitter(n_splits=5, gap_percentage=1.0),
-                                             epochs=50)
-print('\n======================================')
-print('Total Cross Validation Accuracy')
-print(f'{np.mean(cv_accuracies):.2f}% (+/- {np.std(cv_accuracies):.2f}%)')
-print('======================================')
+
+epochs=1
+cv_scores =[0]
+
+# print('\n\n\n============================================================================')
+# print('==         Cross      Validation       MODE  ')
+# print('============================================================================')
+# (cv_scores, _, _)  = execute_model_train_and_test(all_data,  epochs=epochs, data_splitter=PurgedKFoldDataSplitter(n_splits=5, gap_percentage=1.0))
+#
+
+
+print('\n\n\nֿ\n\n\nֿ\n\n\nֿ============================================================================')
+print('==       SIMPLE    SPLIT   MODE      ')
+print('============================================================================')
+(_, model, params)  = execute_model_train_and_test(all_data, epochs=epochs, data_splitter=TrainTestPercentageDataSplitter(33))
+
+
 
 print('\n======================================')
-print('Model Development')
+print('Total Accuracy Cross Validation: ')
+print(*cv_scores, sep = ", ")
+print(f'{np.mean(cv_scores):.2f}% (+/- {np.std(cv_scores):.2f}%)')
 print('======================================')
-execute_model_train_and_test(all_data, TrainTestPercentageDataSplitter(33), epochs=2000)
+
+
+print('\n\n\n\n\nֿ\n\n\nֿֿ===============================================================================')
+print('==       Saving   model')
+print('===============================================================================')
+model.summary()
+model.save(folder='files/output/', filename=params, iteration_id='')
+
