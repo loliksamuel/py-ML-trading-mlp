@@ -1,6 +1,6 @@
-from model.lstm_trading_model import LstmTradingModel
-from model.ml_model import MlModel
-from model.mlp_trading_model import MlpTradingModel
+from model.model_lstm import LstmTradingModel
+from model.enum import MlModel
+from model.model_mlp import MlpTradingModel
 from utils.singleton import Singleton
 
 

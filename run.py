@@ -1,6 +1,6 @@
-from data_splitter.purged_k_fold_data_splitter import PurgedKFoldDataSplitter
-from data_splitter.train_test_percentage_data_splitter import TrainTestPercentageDataSplitter
-from model.ml_model import MlModel
+from data_splitter.splitter_k_fold_purged import PurgedKFoldDataSplitter
+from data_splitter.splitter_simple import TrainTestPercentageDataSplitter
+from model.enum import MlModel
 from mlp_trading import MlpTrading
 from utils.utils import get_data_from_disc
 import numpy as np
@@ -44,7 +44,7 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs):
 
 
 
-epochs    = 1
+epochs    = 1#5000
 cv_scores = [0]
 all_data = load_data()
 

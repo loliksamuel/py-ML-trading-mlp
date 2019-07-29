@@ -1,7 +1,7 @@
 from keras import Sequential
 from keras.layers import Dense, Dropout, Embedding, LSTM
 
-from model.abstract_ml_trading_model import AbstractMlTradingModel
+from model.model_abstract import AbstractMlTradingModel
 
 
 class LstmTradingModel(AbstractMlTradingModel):

@@ -1,5 +1,5 @@
-from model.ml_model import MlModel
-from model.ml_model_factory import MlModelFactory
+from model.enum import MlModel
+from model.model_factory import MlModelFactory
 from utils.utils import plot_selected, plot_histogram, normalize0
 from keras.utils import to_categorical
 import numpy as np
@@ -85,6 +85,11 @@ class MlpTrading(object):
         model.fit(x_train=self.x_train, y_train=self.y_train, x_test=self.x_test, y_test=self.y_test, epochs=epochs,
                   batch_size=batch_size, verbose=verbose)
 
+        print('\n======================================')
+        print(f'#{iteration_id}Predict unseen data with 2 probabilities for 2 classes(choose the highest)')
+        print('======================================')
+        model.predict(x_train=self.x_train, x_test=self.x_test, y_test=self.y_test)
+
 
         print('\n======================================')
         print(f'#{iteration_id}Evaluate model with unseen data. pls validate that test accuracy =~ train accuracy and near 1.0')
@@ -95,10 +100,6 @@ class MlpTrading(object):
         scores = model.evaluate(x_test=self.x_test, y_test=self.y_test)
 
 
-        print('\n======================================')
-        print(f'#{iteration_id}Predict unseen data with 2 probabilities for 2 classes(choose the highest)')
-        print('======================================')
-        model.predict(x_train=self.x_train, x_test=self.x_test, y_test=self.y_test)
 
 
         # print('\n======================================')

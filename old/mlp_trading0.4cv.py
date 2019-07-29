@@ -13,7 +13,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import tensorflow as tf
 
-from data_splitter.purged_k_fold_data_splitter import PurgedKFoldDataSplitter
+from data_splitter.splitter_k_fold_purged import PurgedKFoldDataSplitter
 from utils import *
 from sklearn.model_selection import TimeSeriesSplit
 

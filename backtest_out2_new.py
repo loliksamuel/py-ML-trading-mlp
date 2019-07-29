@@ -16,10 +16,9 @@ from utils.utils import *
 fix.pdr_override()
 
 
-def back_test(filename, symbol, skipRows, names_input, names_output, start_date, end_date):
+def back_test(filename, symbol, skipRows, initial, names_input, names_output, start_date, end_date):
     """
-    A simple back test for a given date period
-    :param model     : the chosen strategy. Note to have already formed the model, and fitted with training data.
+     :param model     : the chosen strategy. Note to have already formed the model, and fitted with training data.
     :param symbol    : company ticker
     :param start_date: starting date :type  start_date : "YYYY-mm-dd"
     :param end_date  : ending date   :type  end_date  : "YYYY-mm-dd"
@@ -64,7 +63,7 @@ def back_test(filename, symbol, skipRows, names_input, names_output, start_date,
     lose_long  = 0
     lose_shrt  = 0
     pointUsdRatio = 1
-    initialDeposit = 10000
+    initialDeposit = initial
     pointsCurr   = 0
     percentCurr  = 0
     listTradesPercent = []
@@ -80,6 +79,8 @@ def back_test(filename, symbol, skipRows, names_input, names_output, start_date,
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+
+    y_pred_all = np.argmax(df_y_pred, axis=1)
     print('start trading...')
     '''
     # 0 out of  13894 . 
@@ -119,7 +120,7 @@ def back_test(filename, symbol, skipRows, names_input, names_output, start_date,
       profits from shorts : -23907.65 $ ,  100.0 % of total
     total positions    :  8384 # ,  46.61 % won 
     '''
-    for i in range(start,lenxx-1):#0 to 13894   #for index, row in df_oc.iterrows():
+    for i in range(start,lenxx):#0 to 13894   #for index, row in df_oc.iterrows():
         currBar      = df_oc[(i+0):(i+1)]
         #nextBar     = df_oc[(i+1):(i+2)]
         currBarIsUp  = df_y_observed[(i+0):(i+1)]
@@ -138,7 +139,7 @@ def back_test(filename, symbol, skipRows, names_input, names_output, start_date,
         # print(' data[i]=', closePrice[i])
 
 
-        y_pred_all = np.argmax(df_y_pred, axis=1)
+
 
         # print('predict=',prediction, ' isUp?', y_pred, ' range=',profit, ' y_pred=',y_pred)
         y_pred_curr = y_pred_all[(i+0):(i+1)]
@@ -192,6 +193,19 @@ def back_test(filename, symbol, skipRows, names_input, names_output, start_date,
         longs=1
     if shorts == 0:
         shorts=1
+
+    maxLong  = None
+    maxShort = None
+    minLong  = None
+    minShort = None
+    if len(listLongs) > 0:
+        maxLong = max( listLongs)
+        minLong = min( listLongs)
+    if len(listShorts) > 0:
+        maxShort = max( listShorts)
+        minShort = min( listShorts)
+
+
     print('\nsummary\n==================' )
     print('symbol=',symbol )
     print('period=', lenxx ,' bars' )
@@ -204,8 +218,8 @@ def back_test(filename, symbol, skipRows, names_input, names_output, start_date,
     print("  profits from longs  : " + str(round( profitLongs ,2))+' $ , ',str(round(profitLongs/ totalProfit*100,2)),'% of total')
     print("  profits from shorts : " + str(round( profitShorts,2))+' $ , ',str(round(profitShorts/totalProfit*100,2)),'% of total')
     print("total positions    : " ,totalTrades     , '# , ', str(round((win_long+win_short)/totalTrades *100,2)), '% won ' )
-    print("  longs positions  : " + str(longs )    , '# , ', round(longs /totalTrades*100,2)          , '% of total, ' ,round(   profitLongs  ,2),'$, ',str(round(win_long/longs *100,2)) , '% won, largest=',str(round(max( listLongs),2))  , '$, smallest=',str(round(min(listLongs) ,2)))
-    print("  shorts positions : " + str(shorts)    , '# , ', round(shorts/totalTrades*100,2)          , '% of total, ' ,round(   profitShorts ,2),'$, ',str(round(win_short/shorts*100,2)), '% won, largest=',str(round(max(listShorts),2))  , '$, smallest=',str(round(min(listShorts),2)))
+    print("  longs positions  : " + str(longs )    , '# , ', round(longs /totalTrades*100,2)          , '% of total, ' ,round(   profitLongs  ,2),'$, ',str(round(win_long/longs *100,2)) , '% won, largest=',str(round(maxLong,2))  , '$, smallest=',str(round(minLong ,2)))
+    print("  shorts positions : " + str(shorts)    , '# , ', round(shorts/totalTrades*100,2)          , '% of total, ' ,round(   profitShorts ,2),'$, ',str(round(win_short/shorts*100,2)), '% won, largest=',str(round(maxShort,2))  , '$, smallest=',str(round(minShort,2)))
     print("  winner positions : ", len(listWinners), '# , ', round(len(listWinners)/totalTrades*100,2), '% of total, ' ,round(sum(listWinners),2),'$')
     print("  loser  positions : " ,len( listLosers), '# , ', round(len(listLosers) /totalTrades*100,2), '% of total, ' ,round(sum(listLosers ),2),'$')
     plt.clf()
@@ -243,13 +257,14 @@ pd.set_option('display.width'      , 1000)
 
 
 symbol      ='^GSPC'# ^GSPC = SP500 3600, DJI 300
-skip_days     =3600
-modelType     ='MlModel.MLP'#MlModel.MLP mlp lstm drl
+skip_days     =17300#3600
+modelType     ='mlp'#MlModel.MLP'#MlModel.MLP mlp lstm drl
 epochs        =5000#best 5000
 size_hidden   =15
 batch_size    =128
 lr           = 1e-05#default=0.001   best=0.00001 (1e-05) for mlp, 0.0001 for lstm
 dropout      = 0.2 # 0.0 - 1.0
+initialDeposit = 0
 
 names_input   = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50', 'rel_bol_hi200', 'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
 names_output  = ['Green bar', 'Red Bar']#, 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
@@ -264,4 +279,4 @@ seed = 7
 np.random.seed(seed)
 
 print('trying to backtest with model ',filename ,' and input values = ', names_input)
-back_test(filename, symbol, skip_days, names_input, names_output, start_date='1970-01-03', end_date='2019-05-05')
+back_test(filename, symbol, skip_days, initialDeposit, names_input, names_output, start_date='1970-01-03', end_date='2019-05-05')

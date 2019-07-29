@@ -1,6 +1,6 @@
 import numpy as np
 
-from data_splitter.abstract_data_splitter import AbstractDataSplitter
+from data_splitter.splitter_abstract import AbstractDataSplitter
 
 
 class TrainTestPercentageDataSplitter(AbstractDataSplitter):

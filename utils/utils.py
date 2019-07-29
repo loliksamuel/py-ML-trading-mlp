@@ -536,7 +536,7 @@ Date
     print('\ndf1=\n', df1.loc[:, ['rel_bol_hi10', 'rel_bol_hi20', 'rel_bol_hi50', 'rel_bol_hi200']])  # , 'sma4002']])
     print('\ndf1[ 0]=\n', df1.iloc[0])  # , 'sma4002']])
     print('\ndf1[ 1]=\n', df1.iloc[1])  # , 'sma4002']])
-    print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
+    #print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
     print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
     print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
     # df = pd.DataFrame(record, columns = ['Name', 'Age', 'Stream', 'Percentage'])
