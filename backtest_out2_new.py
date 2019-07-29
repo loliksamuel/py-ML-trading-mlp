@@ -136,8 +136,6 @@ period= 504  bars
 strategy= files/output/model_hid15_RMS1e-05_epc5000_batch128_dropout0.2_sym^GSPC_inp39_out2_mlp.model
 initial  deposit : 1
 Expected payoff  : (all/long/short/win/lose)   :  9.21  /  8.51  /  10.06  /  15.37  /  -7.74  points
-absolute drawdown: 
-
 total net profit :  4633.51 $,  463350.98%
   profits from longs  : 2349.05 $ ,  50.7 % of total
   profits from shorts : 2284.46 $ ,  49.3 % of total
@@ -147,12 +145,21 @@ total positions    :  503 # ,  73.36 % won
   winner positions :  369 # ,  73.36 % of total,  5670.66 $
   loser  positions :  134 # ,  26.64 % of total,  -1037.15 $
 
+t=1
+total net profit :  66.07 $ 
+  profits from longs  : 1190.43 $ ,  1801.77 % of total
+  profits from shorts : -1124.36 $ ,  -1701.77 % of total
+total positions    :  13903 # ,  51.59 % won 
+  longs positions  : 7341 # ,  52.8 % of total,  1190.43 $,  53.93 % won, largest= 60.65 $, smallest= -86.76
+  shorts positions : 6562 # ,  47.2 % of total,  -1124.36 $,  48.96 % won, largest= 104.01 $, smallest= -104.58
+  winner positions :  7172 # ,  51.59 % of total,  34418.2 $
+  loser  positions :  6731 # ,  48.41 % of total,  -34352.13 $
     '''
     t = 0
     for i in range(start,lenxx-1):#0 to 13894   #for index, row in df_oc.iterrows():
         currBar      = df_trans[(i+0):(i+1)]
         #nextBar     = df_oc[(i+1):(i+2)]
-        currBarIsUpObserved  = df_y_observed[(i+0+t):(i+1+t)]
+        currBarIsUpObserved  = df_y_observed[(i+0):(i+1)]
         print('\n#',(i+1),'out of ',lenxx,'. curr Bar =', currBar)
         bar_range = currBar['range'].iloc[0]  #  bar_range = row['range']
         open      = currBar[ 'Open'].iloc[0]  #  bar_range = row['Open']
@@ -168,7 +175,7 @@ total positions    :  503 # ,  73.36 % won
         # print(' data[i]=', closePrice[i])
 
         # print('predict=',prediction, ' isUp?', y_pred, ' range=',profit, ' y_pred=',y_pred)
-        currBarPredicion = y_pred[(i+0+t):(i+1+t)]
+        currBarPredicion = y_pred[(i+0-t):(i+1-t)]
 
         if  currBarPredicion == 1 :# green bar prediction
             pointsCurr  = bar_range
@@ -284,7 +291,7 @@ pd.set_option('display.width'      , 1000)
 
 
 symbol      ='^GSPC'# ^GSPC = SP500 3600, DJI 300
-skip_days     =17000#3600 #total rows= 17505   must be > 400 due to sma(400)
+skip_days     =17000#3600 17000 #total rows= 17505   must be > 400 due to sma(400)
 modelType     ='mlp'#MlModel.MLP'#MlModel.MLP mlp lstm drl
 epochs        =5000#best 5000
 size_hidden   =15
