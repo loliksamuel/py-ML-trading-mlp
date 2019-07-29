@@ -148,7 +148,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_load(self, skip_days):
-        df_all = get_data_from_disc(self.symbol, skip_days, size_output=self.size_output)
+        df_all = data_load_and_transform(self.symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = skip_days, size_output=self.size_output)
         # print('df_all.shape=',df_all.shape)
         # df_all = format_to_lstm(df_all)
         # print('df_all.shape=',df_all.shape)

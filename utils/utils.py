@@ -386,17 +386,17 @@ def rebalance(unbalanced_data):
 
     return data_upsampled
 
+def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2):
+    df = get_data_from_disc(symbol, usecols)
+    df1 = data_transform(df, skip_first_lines , size_output)
+    return df1
 
-def get_data_from_disc(symbol, skip_first_lines, size_output=2):
-    """Read stock data (adjusted close) for given symbols from CSV files.
-    https://finance.yahoo.com/quote/%5EGSPC/history?period1=-630986400&period2=1563138000&interval=1d&filter=history&frequency=1d
-    """
-    print(f'get_data_from_disc {symbol}, {skip_first_lines}, {size_output}')
-    df1 = pd.read_csv(symbol_to_path(symbol)
-                      , index_col='Date'
-                      , parse_dates=True
-                      , usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']
-                      , na_values=['nan'])
+
+def data_transform(df1, skip_first_lines = 1, size_output=2):
+
+    print('\n============================================================================')
+    print(f'#Transform raw data skip_first_lines={skip_first_lines}, size_output={size_output}')
+    print('===============================================================================')
 
     # Clean NaN values
     df = utils.dropna(df1)
@@ -550,6 +550,22 @@ Date
     print('\ndf11 describe=\n', df1.loc[:,
                                 ['percentage', 'nvo', 'range', 'mom5', 'mom10', 'mom20', 'mom50', 'rsi5', 'rsi10',
                                  'rsi20', 'rsi50', 'stoc10', 'stoc20', 'stoc50', 'stoc200']].describe())
+    return df1
+
+def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']):
+    """Read stock data (adjusted close) for given symbols from CSV files.
+    https://finance.yahoo.com/quote/%5EGSPC/history?period1=-630986400&period2=1563138000&interval=1d&filter=history&frequency=1d
+    """
+    print('\n\n\n============================================================================')
+    print('#Loading raw data usecols=',usecols)
+    print('===============================================================================')
+    df1 = pd.read_csv(symbol_to_path(symbol)
+                      , index_col='Date'
+                      , parse_dates=True
+                      , usecols=usecols
+                      , na_values=['nan'])
+
+
     return df1
 
 

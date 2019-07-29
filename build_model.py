@@ -2,16 +2,12 @@ from data_splitter.splitter_k_fold_purged import PurgedKFoldDataSplitter
 from data_splitter.splitter_simple import TrainTestPercentageDataSplitter
 from model.enum import MlModel
 from mlp_trading import MlpTrading
-from utils.utils import get_data_from_disc
+from utils.utils import get_data_from_disc, data_transform
 import numpy as np
 
 
-def load_data():
-    print('\n\n\n============================================================================')
-    print('#Loading      data')
-    print('===============================================================================')
-    df_all = get_data_from_disc(symbol='^GSPC', skip_first_lines=3600, size_output=2)
-    return df_all
+
+
 
 
 def execute_model_train_and_test(full_data_frame, data_splitter, epochs):
@@ -40,14 +36,25 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs):
 
 
     return cv_scores, model, params
+'''
+50 epochs benchmark
+val_loss   val_acc      loss       acc  epoch
+45  0.692096  0.533362  0.691158  0.525999     45
+46  0.692106  0.532926  0.690589  0.532338     46
+47  0.692108  0.530092  0.690019  0.533949     47
+48  0.692096  0.530528  0.690671  0.529007     48
+49  0.692062  0.532490  0.691352  0.526321     49
 
+Actual\Predics    0          1
+  0              127        1999
+  1              145        2315
+'''
 
-
-
-epochs    = 1#5000
+epochs    = 50#5000
 cv_scores = [0]
-all_data = load_data()
 
+data_raw = get_data_from_disc (symbol='^GSPC', usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Volume'])
+all_data = data_transform     (data_raw,  skip_first_lines=3600, size_output=2)
 
 
 # n_splits  = 5

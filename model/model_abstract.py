@@ -79,15 +79,15 @@ class AbstractMlTradingModel(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def predict(self, x_train, x_test, y_test):
+    def predict(self,  x_test, y_test):
         y_pred = self._model.predict(x_test)
         print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
         print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
 
-        x_all = np.concatenate((x_train, x_test), axis=0)
-        y_pred = self._model.predict(x_all)
-        print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
-        print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
+        # x_all = np.concatenate((x_train, x_test), axis=0)
+        # y_pred = self._model.predict(x_all)
+        # print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
+        # print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
 
     # |--------------------------------------------------------|
     # |                                                        |

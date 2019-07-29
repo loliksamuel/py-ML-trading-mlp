@@ -30,30 +30,32 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
     model    = tf.keras.models.load_model(filename)
 
     print(f'\nLoading data of symbol {symbol} skipRows={skipRows} names_output={names_output} names_input={names_input}',)
-    df_all =  get_data_from_disc(symbol, skipRows , size_output=len(names_output))
+    size_output  = len(names_output)
+    #df_all =  get_data_from_disc(symbol, skipRows , size_output=len(names_output))
+    df_all = data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low',  'Volume'], skip_first_lines=skipRows, size_output=size_output)
 
     print('\nExtrating x')
-    df_x = df_all.loc[:,   names_input]
+    df_x  = df_all.loc[:,   names_input]
     df_oc = df_all.loc[:,   [ 'range', 'Open' , 'Close' ]]
     print ('df_x=',df_x.shape, '\n', df_x.loc[:, ['nvo', 'rel_bol_hi10','rel_bol_hi20','rel_bol_hi50','rel_bol_hi200']])
 
     print('\nExtrating y')
     df_y_observed = df_all['isUp']
-    print(df_all.tail())
+    print('\nall data+prediction \n',df_all.tail())
     print(df_all.shape)
     print('df_y=',df_y_observed.shape, '\n', df_y_observed)
 
     print('\nNormalizing... df_x.shape',df_x.shape)
-
     df_x = normalize0(df_x.values, axis=1)
 
     print('\nPredicting... ')
-    df_y_pred = model.predict(df_x)
+    df_y_pred_tuples = model.predict(df_x)
+    y_pred = np.argmax(df_y_pred_tuples, axis=1)
 
-    size_output  = len(names_output)
-    lenxx = len(df_y_observed)
+
+    lenxx = df_x.shape[0]#len(df_y_observed)
     y = keras.utils.to_categorical(df_y_observed, size_output)
-    print('len=',lenxx,' y=',y)
+    #print('len=',lenxx,' y=',y)
     # data = pdr.get_data_yahoo(symbol, start_date, end_date)
     # closePrice = data["Close"]
     # print(closePrice)
@@ -80,7 +82,7 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
-    y_pred_all = np.argmax(df_y_pred, axis=1)
+
     print('start trading...')
     '''
     # 0 out of  13894 . 
@@ -123,27 +125,25 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
     for i in range(start,lenxx):#0 to 13894   #for index, row in df_oc.iterrows():
         currBar      = df_oc[(i+0):(i+1)]
         #nextBar     = df_oc[(i+1):(i+2)]
-        currBarIsUp  = df_y_observed[(i+0):(i+1)]
-        print('\n#',i,'out of ',lenxx,'. curr Bar =', currBar)
+        currBarIsUpObserved  = df_y_observed[(i+0):(i+1)]
+        print('\n#',(i+1),'out of ',lenxx,'. curr Bar =', currBar)
         bar_range = currBar['range'].iloc[0]  #  bar_range = row['range']
         open      = currBar[ 'Open'].iloc[0]  #  bar_range = row['Open']
         close     = currBar['Close'].iloc[0]  #  bar_range = row['Close']
         print(' curr Bar range=', bar_range)
 
         #print(' curr Bari=', currBar.iloc)
-        currBarUp = currBarIsUp.values[0]
+        currBarUp = currBarIsUpObserved.values[0]
         #print(' next Bar is Up? ', nextBarIsUp)
-        print(' curr Bar is Up? ', currBarIsUp.values[0])
+        print(' curr Bar is Up? ', currBarIsUpObserved.values[0])
 
         # print(' data[i]=', data[i])
         # print(' data[i]=', closePrice[i])
 
-
-
-
         # print('predict=',prediction, ' isUp?', y_pred, ' range=',profit, ' y_pred=',y_pred)
-        y_pred_curr = y_pred_all[(i+0):(i+1)]
-        if  y_pred_curr == 1 :# green bar prediction
+        currBarPredicion = y_pred[(i+0):(i+1)]
+        #currBarPredicion = model.predict(transform(currBar))
+        if  currBarPredicion == 1 :# green bar prediction
             pointsCurr  = bar_range
             percentCurr = bar_range/open*100
             if  currBarUp == 1 :
@@ -264,7 +264,7 @@ size_hidden   =15
 batch_size    =128
 lr           = 1e-05#default=0.001   best=0.00001 (1e-05) for mlp, 0.0001 for lstm
 dropout      = 0.2 # 0.0 - 1.0
-initialDeposit = 0
+initialDeposit = 1
 
 names_input   = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50', 'rel_bol_hi200', 'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
 names_output  = ['Green bar', 'Red Bar']#, 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
