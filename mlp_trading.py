@@ -88,7 +88,7 @@ class MlpTrading(object):
         print('\n======================================')
         print(f'#{iteration_id}Predict unseen data with 2 probabilities for 2 classes(choose the highest)')
         print('======================================')
-        model.predict( x_test=self.x_test, y_test=self.y_test, names_output=['dn','up'], iteration_id=iteration_id)
+        model.predict(x_train=self.x_train, y_train=self.y_train, x_test=self.x_test, y_test=self.y_test, names_output=['dn','up'], iteration_id=iteration_id)
 
 
         print('\n======================================')

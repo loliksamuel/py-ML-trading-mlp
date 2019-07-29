@@ -500,6 +500,8 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
 
     ## labeling
     ## smart labeling
+    if size_output == 0:
+        df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
     if size_output == 2:
         df1.loc[df1.range > 0.0, 'isUp'] = 1
         df1.loc[df1.range <= 0.0, 'isUp'] = 0
@@ -508,7 +510,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
         df1.loc[df1.percentage >= +0.1, 'isUp'] = 1
         df1.loc[df1.percentage <= -0.1, 'isUp'] = -1
         # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
-        # df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
+
 
         # direction = (close > close.shift()).astype(int)
         # target = direction.shift(-1).fillna(0).astype(int)
@@ -564,7 +566,7 @@ Date
     # # print ('\ndf1=\n',df1.loc[:, ['ema','macd','stoc', 'rsi']])
     print('\ndf11 describe=\n', df1.loc[:,
                                 ['percentage', 'nvo', 'range', 'mom5', 'mom10', 'mom20', 'mom50', 'rsi5', 'rsi10',
-                                 'rsi20', 'rsi50', 'stoc10', 'stoc20', 'stoc50', 'stoc200']].describe())
+                                 'rsi20', 'rsi50', 'stoc10', 'stoc20', 'stoc50', 'isUp']].describe())
     return df1
 
 def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']):

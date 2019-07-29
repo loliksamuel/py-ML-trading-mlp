@@ -79,18 +79,29 @@ class AbstractMlTradingModel(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def predict(self,  x_test, y_test, names_output=[0,1], iteration_id=''):
-        y_pred = self._model.predict(x_test)
+    def predict(self,  x_train, y_train, x_test, y_test, names_output=[0,1], iteration_id=''):
+        y_train_pred = self._model.predict(x_train)
         print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
-        print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
+        print(f'predicted as {y_train_pred[0]} highest confidence for {np.argmax(y_train_pred[0])}')
+        Y_true = np.argmax(y_train, axis=1)
+        Y_pred = np.argmax(y_train_pred, axis=1)
+        plot_conf_mtx(Y_true, Y_pred,  names_output, f'files/output/{iteration_id}Confusion matrix on train.png')
 
-        # x_all = np.concatenate((x_train, x_test), axis=0)
-        # y_pred = self._model.predict(x_all)
-        # print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
-        # print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
+        y_test_pred = self._model.predict(x_test)
+        print(f'labeled   as {y_test[0]} highest confidence for {np.argmax(y_test[0])}')
+        print(f'predicted as {y_test_pred[0]} highest confidence for {np.argmax(y_test_pred[0])}')
         Y_true = np.argmax(y_test, axis=1)
+        Y_pred = np.argmax(y_test_pred, axis=1)
+        plot_conf_mtx(Y_true, Y_pred,  names_output, f'files/output/{iteration_id}Confusion matrix on test.png')
+
+        x_all = np.concatenate((x_train, x_test), axis=0)
+        y_all = np.concatenate((y_train, y_test), axis=0)
+        y_pred = self._model.predict(x_all)
+        print(f'labeled   as {y_all[0]} highest confidence for {np.argmax(y_all[0])}')
+        print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
+        Y_true = np.argmax(y_all, axis=1)
         Y_pred = np.argmax(y_pred, axis=1)
-        plot_conf_mtx(Y_true, Y_pred,  names_output, f'files/output/{iteration_id}Confusion matrix.png')
+        plot_conf_mtx(Y_true, Y_pred,  names_output, f'files/output/{iteration_id}Confusion matrix on all.png')
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
