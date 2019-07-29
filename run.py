@@ -8,7 +8,7 @@ import numpy as np
 
 def load_data():
     print('\n\n\n============================================================================')
-    print('===     Loading      data')
+    print('#Loading      data')
     print('===============================================================================')
     df_all = get_data_from_disc(symbol='^GSPC', skip_first_lines=3600, size_output=2)
     return df_all
@@ -18,6 +18,7 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs):
     cv_scores = []
     for train_indices, test_indices, iteration_id in data_splitter.split(full_data_frame.values):
         mlp_trading = MlpTrading(symbol='^GSPC')
+
         (scores, model, params) = mlp_trading\
                                                 .execute(df_all=full_data_frame,
                                                          train_data_indices=train_indices,
@@ -43,22 +44,22 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs):
 
 
 
-
+epochs    = 1
+cv_scores = [0]
 all_data = load_data()
 
 
-epochs=1
-cv_scores =[0]
 
+# n_splits  = 5
 # print('\n\n\n============================================================================')
-# print('==         Cross      Validation       MODE  ')
+# print(f'==        {n_splits}    Cross      Validation       MODE  ')
 # print('============================================================================')
-# (cv_scores, _, _)  = execute_model_train_and_test(all_data,  epochs=epochs, data_splitter=PurgedKFoldDataSplitter(n_splits=5, gap_percentage=1.0))
-#
+# (cv_scores, _, _)  = execute_model_train_and_test(all_data,  epochs=epochs, data_splitter=PurgedKFoldDataSplitter(n_splits=n_splits, gap_percentage=1.0))
+
 
 
 print('\n\n\nֿ\n\n\nֿ\n\n\nֿ============================================================================')
-print('==       SIMPLE    SPLIT   MODE      ')
+print('#      1  SIMPLE   SPLIT   MODE      ')
 print('============================================================================')
 (_, model, params)  = execute_model_train_and_test(all_data, epochs=epochs, data_splitter=TrainTestPercentageDataSplitter(33))
 
@@ -72,7 +73,7 @@ print('======================================')
 
 
 print('\n\n\n\n\nֿ\n\n\nֿֿ===============================================================================')
-print('==       Saving   model')
+print('#Save   model')
 print('===============================================================================')
 model.summary()
 model.save(folder='files/output/', filename=params, iteration_id='')
