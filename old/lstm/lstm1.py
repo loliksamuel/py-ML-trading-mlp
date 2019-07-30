@@ -7,14 +7,17 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Dropout
 
-class RNN:
+from build.utils import plot_stat_loss_vs_time, plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy
+
+
+class LSTM:
     def __init__(self, hidden_cnt, num_cells, time_steps):
         self.hidden_cnt = hidden_cnt
         self.num_cells = num_cells
         self.time_steps = time_steps
 
-    def rnn(self):
-        data = pd.read_csv("files/input/GOOG.csv")
+    def run(self):
+        data = pd.read_csv("../../files/input/GOOG.csv")
         data = data.drop(data.index[0])#(3750,5)
         data = data.drop(['Date', 'Close'], axis=1)
         data = np.array(data.values)#(3750,3)
@@ -49,15 +52,33 @@ class RNN:
         xnew_train = np.array(xnew_train)
         ynew_train = np.array(ynew_train)
         xnew_train = np.reshape(xnew_train, (xnew_train.shape[0], 2*xnew_train.shape[1], 1))
-        regressor = Sequential()
-        regressor.add(LSTM(units = self.num_cells, return_sequences = True, input_shape = (xnew_train.shape[1], 1)))
+
+        #model regressor
+        model = Sequential()
+        model.add(LSTM(units=self.num_cells, return_sequences=True, input_shape=(xnew_train.shape[1], 1)))
         for i in range(self.hidden_cnt-2):
-            regressor.add(LSTM(units = self.num_cells, return_sequences = True))
-        regressor.add(LSTM(units = self.num_cells, return_sequences = False))
-        regressor.add(Dense(units = 1))#1 means regression
-        regressor.compile(optimizer = 'adam', loss = 'mean_squared_error')
-        regressor.fit(xnew_train, ynew_train, epochs = 100, batch_size = 32)
-        train_result = regressor.predict(xnew_train)
+            model.add(LSTM(units=self.num_cells, return_sequences=True))
+        model.add(LSTM (units=self.num_cells, return_sequences=False))
+        model.add(Dense(units=1))#1 means regression
+        model.compile  (optimizer='adam', loss='mean_squared_error')
+
+        history = model.fit(xnew_train, ynew_train, epochs = 100, batch_size = 32)
+
+        history_dict = history.history
+        print(history_dict.keys())
+        plot_stat_loss_vs_time     (history_dict)
+        plot_stat_accuracy_vs_time (history_dict)
+        hist = pd.DataFrame(history.history)
+        hist['epoch'] = history.epoch
+        print(hist.tail())
+
+        plot_stat_loss_vs_accuracy(history_dict)
+        score = model.evaluate(testing_set_scaled, testing_target_scaled, verbose=1)                                     # random                                |  calc label
+        print('Test loss:    ', score[0], ' (is it close to 0?)')                            #Test,train loss     : 0.6938 , 0.6933   |  0.47  0.5
+        print('Test accuracy:', score[1], ' (is it close to 1 and close to train accuracy?)')#Test,train accuracy : 0.5000 , 0.5000   |  0.69, 0.74
+
+
+        train_result = model.predict(xnew_train)
         plt.plot(ynew_train, color = 'green', label = 'original StockPrice')
         plt.plot(train_result, color = 'black', label = 'Predicted StockPrice')
         plt.title('Training')
@@ -75,8 +96,8 @@ class RNN:
         xnew_valid = np.array(xnew_valid)
         ynew_valid = np.array(ynew_valid)
         xnew_valid = np.reshape(xnew_valid, (xnew_valid.shape[0], 2*xnew_valid.shape[1], 1))
-        test_result = regressor.predict(xnew_valid)
-        plt.plot(ynew_valid, color = 'green', label = 'original StockPrice')
+        test_result = model.predict(xnew_valid)
+        plt.plot(ynew_valid , color = 'green', label = 'original StockPrice')
         plt.plot(test_result, color = 'black', label = 'Predicted StockPrice')
         plt.title('Testing')
         plt.xlabel('Time')
@@ -85,5 +106,5 @@ class RNN:
         plt.show()
         #regression : loss: 0.0049
 
-a = RNN(2, 30, 20)
-a.rnn()
+lstm = LSTM(hidden_cnt=2, num_cells=3, time_steps=1)#hidden_cnt, num_cells, time_steps):
+lstm.run()
