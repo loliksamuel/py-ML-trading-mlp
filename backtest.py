@@ -274,7 +274,7 @@ total positions    :  13903 # ,  51.59 % won
 
 
 
-print('\nBacktesting')
+print('\nBacktesting a model on actual chart with statistics')
 print('\n=========================================')
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width'      , 1000)
