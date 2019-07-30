@@ -17,7 +17,7 @@ class MlpTrading(object):
                             'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
         self.names_output = ['isUp']
         self.size_input = len(self.names_input)
-        self.size_output = 2
+        self.size_output = 2# 2 or 3
         self.x_train = None
         self.x_test = None
         self.y_train = None

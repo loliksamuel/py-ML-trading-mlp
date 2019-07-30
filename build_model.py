@@ -2,7 +2,7 @@ from data_splitter.splitter_k_fold_purged import PurgedKFoldDataSplitter
 from data_splitter.splitter_simple import TrainTestPercentageDataSplitter
 from model.enum import MlModel
 from mlp_trading import MlpTrading
-from utils.utils import get_data_from_disc, data_transform
+from utils.utils import get_data_from_disc, data_transform, data_clean
 import numpy as np
 
 
@@ -21,11 +21,13 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs, verbose
                                                          test_data_indices=test_indices,
                                                          iteration_id=iteration_id,
                                                          model_type=MlModel.MLP,
+
+
                                                          epochs=epochs,
                                                          size_hidden=15,
                                                          batch_size=128,
                                                          loss='categorical_crossentropy',
-                                                         lr=0.00001,
+                                                         lr=0.001,
                                                          rho=0.9,
                                                          epsilon=None,
                                                          decay=0.0,
@@ -51,12 +53,13 @@ Actual\Predics    0          1
 '''
 cv_scores = [0]
 symbol    = '^GSPC'
-epochs    = 5000
+epochs    = 2000
 skip_first_lines=3600 #>400
-size_output = 2 #choose : 0 for random, 2 for up/dn , 3 for up/dn/hold
-verbose     = 2
+size_output = 2 #choose :-3 = random (-1 0 +1), -2=random(0 or 1), 2 for up/dn , 3 for up/dn/hold
+verbose     = 2 #0=none, 1=all, 2=mid
 data_raw    = get_data_from_disc (symbol=symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Volume'])
-df_all      = data_transform     (data_raw, skip_first_lines=skip_first_lines, size_output=size_output)
+data_clean  = data_clean(data_raw)
+df_all      = data_transform     (data_clean, skip_first_lines=skip_first_lines, size_output=size_output)
 
 
 # df_features      = data_select     (df_all, names_input)
@@ -71,7 +74,7 @@ df_all      = data_transform     (data_raw, skip_first_lines=skip_first_lines, s
 # print(f'==        {n_splits}    Cross      Validation       MODE  ')
 # print('============================================================================')
 # (cv_scores, _, _)  = execute_model_train_and_test(df_all,  epochs=epochs, verbose=verbose, data_splitter=PurgedKFoldDataSplitter(n_splits=n_splits, gap_percentage=1.0))
-#
+
 
 
 print('\n\n\nֿ\n\n\nֿ\n\n\nֿ============================================================================')

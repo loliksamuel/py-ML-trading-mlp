@@ -404,6 +404,13 @@ def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'L
     df1 = data_transform(df, skip_first_lines , size_output)
     return df1
 
+def data_clean(df):
+    # Clean NaN values
+    print('\n============================================================================')
+    print(f'#Cleaning NaN values')
+    print('===============================================================================')
+    dfc = utils.dropna(df)
+    return dfc
 
 def data_transform(df1, skip_first_lines = 400, size_output=2):
     if  skip_first_lines < 400:
@@ -413,8 +420,6 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     print(f'#Transform raw data skip_first_lines={skip_first_lines}, size_output={size_output}')
     print('===============================================================================')
 
-    # Clean NaN values
-    df = utils.dropna(df1)
 
     # Add ta features filling NaN values
     # df1 = add_all_ta_features(df, "Open", "High", "Low", "Close",  fillna=True)#, "Volume_BTC",
@@ -451,11 +456,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     df1['sma400'] = df1['Close'].rolling(window=400).mean()
     # df1['mom']=pandas.stats.
     df1 = df1[-(df1.shape[0] - skip_first_lines):]  # skip 1st x rows, x years due to NAN in sma, range
-
     df1['nvo'] = df1['Volume'] / df1['sma10'] / 100  # normalized volume
-
-    df1['range'] = df1['Close'] - df1['Open']
-    df1['percentage'] = df1['range'] / df1['Open'] * 100
 
     # df/df.iloc[0,:]
     df1['range_sma'] = (df1['Close'] - df1['sma10']) / df1['Close']
@@ -499,13 +500,31 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     # tech_ind = pd.concat([sma, ema, macd, stoc, rsi, adx, cci, aroon, bands, ad, obv, wma, mom, willr], axis=1)
 
     ## labeling
+    df1['range'    ] = df1['Close'].shift(-1) - df1['Open'].shift(-1) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    #df1['rangebug1'] = df1['Close'].shift(1)  - df1['Open'].shift(1) #bug!!! df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    #df1['rangebug2'] = df1['Close'].shift(0)  - df1['Open'].shift(0) #bug!!!  need to use  df.loc[i-1, 'Close'] or df1['Close'] - df1['Close'].shift(1)
+    df1 = df1.fillna(0)#https://github.com/pylablanche/gcForest/issues/2
+    '''
+    df1=
+    Date            Open        Close      range      isUp
+    1964-05-01    79.459999    80.169998   0.300003   1.0
+    1964-05-04    80.169998    80.470001   0.409996   1.0
+    1964-05-05    80.470001    80.879997   0.180001   1.0
+    1964-05-06    80.879997    81.059998   0.090004   1.0
+    1964-05-07    81.059998    81.150002   0.000000   0.0
+    1964-05-08    81.000000    81.000000  -0.099998   0.0
+    1964-05-11    81.000000    80.900002   0.260002   1.0
+    '''
+    df1['percentage'] = df1['range'] / df1['Open'] * 100
     ## smart labeling
-    if size_output == 0:
+    if size_output == -2:
         df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
-    if size_output == 2:
-        df1.loc[df1.range > 0.0, 'isUp'] = 1
+    elif size_output == -3:
+        df1['isUp']  = np.random.randint(3, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
+    elif size_output == 2:
+        df1.loc[df1.range  > 0.0, 'isUp'] = 1
         df1.loc[df1.range <= 0.0, 'isUp'] = 0
-    if size_output == 3:
+    elif size_output == 3:
         df1['isUp'] = 0
         df1.loc[df1.percentage >= +0.1, 'isUp'] = 1
         df1.loc[df1.percentage <= -0.1, 'isUp'] = -1
@@ -544,9 +563,8 @@ Date
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)
     print('columns=', df1.columns)
-    print('\ndf1=\n', df1.loc[:, ['nvo', 'Open', 'High', 'Low', 'Close', 'range_sma', 'isUp']])
     print('\ndf1=\n', df1.loc[:, ['sma10', 'sma20', 'sma50', 'sma200', 'range_sma1']])
-    print('\ndf1=\n', df1.loc[:, ['rsi10', 'rsi20', 'rsi50', 'rsi5']])
+    print('\ndf1=\n', df1.loc[:, ['rsi10', 'rsi20', 'rsi50', 'rsi5', 'nvo', 'High', 'Low']])
     print('\ndf1=\n', df1.loc[:, ['stoc10', 'stoc20', 'stoc50', 'stoc200']])
     print('\ndf1=\n', df1.loc[:, ['bb_hi10', 'bb_hi20', 'bb_hi50', 'bb_hi200']])  # , 'sma4002']])
     print('\ndf1=\n', df1.loc[:, ['bb_lo10', 'bb_lo20', 'bb_lo50', 'bb_lo200']])  # , 'sma4002']])
@@ -556,6 +574,8 @@ Date
     #print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
     #print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
     print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
+    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range', 'isUp']])
+
     # df = pd.DataFrame(record, columns = ['Name', 'Age', 'Stream', 'Percentage'])
     # rslt_df = df[df1['isUp'] == 1]
     # print ('\ndf1 describe direction = +1\n',rslt_df.describe())
@@ -565,8 +585,8 @@ Date
     # print ('\ndf1 describe direction =  0\n',rslt_df.describe())
     # # print ('\ndf1=\n',df1.loc[:, ['ema','macd','stoc', 'rsi']])
     print('\ndf11 describe=\n', df1.loc[:,
-                                ['percentage', 'nvo', 'range', 'mom5', 'mom10', 'mom20', 'mom50', 'rsi5', 'rsi10',
-                                 'rsi20', 'rsi50', 'stoc10', 'stoc20', 'stoc50', 'isUp']].describe())
+                                ['percentage', 'nvo',  'mom10', 'mom20', 'mom50', 'rsi5', 'rsi10',
+                                 'rsi20', 'rsi50', 'stoc10', 'stoc20', 'stoc50', 'range', 'isUp']].describe())
     return df1
 
 def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']):
@@ -637,18 +657,18 @@ def format_to_lstm_regression(dataset, look_back=1):
     return np.array(dataX), np.array(dataY)
     # X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
-
-y_pred = [0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,
-          0, 1, 0, 0, 1]
-Y_test = [0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-          1, 0, 0, 1, 1]
-print(type(y_pred))
-print(type(Y_test))
-y1 = np.array(y_pred)
-y2 = np.array(Y_test)
-print(type(y_pred))
-print(type(Y_test))
-yb = np.array(y_pred) == np.array(Y_test)
-print(yb)
-print(type(yb))
-plot_barchart2(yb, title="BT_pred vs observed", ylabel="x", xlabel="result")
+#
+# y_pred = [0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,
+#           0, 1, 0, 0, 1]
+# Y_test = [0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0,
+#           1, 0, 0, 1, 1]
+# print(type(y_pred))
+# print(type(Y_test))
+# y1 = np.array(y_pred)
+# y2 = np.array(Y_test)
+# print(type(y_pred))
+# print(type(Y_test))
+# yb = np.array(y_pred) == np.array(Y_test)
+# print(yb)
+# print(type(yb))
+# #plot_barchart2(yb, title="BT_pred vs observed", ylabel="x", xlabel="result")

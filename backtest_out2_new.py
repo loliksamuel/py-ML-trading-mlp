@@ -155,7 +155,7 @@ total positions    :  13903 # ,  51.59 % won
   winner positions :  7172 # ,  51.59 % of total,  34418.2 $
   loser  positions :  6731 # ,  48.41 % of total,  -34352.13 $
     '''
-    t = 0#if t=1 then prediction of yesterday bar is the prediction for tommorow
+    shift = 0#if shift=-1 then prediction of yesterday bar is the prediction for tommorow
     for i in range(start,lenxx-1):#0 to 13894   #for index, row in df_oc.iterrows():
         currBar      = df_trans[(i+0):(i+1)]
         #nextBar     = df_oc[(i+1):(i+2)]
@@ -175,7 +175,7 @@ total positions    :  13903 # ,  51.59 % won
         # print(' data[i]=', closePrice[i])
 
         # print('predict=',prediction, ' isUp?', y_pred, ' range=',profit, ' y_pred=',y_pred)
-        currBarPredicion = y_pred[(i+0-t):(i+1-t)]
+        currBarPredicion = y_pred[(i+0+shift):(i+1+shift)]
 
         if  currBarPredicion == 1 :# green bar prediction
             pointsCurr  = bar_range
@@ -308,7 +308,7 @@ size_output  = len(names_output)#  2 # there are 3 classes (buy.sell. hold) or (
 folder = 'files/output/'
 params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{symbol}_inp{size_input}_out{size_output}_{modelType}'
 filename = folder+'model'+params+'.model'#+symbol+'_epc'+str(epochs)+'_hid'+str(size_hidden)+'_inp'+str(size_input)+'_out'+str(size_output)+'.model'
-#filename = folder+'model_random.model'
+filename = folder+'model.model'
 print(f'\nmodel name: {filename}')
 seed = 7
 np.random.seed(seed)
