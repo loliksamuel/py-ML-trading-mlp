@@ -1,6 +1,6 @@
 from model.enum import MlModel
 from model.model_factory import MlModelFactory
-from utils.utils import plot_selected, plot_histogram, data_normalize0
+from utils import plot_selected, plot_histogram, data_normalize0
 from keras.utils import to_categorical
 import numpy as np
 

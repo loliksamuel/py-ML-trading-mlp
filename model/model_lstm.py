@@ -2,7 +2,7 @@ from keras import Sequential
 from keras.layers import Dense, Dropout, Embedding, LSTM
 
 from model.model_abstract import AbstractMlTradingModel
-
+import numpy as np
 
 class LstmTradingModel(AbstractMlTradingModel):
 
@@ -14,6 +14,9 @@ class LstmTradingModel(AbstractMlTradingModel):
 
     def _create(self):
         look_back = 1
+        self.x_train = np.reshape(self.x_train, (self.x_train.shape[0], look_back, self.size_input))
+        self.x_test  = np.reshape(self.x_test , (self.x_test.shape [0], look_back, self.size_input))
+
         self._model = Sequential()
 
         self._model.add(

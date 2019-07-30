@@ -1,17 +1,13 @@
-import datetime
-
-from sklearn.metrics import confusion_matrix
-
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.optimizers import RMSprop
-from ww import f
 import pandas as pd
 import numpy as np
 
-from utils.utils import *
+from utils import data_load_and_transform, plot_selected, data_normalize0, plot_stat_loss_vs_time, \
+    plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram
 
 
 class MlpTrading_old(object):
@@ -58,10 +54,10 @@ class MlpTrading_old(object):
         print('\n======================================')
         df_all = self._data_load(skip_days)
 
-        print('\n======================================')
-        print('\nPlotting features')
-        print('\n======================================')
-        self._plot_features(df_all)
+        # print('\n======================================')
+        # print('\nPlotting features')
+        # print('\n======================================')
+        # self._plot_features(df_all)
 
         print('\n======================================')
         print('\nSplitting the data to train & test data')

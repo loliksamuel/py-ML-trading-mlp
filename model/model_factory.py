@@ -1,7 +1,7 @@
 from model.model_lstm import LstmTradingModel
 from model.enum import MlModel
 from model.model_mlp import MlpTradingModel
-from utils.singleton import Singleton
+from singleton import Singleton
 
 
 class MlModelFactory(object):

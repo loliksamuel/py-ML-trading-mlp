@@ -400,9 +400,10 @@ def data_select(df, columns_input):
     return dfs
 
 def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2):
-    df = get_data_from_disc(symbol, usecols)
-    df1 = data_transform(df, skip_first_lines , size_output)
-    return df1
+    df1 = get_data_from_disc(symbol, usecols)
+    dfc = data_clean(df1)
+    dft = data_transform(dfc, skip_first_lines , size_output)
+    return dft
 
 def data_clean(df):
     # Clean NaN values

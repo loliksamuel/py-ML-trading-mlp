@@ -1,17 +1,7 @@
-import pandas_datareader.data as pdr
-
 import yfinance as fix
-import numpy as np
 import tensorflow as tf
-import pandas as pd
 
-import keras
-from keras.layers import Dense, Dropout
-from keras.models import Sequential
-from keras.optimizers import RMSprop
-import matplotlib.pyplot as plt
-
-from utils.utils import *
+from utils import *
 
 fix.pdr_override()
 

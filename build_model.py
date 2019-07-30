@@ -1,8 +1,7 @@
-from data_splitter.splitter_k_fold_purged import PurgedKFoldDataSplitter
 from data_splitter.splitter_simple import TrainTestPercentageDataSplitter
 from model.enum import MlModel
-from mlp_trading import MlpTrading
-from utils.utils import get_data_from_disc, data_transform, data_clean
+from build_models import MlpTrading
+from utils import get_data_from_disc, data_transform, data_clean
 import numpy as np
 
 
@@ -20,17 +19,17 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs, verbose
                                                          train_data_indices=train_indices,
                                                          test_data_indices=test_indices,
                                                          iteration_id=iteration_id,
-                                                         model_type=MlModel.MLP,
+                                                         model_type=MlModel.MLP,#bug with MlModel.LSTM
 
 
                                                          epochs=epochs,#  iterations. on each, train all data, then evaluate, then adjust parameters (weights and biases)
-                                                         size_hidden=2,# 1 to 1024
+                                                         size_hidden=2048,# 1 to 1024
                                                          batch_size=128,#1 to 1024  # we cannot pass the entire data into network at once , so we divide it to batches . number of samples that we will pass through the network at 1 time and use for each epoch. default is 32
                                                          loss='categorical_crossentropy',#binary_crossentropy categorical_crossentropy
                                                          lr=0.01, #1 to 0.000000001
-                                                         rho=0.9,#default 0.9
+                                                         rho=0.1,#default 0.9
                                                          epsilon=None,
-                                                         decay=0.0,
+                                                         decay=0.9,
                                                          kernel_init='glorot_uniform',#  'glorot_uniform'(default),'normal', 'uniform'
                                                          dropout=0.2,#for genralization
                                                          verbose=verbose)#0 1 2
