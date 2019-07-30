@@ -278,16 +278,17 @@ print('\nBacktesting a model on actual chart with statistics')
 print('\n=========================================')
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width'      , 1000)
+seed = 7
+np.random.seed(seed)
 
-
-symbol      ='^GSPC'# ^GSPC = SP500 3600, DJI 300
-skip_days     =3600#3600 17000 #total rows= 17505   must be > 400 due to sma(400)
-modelType     ='mlp'#MlModel.MLP'#MlModel.MLP mlp lstm drl
-epochs        =5000#best 5000
-size_hidden   =15
-batch_size    =128
-lr           = 1e-05#default=0.001   best=0.00001 (1e-05) for mlp, 0.0001 for lstm
-dropout      = 0.2 # 0.0 - 1.0
+symbol         ='^GSPC'# ^GSPC = SP500 3600, DJI 300
+skip_days      =3600#3600 17000 #total rows= 17505   must be > 400 due to sma(400)
+modelType      ='mlp'#MlModel.MLP'#MlModel.MLP mlp lstm drl
+epochs         =5000#best 5000
+size_hidden    =15
+batch_size     =128
+lr             = 1e-05#default=0.001   best=0.00001 (1e-05) for mlp, 0.0001 for lstm
+dropout        = 0.2 # 0.0 - 1.0
 initialDeposit = 1
 
 names_input   = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50', 'rel_bol_hi200', 'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
@@ -300,8 +301,7 @@ params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropo
 filename = folder+'model'+params+'.model'#+symbol+'_epc'+str(epochs)+'_hid'+str(size_hidden)+'_inp'+str(size_input)+'_out'+str(size_output)+'.model'
 #filename = folder+'model.model'
 print(f'\nmodel name: {filename}')
-seed = 7
-np.random.seed(seed)
+
 
 print('trying to backtest with model ',filename ,' and input values = ', names_input)
 back_test(filename, symbol, skip_days, initialDeposit, names_input, names_output, start_date='1970-01-03', end_date='2019-05-05')
