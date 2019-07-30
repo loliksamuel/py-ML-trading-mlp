@@ -1,6 +1,6 @@
 # python-ML-trading
-## run build_model.py
-## run backtest.py
+### 1. run build_model.py
+### 2. run backtest.py
 
 ![see folder input for dataset](https://github.com/loliksamuel/python-ML-trading/blob/master/files/output/with%20bag%20in%20isUp/inp39out2/bt%20on%20all%20data/BT-summary_epc5000_hid15_inp39_out2.png)
 ![see folder Output for plots and models](https://github.com/loliksamuel/python-ML-trading/blob/master/files/output/with%20bag%20in%20isUp/inp39out2/bt%20on%20all%20data/BT-trade%20percent%20over%20time.png)
