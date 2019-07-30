@@ -1,7 +1,7 @@
 import yfinance as fix
 import tensorflow as tf
 
-from utils import *
+from build.utils import *
 
 fix.pdr_override()
 

@@ -25,19 +25,14 @@ priority | name
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import numpy as np
-import pandas as pd
 import tensorflow as tf
-from utils import *
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
+from build.utils import *
 from scipy import stats
 import keras
-from keras import regularizers
-from keras import optimizers
 from keras.layers import Dense, Dropout
 from keras.models import Sequential
-from keras.optimizers import RMSprop, SGD
-import matplotlib.pyplot as plt
+from keras.optimizers import RMSprop
+
 #import pandas.io.data as web
 
 # https://towardsdatascience.com/deep-learning-for-beginners-practical-guide-with-python-and-keras-d295bfca4487

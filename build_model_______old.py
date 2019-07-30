@@ -1,10 +1,10 @@
-from build_models______old import MlpTrading_old
+from build.build_models______old import MlpTrading_old
 
 mlp_trading_old = MlpTrading_old(symbol='^GSPC')
 mlp_trading_old.execute(skip_days=3600,#>400
                         modelType='lstm',#   # mlp lstm drl
                         epochs=50,  # best 5000
-                        size_hidden=15,
+                        size_hidden=1500,
                         batch_size=128,
                         percent_test_split=0.33,
                         loss='categorical_crossentropy',

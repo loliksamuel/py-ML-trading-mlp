@@ -1,7 +1,7 @@
 from data_splitter.splitter_simple import TrainTestPercentageDataSplitter
 from model.enum import MlModel
-from build_models import MlpTrading
-from utils import get_data_from_disc, data_transform, data_clean
+from build.build_models import MlpTrading
+from build.utils import get_data_from_disc, data_transform, data_clean
 import numpy as np
 
 
@@ -26,10 +26,10 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs, verbose
                                                          size_hidden=2048,# 1 to 1024
                                                          batch_size=128,#1 to 1024  # we cannot pass the entire data into network at once , so we divide it to batches . number of samples that we will pass through the network at 1 time and use for each epoch. default is 32
                                                          loss='categorical_crossentropy',#binary_crossentropy categorical_crossentropy
-                                                         lr=0.01, #1 to 0.000000001
-                                                         rho=0.1,#default 0.9
+                                                         lr=0.1, #1 to 0.000000001
+                                                         rho=0.9,#default 0.9
                                                          epsilon=None,
-                                                         decay=0.9,
+                                                         decay=0.5,
                                                          kernel_init='glorot_uniform',#  'glorot_uniform'(default),'normal', 'uniform'
                                                          dropout=0.2,#for genralization
                                                          verbose=verbose)#0 1 2

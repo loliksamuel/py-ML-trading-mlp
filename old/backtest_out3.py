@@ -1,13 +1,9 @@
-import pandas_datareader.data as pdr
 import yfinance as fix
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-from utils import get_data_from_disc, plot_data, plot_list, plot_live, plot_barchart
+from build.utils import get_data_from_disc, plot_list, plot_barchart
 import keras
-from keras.layers import Dense, Dropout
-from keras.models import Sequential
-from keras.optimizers import RMSprop
 import matplotlib.pyplot as plt
 fix.pdr_override()
 
