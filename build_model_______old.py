@@ -7,7 +7,7 @@ mlp_trading_old.execute(skip_days=3600,#>400
                         size_hidden=15,
                         batch_size=128,
                         percent_test_split=0.33,
-                        loss='categorical_crossentropy',
+                        loss='bicategorical_crossentropy',
                         lr=0.00001,  # default=0.001   best=0.00001 for mlp, 0.0001 for lstm
                         rho=0.9,  # default=0.9   0.5 same
                         epsilon=None,

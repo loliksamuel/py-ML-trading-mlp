@@ -23,17 +23,17 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs, verbose
                                                          model_type=MlModel.MLP,
 
 
-                                                         epochs=epochs,
-                                                         size_hidden=15,
-                                                         batch_size=128,
-                                                         loss='categorical_crossentropy',
-                                                         lr=0.001,
-                                                         rho=0.9,
+                                                         epochs=epochs,#  iterations. on each, train all data, then evaluate, then adjust parameters (weights and biases)
+                                                         size_hidden=2,# 1 to 1024
+                                                         batch_size=128,#1 to 1024  # we cannot pass the entire data into network at once , so we divide it to batches . number of samples that we will pass through the network at 1 time and use for each epoch. default is 32
+                                                         loss='categorical_crossentropy',#binary_crossentropy categorical_crossentropy
+                                                         lr=0.01, #1 to 0.000000001
+                                                         rho=0.9,#default 0.9
                                                          epsilon=None,
                                                          decay=0.0,
-                                                         kernel_init='glorot_uniform',
-                                                         dropout=0.2,
-                                                         verbose=verbose)
+                                                         kernel_init='glorot_uniform',#  'glorot_uniform'(default),'normal', 'uniform'
+                                                         dropout=0.2,#for genralization
+                                                         verbose=verbose)#0 1 2
         cv_scores.append(scores[1] * 100)
 
 
@@ -53,8 +53,8 @@ Actual\Predics    0          1
 '''
 cv_scores = [0]
 symbol    = '^GSPC'
-epochs    = 2000
-skip_first_lines=3600 #>400
+epochs    = 100 #iterations. on each, train all data, then evaluate, then adjust parameters (weights and biases)
+skip_first_lines=3600 #>400  total 13894 daily bars
 size_output = 2 #choose :-3 = random (-1 0 +1), -2=random(0 or 1), 2 for up/dn , 3 for up/dn/hold
 verbose     = 2 #0=none, 1=all, 2=mid
 data_raw    = get_data_from_disc (symbol=symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Volume'])

@@ -308,7 +308,7 @@ size_output  = len(names_output)#  2 # there are 3 classes (buy.sell. hold) or (
 folder = 'files/output/'
 params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{symbol}_inp{size_input}_out{size_output}_{modelType}'
 filename = folder+'model'+params+'.model'#+symbol+'_epc'+str(epochs)+'_hid'+str(size_hidden)+'_inp'+str(size_input)+'_out'+str(size_output)+'.model'
-filename = folder+'model.model'
+#filename = folder+'model.model'
 print(f'\nmodel name: {filename}')
 seed = 7
 np.random.seed(seed)
