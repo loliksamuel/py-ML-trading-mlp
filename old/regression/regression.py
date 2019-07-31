@@ -50,7 +50,7 @@ def build_model(x, y, f_optimizer=SGD(lr=0.001), f_loss='mean_squared_error', f_
         model.add(Dense  (units=nb_neurons, activation=f_activation, init='uniform'))
         model.add(Dropout(pct_dropout))  # for generalization
 
-    model.add(Dense(1, activation = 'linear'))#,  init='uniform' ))
+    model.add(Dense(1, activation = f_activation))#,  init='uniform' ))
     #model.add(Dense(1, activation = 'linear', input_dim = 1))
 
     model.summary()
@@ -67,16 +67,16 @@ seed = 7
 np.random.seed(seed)
 # 100 numbers from 1 to 2
 x           = linspace(1,2,100).reshape(-1,1)
-p           = 5# 1 will be solved no problem with nb_layers   = 0 , nb_neurons  = 2, nb_batch    = 10, nb_epochs    = 400
+p           = 5# 1-5 will be solved no problem with nb_layers   = 0 , nb_neurons  = 20, nb_batch    = 10, nb_epochs    = 400
 y           = (x**p)*10+5
 
-lr          = 0.001
+lr          = 0.001#use 0.0001 or 0.001
 f_optimizer = SGD(lr=lr)#    optimizers   = ['SGD'    , 'RMSprop' , 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam']
 f_loss        ='mse'#mse 'mean_squared_error'
 f_metrics     = ['accuracy']
 f_activation = 'relu' # ['softmax', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear']
 
-nb_neurons  = 20
+nb_neurons  = 20#use 2 to 20
 nb_epochs   = 400#for better accuracy increase epochs or lr
 nb_batch    = 10
 nb_layers   = 0# do not change that
