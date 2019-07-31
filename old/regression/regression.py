@@ -58,8 +58,9 @@ def build_model(x, y, f_optimizer=SGD(lr=0.001), f_loss='mean_squared_error', f_
     history     = model.fit(x, y, epochs=nb_epochs      , batch_size=nb_batch,verbose=2)
     plt.figure()
     plt.subplot(1, 2, 1)
-    plt.plot(x, model.predict(x), 'b', x, y, 'k.')
-
+    plt.plot(x, model.predict(x), 'b', x, y, 'r')
+    plt.title('true vs prediction regression')
+    plt.legend()
     return history
 
 seed = 7
@@ -74,11 +75,12 @@ f_optimizer = SGD(lr=lr)#    optimizers   = ['SGD'    , 'RMSprop' , 'Adagrad', '
 f_loss        ='mse'#mse 'mean_squared_error'
 f_metrics     = ['accuracy']
 f_activation = 'relu' # ['softmax', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear']
-pct_dropout = 0.2
-nb_layers   = 0
-nb_neurons  = 2
+
+nb_neurons  = 20
 nb_epochs   = 400#for better accuracy increase epochs or lr
 nb_batch    = 10
+nb_layers   = 0# do not change that
+pct_dropout = 0.2
 history     = build_model(   x
                            , y
                            , pct_dropout=pct_dropout
