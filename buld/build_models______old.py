@@ -1,8 +1,10 @@
+from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.optimizers import RMSprop
+from sklearn.model_selection import GridSearchCV
 import pandas as pd
 import numpy as np
 
@@ -48,93 +50,132 @@ class MlpTrading_old(object):
                     , kernel_init  = 'glorot_uniform'
                     , dropout      = 0.2
                     , verbose      = 0
-    ):
+                    , use_grid_search = False
+                ):
+
+
+        df_all = self.data_prepare(percent_test_split, skip_days)
+
+
+        if use_grid_search:
+            self.model_grid_search()
+        else:
+            self.model_create_and_save(df_all, activation='relu'
+                                       , optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+                                       , batch_size=batch_size, decay=decay,  dropout=dropout, epochs=epochs
+                                       , epsilon=epsilon, kernel_init=kernel_init, lr=lr
+                                       , modelType=modelType, rho=rho, size_hidden=size_hidden, verbose=verbose)
+
+
+
+
+    def model_grid_search(self):
+        print("use_grid_search")
+        activation = ['relu', 'softmax', 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear']
+        init       = ['glorot_normal', 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform', 'he_normal',  'he_uniform']
+        optimizers = ['RMSprop', 'SGD', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam']
+        losses =     ['binary_crossentropy']#, 'categorical_crossentropy']#['mse', 'mae']  #better=binary_crossentropy
+        epochs =     [100]#,500]  # , 100, 150] # default epochs=1,  better=100
+        batches =    [32]#,64,128,512]  # , 10, 20]   #  default = none
+        size_hiddens = [1, 3, 6, 20, 100]  # 5, 10, 20]
+        dropouts =     [0.0, 0.2, 0.3, 0.4]  # , 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        weights =      [1, 2]  # , 3, 4, 5]
+        param_grid = dict(  # activation  = activation,
+                            # init=init
+                            # weight_constraint=weights,
+                            # optimizer=optimizers
+                            epochs=epochs,
+                            batch_size=batches,
+                            loss= losses
+                            # size_hidden = size_hiddens
+                            #dropout=dropouts
+        )
+        model = KerasClassifier(build_fn=self._model_create_mlp, verbose=2)
+        grid = GridSearchCV(estimator=model, param_grid=param_grid)
+        X = np.concatenate((self.x_train, self.x_test), axis=0)
+        Y = np.concatenate((self.y_train, self.y_test), axis=0)
+        grid_result = grid.fit(X, Y)
+        # summarize results
+        print("Best score: %f using params %s" % (grid_result.best_score_, grid_result.best_params_))
+        means = grid_result.cv_results_['mean_test_score']
+        stds = grid_result.cv_results_['std_test_score']
+        params = grid_result.cv_results_['params']
+        for mean, stdev, param in zip(means, stds, params):
+            print("%f (%f) with params: %r" % (mean, stdev, param))
+
+    def data_prepare(self, percent_test_split, skip_days):
         print('\n======================================')
         print('\nLoading the data')
         print('\n======================================')
         df_all = self._data_load(skip_days)
-
         # print('\n======================================')
         # print('\nPlotting features')
         # print('\n======================================')
         # self._plot_features(df_all)
-
         print('\n======================================')
         print('\nSplitting the data to train & test data')
         print('\n======================================')
         self._data_split(df_all, percent_test_split)
-
         print('\n======================================')
         print('\nLabeling the data')
         print('\n======================================')
         self._data_label(df_all, percent_test_split)
-
         print('\n======================================')
         print('\nCleaning the data')
         print('\n======================================')
         self._data_clean()
-
         print('\n======================================')
         print('\nNormalizing the data')
         print('\n======================================')
         self._data_normalize()
-
         print('\n======================================')
         print('\nRebalancing Data')
         print('\n======================================')
         self._data_rebalance()
-
         print('\n======================================')
         print('\nTransform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
               '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
         print('\n======================================')
         self._data_transform()
+        return df_all
 
+
+    def model_create_and_save(self, df_all, activation='relu', optimizer='rmsprop',loss='binary_crossentropy', kernel_init='glorot_uniform',batch_size=32, decay=0.0,  dropout=0.2, epochs=200, epsilon=None,   lr=0.001,
+                              modelType='mlp', rho=0.9, size_hidden=200, verbose=2):#rho=0.9, epsilon=None, decay=0.0
         print('\n======================================')
         print('\nCreating the model')
         print('\n======================================')
         if modelType == 'mlp':
-             model = self._model_create_mlp (size_hidden, dropout, kernel_init)
+            model = self._model_create_mlp(activation=activation, optimizer=optimizer, loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout,   lr=lr, rho=rho, epsilon=epsilon, decay=decay)
         elif modelType == 'lstm':
-             model = self._model_create_lstm(size_hidden, dropout, kernel_init)
+            model = self._model_create_lstm(activation=activation, optimizer=optimizer,  loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
         else:
             print('unsupported model. supported only, lstm, mlp')
             exit(0)
 
         print('\n======================================')
-        print('\nCompiling the model')
-        print('\n======================================')
-        self._model_compile(model, loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-
-        print('\n======================================')
         print(f"\nTrain model for {epochs} epochs...")
         print('\n======================================')
         history = self._model_fit(model, epochs, batch_size, verbose)
-
         print('\n======================================')
         print('\nPrinting history')
         print('\n======================================')
-        #model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
-        #model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
+        # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
+        # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
         params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
         self._plot_evaluation(history, params)
-
         print('\n======================================')
         print('\nEvaluate the model with unseen data. pls validate that test accuracy =~ train accuracy and near 1.0')
         print('\n======================================')
         self._model_evaluate(model)
-
         print('\n======================================')
         print('\nPredict unseen data with 2 probabilities for 2 classes(choose the highest)')
         print('\n======================================')
         self._model_predict(model)
-
         print('\n======================================')
         print('\nSaving the model')
         print('\n======================================')
-
         self._model_save(model, params)
-
         print('\n======================================')
         print('\nPlotting histograms')
         print('\n======================================')
@@ -264,26 +305,29 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _model_create_mlp(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
+    def _model_create_mlp(self, activation='relu', optimizer='rmsprop', loss='binary_crossentropy', init='glorot_uniform', size_hidden=200, dropout=0.2,  lr=0.001, rho=0.9, epsilon=None, decay=0.0):
 
         model = Sequential()  # stack of layers
 
-        model.add(Dense  (units=size_hidden, activation='relu', input_shape=(self.size_input,), kernel_initializer=kernel_init))
+        model.add(Dense  (units=size_hidden, activation=activation, input_shape=(self.size_input,), kernel_initializer=init))
         model.add(Dropout(dropout))  # for generalization
 
-        model.add(Dense  (units=size_hidden, activation='relu'))
+        model.add(Dense  (units=size_hidden, activation=activation))
         model.add(Dropout(dropout))#for generalization.
 
-        model.add(Dense  (units=size_hidden, activation='relu'))
+        model.add(Dense  (units=size_hidden, activation=activation))
         model.add(Dropout(dropout))  # regularization technic by removing some nodes
 
-        model.add(Dense  (units=self.size_output, activation='softmax'))
-        model.summary()
+        model.add(Dense  (units=self.size_output, activation=activation))
+        #model.summary()
+
+        self._model_compile(model, optimizer=optimizer,  loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+
         return model
 
 
 
-    def _model_create_lstm(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
+    def _model_create_lstm(self, activation='relu', optimizer='rmsprop', loss='binary_crossentropy', init='glorot_uniform', size_hidden=50, dropout=0.2,  lr=0.001, rho=0.9, epsilon=None, decay=0.0):
         #input_shape = (input_length, input_dim)
         #input_shape=(self.size_input,)   equals to    input_dim = self.size_input
         #X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
@@ -318,47 +362,36 @@ class MlpTrading_old(object):
 
         model = Sequential()
 
-        model.add(LSTM(units = size_hidden, activation='relu', return_sequences = True, input_shape = (lookback, self.size_input)))
+        model.add(LSTM(units = size_hidden, activation=activation, return_sequences = True, input_shape = (lookback, self.size_input)))
         model.add(Dropout(dropout))
 
-        model.add(LSTM(units = size_hidden, activation='relu', return_sequences = True))
+        model.add(LSTM(units = size_hidden, activation=activation, return_sequences = True))
         model.add(Dropout(dropout))
 
-        model.add(LSTM(units = size_hidden, activation='relu', return_sequences=False))
+        model.add(LSTM(units = size_hidden, activation=activation, return_sequences=False))
         model.add(Dropout(dropout))
 
-        model.add(Dense  (units=self.size_output, activation='softmax'))
-        model.summary()
+        model.add(Dense  (units=self.size_output, activation=activation))
+        #model.summary()
+
+        self._model_compile(model, optimizer=optimizer,  loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+
         return model
 
-    def _model_create_lstm2(self, size_hidden, dropout=0.2, kernel_init='glorot_uniform'):
-        #input_shape = (input_length, input_dim)
-        #input_shape=(self.size_input,)   equals to    input_dim = self.size_input
-        #X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
-        #X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
-        model = Sequential()
-        model.add(Embedding(input_dim = (self.size_input), output_dim = size_hidden, input_length = self.size_input))
-        #model.add(Embedding( input_shape=(self.size_input,size_hidden), kernel_initializer=kernel_init))
-        model.add(LSTM(units=size_hidden, activation='sigmoid', inner_activation='hard_sigmoid', return_sequences=True))
-        model.add(Dropout(dropout))
-        model.add(LSTM(units=size_hidden, activation='sigmoid', inner_activation='hard_sigmoid'))
-        model.add(Dropout(dropout))
-        model.add(Dense(self.size_output, activation='softmax'))
-        model.summary()
-        return model
+
     # |--------------------------------------------------------|
     # |                                                  ,       |
     # |--------------------------------------------------------|
     @staticmethod
-    def _model_compile(model, loss='categorical_crossentropy', lr=0.00001, rho=0.9, epsilon=None, decay=0.0):
+    def _model_compile(model,  optimizer='rmsprop', loss='binary_crossentropy', lr=0.00001, rho=0.9, epsilon=None, decay=0.0):
         model.compile( loss=loss  # measure how accurate the model during training
-                      ,optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)  # this is how model is updated based on data and loss function
+                      ,optimizer=optimizer#RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)  # this is how model is updated based on data and loss function
                       ,metrics=['accuracy'])
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _model_fit(self, model, epochs, batch_size, verbose=0):
+    def _model_fit(self, model, epochs=100, batch_size=32, verbose=0):
         return model.fit(self.x_train,
                          self.y_train,
                          batch_size=batch_size,
