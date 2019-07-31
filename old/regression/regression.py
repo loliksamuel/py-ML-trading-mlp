@@ -16,17 +16,18 @@ def gridSearch_neural_network():
 
     # grid search epochs, batch size and optimizer
     optimizers   = ['SGD'    , 'RMSprop' , 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam']
-    activation = ['softmax', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear']
+    activation   = ['softmax', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear']
     dropout_rate = [0.0, 0.1, 0.2]#, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    init         = ['glorot_uniform', 'normal', 'uniform']
-    epochs       = [50, 100, 150]
-    batches      = [20]#5, 10, 20]
+    init = ['uniform', 'lecun_uniform', 'normal', 'zero', 'glorot_normal', 'glorot_uniform', 'he_normal', 'he_uniform']
+    nb_epochs       = [50]#, 100, 150]
+    nb_batches      = [20]#5, 10, 20]
+    nb_neurons      = [1,3,6,20,100]#5, 10, 20]
     weight_constraint = [1, 2]#, 3, 4, 5]
     param_grid = dict(optimizer   = optimizers,
                       dropout_rate= dropout_rate,
                       activation  = activation,
-                      epochs      = epochs,
-                      batch_size  = batches,
+                      epochs      = nb_epochs,
+                      batch_size  = nb_batches,
                       weight_constraint=weight_constraint,
                       init=init)
 
@@ -93,7 +94,7 @@ history     = build_model(   x
                            , f_loss    = f_loss
                            , f_metrics = f_metrics  )
 
-#model = KerasRegressor(build_fn=create_model, epochs=100, batch_size=10, verbose=0)
+#model = KerasClassifier(build_fn=create_model, epochs=100, batch_size=10, verbose=0)
 #print (x)
 #print ('y=',y)
 print('\nplot_accuracy_loss_vs_time...')
