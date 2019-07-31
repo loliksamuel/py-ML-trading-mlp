@@ -22,7 +22,7 @@ priority | name
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import tensorflow as tf
-from build_model.utils import *
+from buld.utils import *
 from sklearn.model_selection import train_test_split
 
 import keras

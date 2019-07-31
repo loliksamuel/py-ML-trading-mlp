@@ -14,7 +14,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 
 from data_splitter.splitter_k_fold_purged import PurgedKFoldDataSplitter
-from build_model.utils import *
+from buld.utils import *
 
 import keras
 from keras.layers import Dense, Dropout

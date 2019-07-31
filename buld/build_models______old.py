@@ -6,7 +6,7 @@ from keras.optimizers import RMSprop
 import pandas as pd
 import numpy as np
 
-from build_model.utils import data_load_and_transform, plot_selected, data_normalize0, plot_stat_loss_vs_time, \
+from buld.utils import data_load_and_transform, plot_selected, data_normalize0, plot_stat_loss_vs_time, \
     plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram
 
 

@@ -7,7 +7,7 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Dropout
 
-from build_model.utils import plot_stat_loss_vs_time, plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy
+from buld.utils import plot_stat_loss_vs_time, plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy
 
 
 class LSTM:

@@ -4,9 +4,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 import matplotlib.pyplot as plt
 
-
-#Define the model
-from build_model.utils import plot_stat_loss_vs_accuracy, plot_stat_loss_vs_accuracy2
+from buld.utils import plot_stat_loss_vs_accuracy2
 
 
 def baseline_model(lr=0.01):
@@ -17,12 +15,12 @@ def baseline_model(lr=0.01):
                   , metrics = ['accuracy'])
     return model
 
-#Generate dummy data
-epochs = 64#increase epochs for more accuracy
+
+epochs = 150#for better accuracy increase epochs or lr
 lr     = 0.01
 batch  = 32
 data   = data = linspace(1,2,100).reshape(-1,1)
-y = data*5
+y = data*10+5
 #Use the model
 regr = baseline_model(lr=lr)
 history = regr.fit(data,y, epochs=epochs, batch_size=batch)

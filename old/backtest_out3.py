@@ -2,7 +2,7 @@ import yfinance as fix
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-from build_model.utils import get_data_from_disc, plot_list, plot_barchart
+from buld.utils import get_data_from_disc, plot_list, plot_barchart
 import keras
 import matplotlib.pyplot as plt
 fix.pdr_override()

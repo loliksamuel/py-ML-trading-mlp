@@ -1,4 +1,4 @@
-from build_model.build_models______old import MlpTrading_old
+from buld.build_models______old import MlpTrading_old
 
 mlp_trading_old = MlpTrading_old(symbol='^GSPC')
 mlp_trading_old.execute(skip_days=3600,#>400
