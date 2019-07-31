@@ -200,7 +200,7 @@ def plot_stat_loss_vs_accuracy2(history_dict, title='model Loss, accuracy over t
     #loss_test = history_dict['val_loss']
     epochs = range(1, len(acc_train) + 1)
 
-    plt.clf()
+
     plt.plot(epochs, loss_train, 'b', color='red', label='train loss')
     #plt.plot(epochs, loss_test, 'b', color='orange', label='test_loss')
     plt.plot(epochs, acc_train, 'b', color='green', label='train accuracy')
