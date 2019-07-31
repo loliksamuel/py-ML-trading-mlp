@@ -26,7 +26,7 @@ priority | name
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import tensorflow as tf
-from build.utils import *
+from build_model.utils import *
 from scipy import stats
 import keras
 from keras.layers import Dense, Dropout

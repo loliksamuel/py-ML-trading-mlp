@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 #Define the model
-from build.utils import plot_stat_loss_vs_accuracy, plot_stat_loss_vs_accuracy2
+from build_model.utils import plot_stat_loss_vs_accuracy, plot_stat_loss_vs_accuracy2
 
 
 def baseline_model(lr=0.01):

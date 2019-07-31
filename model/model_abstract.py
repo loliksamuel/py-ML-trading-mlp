@@ -3,7 +3,7 @@ import pandas as pd
 from abc import abstractmethod
 from keras.optimizers import RMSprop
 
-from build.utils import plot_stat_loss_vs_accuracy, plot_conf_mtx
+from build_model.utils import plot_stat_loss_vs_accuracy, plot_conf_mtx
 
 
 class AbstractMlTradingModel(object):
