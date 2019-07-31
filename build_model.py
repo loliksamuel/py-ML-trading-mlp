@@ -26,7 +26,7 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs, verbose
                                                          size_hidden=2048,# 1 to 1024
                                                          batch_size=128,#1 to 1024  # we cannot pass the entire data into network at once , so we divide it to batches . number of samples that we will pass through the network at 1 time and use for each epoch. default is 32
                                                          loss='categorical_crossentropy',#binary_crossentropy categorical_crossentropy
-                                                         lr=0.1, #1 to 0.000000001
+                                                         lr=0.1, #1 to 0.000000001 if loss is diminishing very slowly increase lr
                                                          rho=0.9,#default 0.9
                                                          epsilon=None,
                                                          decay=0.5,
