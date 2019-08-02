@@ -1,23 +1,23 @@
 from model.enum import MlModel
 from model.model_factory import MlModelFactory
-from buld.utils import plot_selected, plot_histogram, data_normalize0
+from buld.utils import plot_selected, plot_histogram, data_normalize0, normalize3
 from keras.utils import to_categorical
 import numpy as np
-
+from scipy import stats
 
 class MlpTrading(object):
     def __init__(self, symbol) -> None:
         super().__init__()
         self.symbol = symbol
-        self.names_input = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400',
-                            'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'bb_hi10', 'bb_lo10',
-                            'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10',
-                            'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',
-                            'rel_bol_hi200',
-                            'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
+        self.names_input = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4',
+                            # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
+                            # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
+                            'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
+                            'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200']
+        self.names_output2 = ['Green bar', 'Red Bar']  # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         self.names_output = ['isUp']
         self.size_input = len(self.names_input)
-        self.size_output = 2# 2 or 3
+        self.size_output = len(self.names_output2)
         self.x_train = None
         self.x_test = None
         self.y_train = None
@@ -44,7 +44,12 @@ class MlpTrading(object):
                 decay=0.0,
                 kernel_init='glorot_uniform',
                 dropout=0.2,
-                verbose=0):
+                verbose=0
+                , names_output2 = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+                #, activation='softmax'#softmax'
+                ):
+        self.names_output2 = names_output2
+        self.size_output = len(self.names_output2)
         # print('\n======================================')
         # print('Plotting features')
         # print('======================================')
@@ -53,12 +58,12 @@ class MlpTrading(object):
         print('\n======================================')
         print(f'#{iteration_id}Splitting the data to train & test data')
         print('======================================')
-        self._prepare_input_data(df_all, train_data_indices, test_data_indices)
+        self._data_prepare_(df_all, train_data_indices, test_data_indices)
 
         print('\n======================================')
         print(f'#{iteration_id}Labeling the data')
         print('======================================')
-        self._prepare_output_data(df_all, train_data_indices, test_data_indices)
+        self._label_prepare(df_all, train_data_indices, test_data_indices)
 
         print('\n======================================')
         print(f'#{iteration_id}Normalizing the data')
@@ -69,7 +74,7 @@ class MlpTrading(object):
         print(f'#{iteration_id}Transform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
               '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
         print('======================================')
-        self._data_transform()
+        self._label_transform()
 
         print('\n======================================')
         print(f'#{iteration_id}Creating  model')
@@ -130,7 +135,7 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _prepare_input_data(self, df_all, train_data_indices, test_data_indices):
+    def _data_prepare_(self, df_all, train_data_indices, test_data_indices):
         self.x_train = df_all[self.names_input].values[train_data_indices]
         self.x_test = df_all[self.names_input].values[test_data_indices]
 
@@ -148,7 +153,7 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _prepare_output_data(self, df_all, train_data_indices, test_data_indices):
+    def _label_prepare(self, df_all, train_data_indices, test_data_indices):
         self.y_train = df_all[self.names_output].values[train_data_indices]
         self.y_test = df_all[self.names_output].values[test_data_indices]
 
@@ -173,13 +178,14 @@ class MlpTrading(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self):
-        self.x_train = data_normalize0(self.x_train, axis=1)
-        self.x_test = data_normalize0(self.x_test, axis=1)
+        self.x_train = normalize3(self.x_train, axis=1)
+        self.x_test = normalize3(self.x_test, axis=1)
         # print('columns=', self.x_train.columns)
         # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range']])
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])
-        print(self.x_train[0])
-        print(self.x_train)
+        print('finished normalizing \n',stats.describe(self.x_train))
+        print('\ndfn0=\n',self.x_train[0])
+        print('\ndfn=\n',self.x_train)
         # print(self.x_train2[0])
         # plot_image(self.x_test,'picture example')
 
@@ -192,11 +198,12 @@ class MlpTrading(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_transform(self):
-        self.y_train = to_categorical(self.y_train, self.size_output)
-        self.y_test = to_categorical(self.y_test, self.size_output)
-        print('self.y_train[0]=', self.y_train[0])
-        print('self.y_test [0]=', self.y_test[0])
+    def _label_transform(self):
+        print(f'categorizing   {self.size_output} classes')
+        self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
+        self.y_test = to_categorical(self.y_test, num_classes=self.size_output)
+        print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
+        print(f'y_test[0]={self.y_test[0]}, it means label={np.argmax(self.y_test[0])}')
 
     # |--------------------------------------------------------|
     # |                                                        |

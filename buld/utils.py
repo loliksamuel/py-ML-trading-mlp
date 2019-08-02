@@ -15,7 +15,7 @@ from sklearn.utils import resample
 from ta import *
 
 np.set_printoptions(precision=2)
-
+np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
 
 def kpi_returns(prices):
     return ((prices - prices.shift(-1)) / prices)[:-1]
@@ -88,10 +88,10 @@ def plot_conf_mtx(Y_true, Y_pred, target_names, file_name='files/output/Confusio
     zero = count - ones
 
     cm = confusion_matrix(Y_true, Y_pred).ravel()
-    tn, fp, fn, tp = cm.ravel()
+    #tn, fp, fn, tp = cm.ravel()
     cm = ConfusionMatrix(actual_vector=Y_true, predict_vector=Y_pred)
-    cm.print_matrix()
-    cm.print_normalized_matrix()
+    #cm.print_matrix()
+    #cm.print_normalized_matrix()
     cnf_matrix = confusion_matrix(Y_true, Y_pred)
     np.set_printoptions(precision=2)
 
@@ -279,13 +279,13 @@ from tensorflow.python.keras.utils import normalize
 
 
 # Test accuracy:0.68978194505275206
-def data_normalize0(df, axis=1):
+def data_normalize0(x, axis=1):
     print('\n============================================================================')
     print(f'#normalizing data axis = {axis}')
     print('===============================================================================')
-    dfn = normalize(df, axis=1)
-    print ('dfn=',dfn)
-    return dfn
+    xn = normalize(x, axis=1)
+    print ('xn=',xn)
+    return xn
 
 
 # normalize to first row  : Test accuracy:0.4978194505275206
@@ -293,15 +293,15 @@ def normalize1(df, axis):
     return df / df.iloc[0, :]  # df/df[0]
 
 
-def normalize2(x, axis):
-    train_stats = x.describe()
-    return (x - train_stats['mean']) / train_stats['std']
+def normalize2(df, axis):
+    train_stats = df.describe()
+    return (df - train_stats['mean']) / train_stats['std']
 
 
 def normalize3(x, axis):
     scaler = StandardScaler()
-    x_norm = scaler.fit_transform(x.values)
-    x_norm = pd.DataFrame(x_norm, index=x.index, columns=x.columns)
+    x_norm = scaler.fit_transform(x)
+    #x_norm = pd.DataFrame(x_norm, index=x.index, columns=x.columns)
     return x_norm
 
 
@@ -479,24 +479,20 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     df1['nvo'] = df1['Volume'] / df1['sma10'] / 100  # normalized volume
 
     # df/df.iloc[0,:]
-    df1['range_sma'] = (df1['Close'] - df1['sma10']) / df1['Close']
-    df1['range_sma1'] = (df1['sma10'] - df1['sma20']) / df1[
-        'sma10']  # small sma above big sma indicates that price is going up
-    df1['range_sma2'] = (df1['sma20'] - df1['sma50']) / df1[
-        'sma20']  # small sma above big sma indicates that price is going up
-    df1['range_sma3'] = (df1['sma50'] - df1['sma200']) / df1[
-        'sma50']  # small sma above big sma indicates that price is going up
-    df1['range_sma4'] = (df1['sma200'] - df1['sma400']) / df1[
-        'sma200']  # small sma above big sma indicates that price is going up
+    df1['range_sma'] = (df1['Close'] - df1['sma10']) / df1['Close']*100
+    df1['range_sma1'] = (df1['sma10'] - df1['sma20']) / df1[ 'sma10'] *100 # small sma above big sma indicates that price is going up
+    df1['range_sma2'] = (df1['sma20'] - df1['sma50']) / df1['sma20'] *100 # small sma above big sma indicates that price is going up
+    df1['range_sma3'] = (df1['sma50'] - df1['sma200']) / df1['sma50'] *100 # small sma above big sma indicates that price is going up
+    df1['range_sma4'] = (df1['sma200'] - df1['sma400']) / df1['sma200'] *100 # small sma above big sma indicates that price is going up
 
-    df1['rel_bol_hi10'] = (df1['High'] - df1['bb_hi10']) / df1['High']
-    df1['rel_bol_lo10'] = (df1['Low'] - df1['bb_lo10']) / df1['Low']
-    df1['rel_bol_hi20'] = (df1['High'] - df1['bb_hi20']) / df1['High']
-    df1['rel_bol_lo20'] = (df1['Low'] - df1['bb_lo20']) / df1['Low']
-    df1['rel_bol_hi50'] = (df1['High'] - df1['bb_hi50']) / df1['High']
-    df1['rel_bol_lo50'] = (df1['Low'] - df1['bb_lo50']) / df1['Low']
-    df1['rel_bol_hi200'] = (df1['High'] - df1['bb_hi200']) / df1['High']
-    df1['rel_bol_lo200'] = (df1['Low'] - df1['bb_lo200']) / df1['Low']
+    df1['rel_bol_hi10'] = (df1['High'] - df1['bb_hi10']) / df1['High']*100
+    df1['rel_bol_lo10'] = (df1['Low'] - df1['bb_lo10']) / df1['Low']*100
+    df1['rel_bol_hi20'] = (df1['High'] - df1['bb_hi20']) / df1['High']*100
+    df1['rel_bol_lo20'] = (df1['Low'] - df1['bb_lo20']) / df1['Low']*100
+    df1['rel_bol_hi50'] = (df1['High'] - df1['bb_hi50']) / df1['High']*100
+    df1['rel_bol_lo50'] = (df1['Low'] - df1['bb_lo50']) / df1['Low']*100
+    df1['rel_bol_hi200'] = (df1['High'] - df1['bb_hi200']) / df1['High']*100
+    df1['rel_bol_lo200'] = (df1['Low'] - df1['bb_lo200']) / df1['Low']*100
 
     # df1['isUp'] = 0
     print(df1)
@@ -520,10 +516,25 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     # tech_ind = pd.concat([sma, ema, macd, stoc, rsi, adx, cci, aroon, bands, ad, obv, wma, mom, willr], axis=1)
 
     ## labeling
-    df1['range'    ] = df1['Close'].shift(-1) - df1['Open'].shift(-1) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    shift =0#-1#-1#bug when doing -1 it predict only green
+    df1['range'    ] = df1['Close'].shift(shift) - df1['Open'].shift(shift) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     #df1['rangebug1'] = df1['Close'].shift(1)  - df1['Open'].shift(1) #bug!!! df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     #df1['rangebug2'] = df1['Close'].shift(0)  - df1['Open'].shift(0) #bug!!!  need to use  df.loc[i-1, 'Close'] or df1['Close'] - df1['Close'].shift(1)
     df1 = df1.fillna(0)#https://github.com/pylablanche/gcForest/issues/2
+    df1['percentage'] = df1['range'] / df1['Open'] * 100
+    ## smart labeling
+    if size_output == -2:
+        df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
+    elif size_output == -3:
+        df1['isUp']  = np.random.randint(3, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
+    elif size_output == 2:
+        df1.loc[df1.range  > 0.0, 'isUp'] = 1
+        df1.loc[df1.range <= 0.0, 'isUp'] = 0
+    elif size_output == 3:
+        df1['isUp'] = 1#hold
+        df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
+        df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
+        # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
     '''
     df1=
     Date            Open        Close      range      isUp
@@ -535,21 +546,6 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     1964-05-08    81.000000    81.000000  -0.099998   0.0
     1964-05-11    81.000000    80.900002   0.260002   1.0
     '''
-    df1['percentage'] = df1['range'] / df1['Open'] * 100
-    ## smart labeling
-    if size_output == -2:
-        df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
-    elif size_output == -3:
-        df1['isUp']  = np.random.randint(3, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
-    elif size_output == 2:
-        df1.loc[df1.range  > 0.0, 'isUp'] = 1
-        df1.loc[df1.range <= 0.0, 'isUp'] = 0
-    elif size_output == 3:
-        df1['isUp'] = 0
-        df1.loc[df1.percentage >= +0.1, 'isUp'] = 1
-        df1.loc[df1.percentage <= -0.1, 'isUp'] = -1
-        # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
-
 
         # direction = (close > close.shift()).astype(int)
         # target = direction.shift(-1).fillna(0).astype(int)
@@ -557,31 +553,32 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
         # sma10 = sma10.rename(columns={symbol: symbol+'sma10'})
         # sma20 = sma20.rename(columns={symbol: symbol+'sma20'})
         # df1 = df1.rename(columns={'Close': symbol+'Close'})
-        '''
-# loss: 0.1222 - acc: 0.9000 - val_loss: 0.1211 - val_acc: 0.9364 epoch50  sma+range+close+open (range tell model the answer)
-# loss: 0.6932 - acc: 0.4860 - val_loss: 0.6932 - val_acc: 0.4969 random data >>> random results
-# loss: 0.6922 - acc: 0.5205 - val_loss: 0.6911 - val_acc: 0.5364 epoch50  sma
-# loss: 0.6923 - acc: 0.5198 - val_loss: 0.6914 - val_acc: 0.5360
-# loss: 0.6922 - acc: 0.5217 - val_loss: 0.6911 - val_acc: 0.5353
-# loss: 0.6431 - acc: 0.5846 - val_loss: 0.7373 - val_acc: 0.5364
-# loss: 0.5373 - acc: 0.7114 - val_loss: 0.6112 - val_acc: 0.6773            epoch50
-# loss: 0.5198 - acc: 0.7225 - val_loss: 0.5632 - val_acc: 0.6797            epoch100 sma+stoc+rsi
-# loss: 0.5487 - acc: 0.7079 - val_loss: 0.6115 - val_acc: 0.6740    SPY 1970 epoch100 sma+stoc+rsi+bol 1970
-# loss: 0.4112 - acc: 0.8140 - val_loss: 0.5576 - val_acc: 0.7324    SPY 1970 epoch500 nvo+mom+sma+stoc+rsi+bol 1970
-
-# loss: 0.6047 - acc: 0.6574 - val_loss: 0.6257 - val_acc: 0.6580    SPY 2000
-# loss:    nan - acc: 0.4711 - val_loss:    nan - val_acc: 0.4563    DJI 2000
-# loss:    nan - acc: 0.4906 - val_loss:    nan - val_acc: 0.4626    QQQ 2000
-
-                      nvo         Open         High          Low        Close  range_sma  isUp
-Date                                                                                         
-1964-05-01    748.525452    79.459999    80.470001    79.459999    80.169998   0.001821   1.0
-1964-05-04    669.824179    80.169998    81.010002    79.870003    80.470001   0.005580   1.0
-2019-07-11  10607.754714  2999.620117  3002.330078  2988.800049  2999.909912   0.008677   1.0
-2019-07-12   9973.829690  3003.360107  3013.919922  3001.870117  3013.770020   0.010287   1.0
-'''
+    '''
+    # loss: 0.1222 - acc: 0.9000 - val_loss: 0.1211 - val_acc: 0.9364 epoch50  sma+range+close+open (range tell model the answer)
+    # loss: 0.6932 - acc: 0.4860 - val_loss: 0.6932 - val_acc: 0.4969 random data >>> random results
+    # loss: 0.6922 - acc: 0.5205 - val_loss: 0.6911 - val_acc: 0.5364 epoch50  sma
+    # loss: 0.6923 - acc: 0.5198 - val_loss: 0.6914 - val_acc: 0.5360
+    # loss: 0.6922 - acc: 0.5217 - val_loss: 0.6911 - val_acc: 0.5353
+    # loss: 0.6431 - acc: 0.5846 - val_loss: 0.7373 - val_acc: 0.5364
+    # loss: 0.5373 - acc: 0.7114 - val_loss: 0.6112 - val_acc: 0.6773            epoch50
+    # loss: 0.5198 - acc: 0.7225 - val_loss: 0.5632 - val_acc: 0.6797            epoch100 sma+stoc+rsi
+    # loss: 0.5487 - acc: 0.7079 - val_loss: 0.6115 - val_acc: 0.6740    SPY 1970 epoch100 sma+stoc+rsi+bol 1970
+    # loss: 0.4112 - acc: 0.8140 - val_loss: 0.5576 - val_acc: 0.7324    SPY 1970 epoch500 nvo+mom+sma+stoc+rsi+bol 1970
+    
+    # loss: 0.6047 - acc: 0.6574 - val_loss: 0.6257 - val_acc: 0.6580    SPY 2000
+    # loss:    nan - acc: 0.4711 - val_loss:    nan - val_acc: 0.4563    DJI 2000
+    # loss:    nan - acc: 0.4906 - val_loss:    nan - val_acc: 0.4626    QQQ 2000
+    
+                          nvo         Open         High          Low        Close  range_sma  isUp
+    Date                                                                                         
+    1964-05-01    748.525452    79.459999    80.470001    79.459999    80.169998   0.001821   1.0
+    1964-05-04    669.824179    80.169998    81.010002    79.870003    80.470001   0.005580   1.0
+    2019-07-11  10607.754714  2999.620117  3002.330078  2988.800049  2999.909912   0.008677   1.0
+    2019-07-12   9973.829690  3003.360107  3013.919922  3001.870117  3013.770020   0.010287   1.0
+    '''
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)
+    pd.options.display.float_format = '{:.2f}'.format
     print('columns=', df1.columns)
     print('\ndf1=\n', df1.loc[:, ['sma10', 'sma20', 'sma50', 'sma200', 'range_sma1']])
     print('\ndf1=\n', df1.loc[:, ['rsi10', 'rsi20', 'rsi50', 'rsi5', 'nvo', 'High', 'Low']])
@@ -605,8 +602,14 @@ Date
     # print ('\ndf1 describe direction =  0\n',rslt_df.describe())
     # # print ('\ndf1=\n',df1.loc[:, ['ema','macd','stoc', 'rsi']])
     print('\ndf11 describe=\n', df1.loc[:,
-                                ['percentage', 'nvo',  'mom10', 'mom20', 'mom50', 'rsi5', 'rsi10',
-                                 'rsi20', 'rsi50', 'stoc10', 'stoc20', 'stoc50', 'range', 'isUp']].describe())
+                                ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4',
+                                 # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
+                                 # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
+                                 'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
+                                 'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200', 'isUp']].describe())
+
+    df1 = df1.round(4)
+
     return df1
 
 def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']):

@@ -3,7 +3,11 @@ from model.enum import MlModel
 from buld.build_models import MlpTrading
 from buld.utils import get_data_from_disc, data_transform, data_clean
 import numpy as np
+import pandas_datareader.data as pd
 
+# pd.set_option('display.max_columns', 500)
+# pd.set_option('display.width', 1000)
+# pd.options.display.float_format = '{:.2f}'.format
 
 
 
@@ -23,16 +27,17 @@ def execute_model_train_and_test(full_data_frame, data_splitter, epochs, verbose
 
 
                                                          epochs=epochs,#  iterations. on each, train all data, then evaluate, then adjust parameters (weights and biases)
-                                                         size_hidden=2048,# 1 to 1024
+                                                         size_hidden=15,# 1 to 1024
                                                          batch_size=128,#1 to 1024  # we cannot pass the entire data into network at once , so we divide it to batches . number of samples that we will pass through the network at 1 time and use for each epoch. default is 32
                                                          loss='categorical_crossentropy',#binary_crossentropy categorical_crossentropy
-                                                         lr=0.1, #1 to 0.000000001 if loss is diminishing very slowly increase lr
+                                                         lr=0.00001, #1 to 0.000000001 if loss is diminishing very slowly increase lr
                                                          rho=0.9,#default 0.9
                                                          epsilon=None,
-                                                         decay=0.5,
+                                                         decay=0.0,
                                                          kernel_init='glorot_uniform',#  'glorot_uniform'(default),'normal', 'uniform'
                                                          dropout=0.2,#for genralization
-                                                         verbose=verbose)#0 1 2
+                                                         verbose=verbose
+                                                         ,names_output2 = ['Green bar', 'Red Bar'])#0 1 2
         cv_scores.append(scores[1] * 100)
 
 
@@ -52,7 +57,7 @@ Actual\Predics    0          1
 '''
 cv_scores = [0]
 symbol    = '^GSPC'
-epochs    = 100 #iterations. on each, train all data, then evaluate, then adjust parameters (weights and biases)
+epochs    = 1000 #iterations. on each, train all data, then evaluate, then adjust parameters (weights and biases)
 skip_first_lines=3600 #>400  total 13894 daily bars
 size_output = 2 #choose :-3 = random (-1 0 +1), -2=random(0 or 1), 2 for up/dn , 3 for up/dn/hold
 verbose     = 2 #0=none, 1=all, 2=mid

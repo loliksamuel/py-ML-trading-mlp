@@ -7,22 +7,24 @@ from keras.optimizers import RMSprop
 from sklearn.model_selection import GridSearchCV
 import pandas as pd
 import numpy as np
+from scipy import stats
 
-from buld.utils import data_load_and_transform, plot_selected, data_normalize0, plot_stat_loss_vs_time, \
-    plot_stat_accuracy_vs_time, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram
+from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, normalize2, normalize3
 
 
 class MlpTrading_old(object):
     def __init__(self, symbol) -> None:
         super().__init__()
+        self.precision = 4
+        np.set_printoptions(precision=self.precision)
+        np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
         self.symbol = symbol
 
-        self.names_input = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400',
-                            'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'bb_hi10', 'bb_lo10',
-                            'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10',
-                            'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',
-                            'rel_bol_hi200',
-                            'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
+        self.names_input = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4',
+                            # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
+                            # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
+                            'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
+                            'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200']
         self.names_output = ['Green bar', 'Red Bar']  # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         self.size_input = len(self.names_input)
         self.size_output = len(self.names_output)
@@ -51,16 +53,20 @@ class MlpTrading_old(object):
                     , dropout      = 0.2
                     , verbose      = 0
                     , use_grid_search = False
+                    , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+                    , activation='softmax'#softmax'
+
                 ):
 
-
+        self.names_output = names_output
+        self.size_output = len(self.names_output)
         df_all = self.data_prepare(percent_test_split, skip_days)
 
 
         if use_grid_search:
             self.model_grid_search()
         else:
-            self.model_create_and_save(df_all, activation='relu'
+            self.model_create_and_save(df_all, activation=activation, loss=loss
                                        , optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)
                                        , batch_size=batch_size, decay=decay,  dropout=dropout, epochs=epochs
                                        , epsilon=epsilon, kernel_init=kernel_init, lr=lr
@@ -71,27 +77,31 @@ class MlpTrading_old(object):
 
     def model_grid_search(self):
         print("use_grid_search")
-        activation = ['relu', 'softmax', 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear']
-        init       = ['glorot_normal', 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform', 'he_normal',  'he_uniform']
-        optimizers = ['RMSprop', 'SGD', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam']
-        losses =     ['binary_crossentropy']#, 'categorical_crossentropy']#['mse', 'mae']  #better=binary_crossentropy
+        activation = [ 'softmax']#, 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear', 'relu']#best 'softmax', 'softplus', 'softsign'
+        init       = ['glorot_normal']#, 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform',  'he_uniform', 'he_normal']#all same except he_normal worse
+        optimizers = ['RMSprop']#, 'SGD', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam'] # same for all
+        losses =     ['categorical_crossentropy']#, 'categorical_crossentropy']#['mse', 'mae']  #better=binary_crossentropy
         epochs =     [100]#,500]  # , 100, 150] # default epochs=1,  better=100
-        batches =    [32]#,64,128,512]  # , 10, 20]   #  default = none
-        size_hiddens = [1, 3, 6, 20, 100]  # 5, 10, 20]
-        dropouts =     [0.0, 0.2, 0.3, 0.4]  # , 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        batches =    [150]#],150,200]  # , 10, 20]   #  default = none best=32
+        size_hiddens = [100]#], 200, 300, 400, 600]  # 5, 10, 20] best = 100 0.524993 Best score: 0.525712 using params {'batch_size': 128, 'dropout': 0.2, 'epochs': 100, 'loss': 'binary_crossentropy', 'size_hidden': 100}
+        dropouts =     [0.2]#, 0.2, 0.3, 0.4]  # , 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         weights =      [1, 2]  # , 3, 4, 5]
-        param_grid = dict(  # activation  = activation,
-                            # init=init
+        lrs     =      [0.02]#,0.03, 0.05, 0.07]#,0.001,0.0001,1,0.1,0.00001]#best 0.01 0.001 0.0001
+        rhos    =      [0.01, 0.1, 0.2, 0.6]#all same
+        param_grid = dict(  activation  = activation,
+                            init=init,
                             # weight_constraint=weights,
-                            # optimizer=optimizers
+                            #optimizer=optimizers,
                             epochs=epochs,
                             batch_size=batches,
-                            loss= losses
-                            # size_hidden = size_hiddens
-                            #dropout=dropouts
+                            loss= losses,
+                            size_hidden = size_hiddens,
+                            dropout=dropouts,
+                            lr= lrs,
+                            rho = rhos
         )
-        model = KerasClassifier(build_fn=self._model_create_mlp, verbose=2)
-        grid = GridSearchCV(estimator=model, param_grid=param_grid)
+        model = KerasClassifier(build_fn=self._model_create_mlp, verbose=0)
+        grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=2)
         X = np.concatenate((self.x_train, self.x_test), axis=0)
         Y = np.concatenate((self.y_train, self.y_test), axis=0)
         grid_result = grid.fit(X, Y)
@@ -119,7 +129,7 @@ class MlpTrading_old(object):
         print('\n======================================')
         print('\nLabeling the data')
         print('\n======================================')
-        self._data_label(df_all, percent_test_split)
+        self._label_split(df_all, percent_test_split)
         print('\n======================================')
         print('\nCleaning the data')
         print('\n======================================')
@@ -136,11 +146,11 @@ class MlpTrading_old(object):
         print('\nTransform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
               '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
         print('\n======================================')
-        self._data_transform()
+        self._label_transform()
         return df_all
 
 
-    def model_create_and_save(self, df_all, activation='relu', optimizer='rmsprop',loss='binary_crossentropy', kernel_init='glorot_uniform',batch_size=32, decay=0.0,  dropout=0.2, epochs=200, epsilon=None,   lr=0.001,
+    def model_create_and_save(self, df_all, activation='relu', optimizer='rmsprop',loss='categorical_crossentropy', kernel_init='glorot_uniform',batch_size=32, decay=0.0,  dropout=0.2, epochs=200, epsilon=None,   lr=0.001,
                               modelType='mlp', rho=0.9, size_hidden=200, verbose=2):#rho=0.9, epsilon=None, decay=0.0
         print('\n======================================')
         print('\nCreating the model')
@@ -169,23 +179,27 @@ class MlpTrading_old(object):
         print('\n======================================')
         self._model_evaluate(model)
         print('\n======================================')
-        print('\nPredict unseen data with 2 probabilities for 2 classes(choose the highest)')
+        print(f'\nPredict unseen data with {self.size_output} probabilities, for classes {self.names_output} (choose the highest)')
         print('\n======================================')
         self._model_predict(model)
         print('\n======================================')
         print('\nSaving the model')
         print('\n======================================')
         self._model_save(model, params)
-        print('\n======================================')
-        print('\nPlotting histograms')
-        print('\n======================================')
-        self._plot_features_hstg(df_all)
+        # print('\n======================================')
+        # print('\nPlotting histograms')
+        # print('\n======================================')
+        # self._plot_features_hstg(df_all)
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_load(self, skip_days):
         df_all = data_load_and_transform(self.symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = skip_days, size_output=self.size_output)
+        # df_all = df_all.loc[:, self.names_input]
+        # print('\ndf_all describe=\n', df_all.loc[:,
+        #                               self.names_input].describe())
+
         # print('df_all.shape=',df_all.shape)
         # df_all = format_to_lstm(df_all)
         # print('df_all.shape=',df_all.shape)
@@ -227,6 +241,9 @@ class MlpTrading_old(object):
         shape = df_all.shape
 
         df_data = df_all.loc[:, self.names_input]
+        print (df_data.dtypes)
+        df_data = df_data.round(self.precision)
+        df_data.style.format("{:.4f}")
         # today = datetime.date.today()
         # file_name = self.symbol+'_prepared_'+str(today)+'.csv'
         # df_data.to_csv(file_name)
@@ -243,6 +260,7 @@ class MlpTrading_old(object):
         print('\ntest data', self.x_test.shape)
         print(self.x_test[0])
         print(self.x_test[1])
+        print(self.x_test)
 
         print(self.x_train.shape[0], 'train samples')
         print(self.x_test.shape[0], 'test samples')
@@ -250,7 +268,7 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_label(self, df_all, percent_test_split):
+    def _label_split(self, df_all, percent_test_split):
         df_y = df_all['isUp']  # np.random.randint(0,2,size=(shape[0], ))
         print(df_y)
         (self.y_train, self.y_test) = train_test_split(df_y.values, test_size=percent_test_split, shuffle=False)
@@ -277,13 +295,38 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self):
-        self.x_train = data_normalize0(self.x_train, axis=1)
-        self.x_test  = data_normalize0(self.x_test, axis=1)
+
+        self.x_train = normalize3(self.x_train, axis=1)
+        self.x_test  = normalize3(self.x_test , axis=1)
         # print('columns=', self.x_train.columns)
         # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range']])
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])
-        print(self.x_train[0])
-        print(self.x_train)
+        print('finished normalizing \n',stats.describe(self.x_train))
+        print('\ndfn0=\n',self.x_train[0])
+        print('\ndfn=\n',self.x_train)
+
+        '''
+finished normalizing  DescribeResult
+(nobs=9315, 
+            'nvo', 'mom5', 'mom10', 'mom20', 'mom50',  'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50'  'rel_bol_hi200',  'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200'
+min=       [ 0.63, -0.21,  -0.21,  -0.18   ,  -0.18  , -0.  , -0.  , -0.  , -0.  ,-0.  , -0.  , -0.  , -0.  , -0.  , -0.  , -0.  , -0.  ,  0.  ,0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ]), 
+max=       [ 1.  , -0.  , -0.  , -0.  , -0.          ,  0.  ,  0.  ,  0.  ,  0.  ,0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.27,0.26,  0.24,  0.26,  0.26,  0.29,  0.29,  0.3 ])), 
+mean=      [ 0.99, -0.02, -0.02, -0.02, -0.02,         -0.  ,  0.  ,  0.  ,  0.  ,0.  ,  0.  , -0.  ,  0.  , -0.  ,  0.  , -0.  ,  0.  ,  0.02,0.02,  0.02,  0.02,  0.02,  0.02,  0.02,  0.03]), 
+var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0.]), 
+      
+      normalize0*100
+ min([ 0.6276, -0.2057, -0.209 , -0.1825, -0.1757, -0.004 , -0.005 ,-0.0077, -0.0164, -0.0114, -0.0025, -0.0147, -0.0027, -0.026 ,-0.0041, -0.0437, -0.0075,  0.0002,  0.0004,  0.0009, 0.0001,0.    ,  0.    ,  0.    ,  0.    ]), 
+ max([ 1.    , -0.    , -0.    , -0.    , -0.    ,  0.0039,  0.005 ,    0.0096,  0.0188,  0.0214,  0.0097,  0.0013,  0.021 ,  0.0024, 0.0356,  0.012 ,  0.0597,  0.2654,  0.2613,  0.2395,  0.259 , 0.2555,  0.2868,  0.2934,  0.3028])), 
+ mean([ 0.9934, -0.021 , -0.0204, -0.0196, -0.0186, -0.    ,  0.    ,0.0001,  0.0005,  0.0009,  0.0005, -0.0009,  0.0009, -0.0015,0.0017, -0.003 ,  0.0042,  0.0223,  0.0223,  0.0223,  0.0222,0.0225,  0.0233,  0.0243,  0.0268]), 
+ var([0.0002, 0.0006, 0.0006, 0.0006, 0.0006, 0.    , 0.    , 0.    , 0.    , 0.    , 0.    , 0.    , 0.    , 0.    , 0.    , 0.    , 0.    , 0.0005, 0.0005, 0.0004, 0.0006, 0.0006, 0.0006, 0.0006, 0.0008]), 
+       
+       normalize3
+ min([ -1.583 ,  -1.8729,  -1.9074,  -1.9675,  -2.1006, -20.2001, -11.8513,  -7.7558,  -4.4229,  -3.6384, -21.8447,  -5.0579,-16.8103,  -7.6295, -10.3472,  -7.6404,  -7.0404,  -3.5015, -2.4874,  -2.9664,  -3.5163,  -1.9537,  -1.9074,  -1.9675,-2.1006,  -2.2853]), 
+ max([7.0308, 1.5706, 1.5023, 1.4322, 1.3643, 5.3087, 4.172 , 2.9205,2.0347, 1.8618, 2.0737, 8.4973, 1.7524, 6.2461, 1.5518, 4.7587,1.6522, 2.7927, 2.1145, 2.4315, 2.7735, 1.688 , 1.5023, 1.4322,1.3643, 1.1531])), 
+ mean([-0.,  0.,  0.,  0., -0.,  0.,  0.,  0., -0.,  0., -0.,  0., -0.,-0.,  0.,  0., -0.,  0.,  0.,  0., -0., -0.,  0.,  0., -0., -0.]), 
+ var([1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001,1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001, 1.0001])
+ 
+        '''
         # print(self.x_train2[0])
         # plot_image(self.x_test,'picture example')
 
@@ -296,16 +339,17 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_transform(self):
-        self.y_train = to_categorical(self.y_train, self.size_output)
-        self.y_test = to_categorical(self.y_test, self.size_output)
-        print('self.y_train[0]=', self.y_train[0])
-        print('self.y_test [0]=', self.y_test[0])
+    def _label_transform(self):
+        print(f'categorizing   {self.size_output} classes')
+        self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
+        self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
+        print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
+        print(f'y_test[0]={self.y_test[0]}, it means label={np.argmax(self.y_test[0])}')
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _model_create_mlp(self, activation='relu', optimizer='rmsprop', loss='binary_crossentropy', init='glorot_uniform', size_hidden=200, dropout=0.2,  lr=0.001, rho=0.9, epsilon=None, decay=0.0):
+    def _model_create_mlp(self, activation='relu', optimizer='rmsprop', loss='categorical_crossentropy', init='glorot_uniform', size_hidden=200, dropout=0.2,  lr=0.001, rho=0.9, epsilon=None, decay=0.0):
 
         model = Sequential()  # stack of layers
 
@@ -317,17 +361,17 @@ class MlpTrading_old(object):
 
         model.add(Dense  (units=size_hidden, activation=activation))
         model.add(Dropout(dropout))  # regularization technic by removing some nodes
-
+        print(f'units=self.size_output={self.size_output}')
         model.add(Dense  (units=self.size_output, activation=activation))
         #model.summary()
 
-        self._model_compile(model, optimizer=optimizer,  loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+        self._model_compile(model, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay),  loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
 
         return model
 
 
 
-    def _model_create_lstm(self, activation='relu', optimizer='rmsprop', loss='binary_crossentropy', init='glorot_uniform', size_hidden=50, dropout=0.2,  lr=0.001, rho=0.9, epsilon=None, decay=0.0):
+    def _model_create_lstm(self, activation='relu', optimizer='rmsprop', loss='categorical_crossentropy', init='glorot_uniform', size_hidden=50, dropout=0.2,  lr=0.001, rho=0.9, epsilon=None, decay=0.0):
         #input_shape = (input_length, input_dim)
         #input_shape=(self.size_input,)   equals to    input_dim = self.size_input
         #X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
@@ -383,7 +427,7 @@ class MlpTrading_old(object):
     # |                                                  ,       |
     # |--------------------------------------------------------|
     @staticmethod
-    def _model_compile(model,  optimizer='rmsprop', loss='binary_crossentropy', lr=0.00001, rho=0.9, epsilon=None, decay=0.0):
+    def _model_compile(model,  optimizer='rmsprop', loss='categorical_crossentropy', lr=0.00001, rho=0.9, epsilon=None, decay=0.0):
         model.compile( loss=loss  # measure how accurate the model during training
                       ,optimizer=optimizer#RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)  # this is how model is updated based on data and loss function
                       ,metrics=['accuracy'])
@@ -411,8 +455,8 @@ class MlpTrading_old(object):
         history_dict = history.history
         print(history_dict.keys())
 
-        plot_stat_loss_vs_time    (history_dict, title='model Loss over time'+title)
-        plot_stat_accuracy_vs_time(history_dict, title='model Accuracy over time'+title)
+        #plot_stat_loss_vs_time    (history_dict, title='model Loss over time'+title)
+        #plot_stat_accuracy_vs_time(history_dict, title='model Accuracy over time'+title)
         plot_stat_loss_vs_accuracy(history_dict, title='model Loss, Accuracy over time'+title)
 
         hist = pd.DataFrame(history.history)
@@ -434,13 +478,13 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     def _model_predict(self, model):
         y_pred = model.predict(self.x_test)
-        print(f'labeled   as {self.y_test[0]} highest confidence for {np.argmax(self.y_test[0])}')
-        print(f'predicted as {y_pred[0]} highest confidence for {np.argmax(y_pred[0])}')
+        print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
+        print(f'predicted as {y_pred[0]} highest confidence for index {np.argmax(y_pred[0])}')
 
         x_all = np.concatenate((self.x_train, self.x_test), axis=0)
         y_pred_all = model.predict(x_all)
-        print(f'labeled   as {self.y_test[0]} highest confidence for {np.argmax(self.y_test[0])}')
-        print(f'predicted as {y_pred_all[0]} highest confidence for {np.argmax(y_pred_all[0])}')
+        print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
+        print(f'predicted as {y_pred_all[0]} highest confidence for index {np.argmax(y_pred_all[0])}')
 
         # Y_true = [0, 1, 0, 1]
         # Y_pred = [1, 1, 1, 0]
