@@ -8,10 +8,12 @@ from sklearn.model_selection import GridSearchCV
 import pandas as pd
 import numpy as np
 from scipy import stats
+from IPython.display import display
 
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
     plot_histogram, normalize2, normalize3
-
+import eli5
+from eli5.sklearn import PermutationImportance
 
 class MlpTrading_old(object):
     def __init__(self, symbol) -> None:
@@ -25,7 +27,7 @@ class MlpTrading_old(object):
                             # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
                             # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
                             'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
-                            'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200']
+                            'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200', 'isPrev1Up', 'isPrev2Up']
         self.names_output = []#'Green bar', 'Red Bar' , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         self.size_input = len(self.names_input)
         #self.size_output = len(self.names_output)
@@ -103,7 +105,7 @@ class MlpTrading_old(object):
                             #rho = rhos
         )
         model = KerasClassifier(build_fn=self._model_create_mlp, verbose=0)
-        grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=2)
+        grid = GridSearchCV(estimator=model, param_grid=param_grid, scoring='accuracy', cv=2)
         X = np.concatenate((self.x_train, self.x_test), axis=0)
         Y = np.concatenate((self.y_train, self.y_test), axis=0)
         grid_result = grid.fit(X, Y)
@@ -175,7 +177,7 @@ class MlpTrading_old(object):
         # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
         # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
         params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
-        self._plot_evaluation(history, params)
+        self._plot_evaluation(model, history, params)
         print('\n======================================')
         print('\nEvaluate the model with unseen data. pls validate that test accuracy =~ train accuracy and near 1.0')
         print('\n======================================')
@@ -301,7 +303,7 @@ class MlpTrading_old(object):
         self.x_train = normalize3(self.x_train, axis=1)
         self.x_test  = normalize3(self.x_test , axis=1)
         # print('columns=', self.x_train.columns)
-        # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range']])
+        # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range0']])
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])
         print('finished normalizing \n',stats.describe(self.x_train))
         print('\ndfn0=\n',self.x_train[0])
@@ -346,6 +348,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         print('y_test=',self.y_test)
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
+        self.y_train_bak = self.y_train
         self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
         self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
         print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
@@ -452,7 +455,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _plot_evaluation(self, history, title=''):
+    def _plot_evaluation(self, model, history, title=''):
         print(f'\nsize.model.features(size_input) = {self.size_input}')
         print(f'\nsize.model.target  (size_output)= {self.size_output}')
 
@@ -464,6 +467,16 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         #plot_stat_accuracy_vs_time(history_dict, title='model Accuracy over time'+title)
         plot_stat_loss_vs_accuracy(history_dict, title='model Loss, Accuracy over time'+title)
 
+        # perm = PermutationImportance(model, random_state=1, scoring='accuracy').fit(self.x_train,
+        #                                                                             self.y_train_bak)
+
+        html1 = eli5.show_weights(model, feature_names = self.names_input)
+        html2 = eli5.explain_weights(model, feature_names = self.names_input)
+        html3 = eli5.show_prediction(model, doc=self.x_train[2], feature_names = self.names_input)
+        #
+        # display(html1)
+        # display(html2)
+        # display(html3)
         hist = pd.DataFrame(history.history)
         hist['epoch'] = history.epoch
         print(hist.tail())
@@ -514,7 +527,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     @staticmethod
     def _plot_features_hstg(df_all):
-        plot_histogram(x=df_all['range']
+        plot_histogram(x=df_all['range0']
                        , bins=100
                        , title='TA-diff bw open and close - Gaussian data '
                        , xlabel='range of a bar from open to close'

@@ -517,18 +517,24 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     # tech_ind = pd.concat([sma, ema, macd, stoc, rsi, adx, cci, aroon, bands, ad, obv, wma, mom, willr], axis=1)
 
     ## labeling
-    df1['range'    ] = df1['Close'] - df1['Open'] #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    df1['range2'    ] = df1['Close'].shift(2)  - df1['Open'].shift(2) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    df1['range1'    ] = df1['Close'].shift(1)  - df1['Open'].shift(1) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    df1['range0'    ] = df1['Close'].shift(0)   - df1['Open'].shift(0) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    df1.loc[df1.range1  > 0.0, 'isPrev1Up'] = 1
+    df1.loc[df1.range1 <= 0.0, 'isPrev1Up'] = 0
+    df1.loc[df1.range2  > 0.0, 'isPrev2Up'] = 1
+    df1.loc[df1.range2 <= 0.0, 'isPrev2Up'] = 0
     #df1['rangebug1'] = df1['Close'].shift(1)  - df1['Open'].shift(1) #bug!!! df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     #df1['rangebug2'] = df1['Close'].shift(0)  - df1['Open'].shift(0) #bug!!!  need to use  df.loc[i-1, 'Close'] or df1['Close'] - df1['Close'].shift(1)
     df1 = df1.fillna(0)#https://github.com/pylablanche/gcForest/issues/2
-    df1['percentage'] = df1['range'] / df1['Open'] * 100
+    df1['percentage'] = df1['range0'] / df1['Open'] * 100
     ## smart labeling
     if size_output == 2 :
         if use_random_label==True:
             df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
         else:
-            df1.loc[df1.range  > 0.0, 'isUp'] = 1
-            df1.loc[df1.range <= 0.0, 'isUp'] = 0
+            df1.loc[df1.range0  > 0.0, 'isUp'] = 1
+            df1.loc[df1.range0 <= 0.0, 'isUp'] = 0
     elif size_output == 3:
         if use_random_label==True:
             df1['isUp']  = np.random.randint(3, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
@@ -537,11 +543,16 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
             df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
             df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
             # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
-    shift =-1#-1#-1#-1#bug when doing -1 it predict only green
+    shift =0#-1#-1#-1#bug when doing -1 it predict only green
 
     df1['isNextBarUp'] = df1['isUp'].shift(shift)# today's dataset  procuce  prediction is tommorow is up
     df1['isNextBarUp'] = df1['isNextBarUp'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
+    df1['isPrev1Up'] = df1['isPrev1Up'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
+    df1['isPrev2Up'] = df1['isPrev2Up'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
     df1['isNextBarUp'] = df1['isNextBarUp'].astype(int)
+    df1['isPrev1Up'] = df1['isPrev1Up'].astype(int)
+    df1['isPrev2Up'] = df1['isPrev2Up'].astype(int)
+    df1['isUp'] = df1['isUp'].astype(int)
     '''
     df1=
     Date            Open        Close      range      isUp
@@ -598,7 +609,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     #print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
     #print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
     print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
-    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range', 'isUp', 'isNextBarUp']])
+    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range0', 'isPrev2Up','isPrev1Up', 'isUp', 'isNextBarUp']])
 
     # df = pd.DataFrame(record, columns = ['Name', 'Age', 'Stream', 'Percentage'])
     # rslt_df = df[df1['isUp'] == 1]
