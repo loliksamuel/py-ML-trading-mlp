@@ -8,7 +8,7 @@ import pandas_datareader.data as pd
 mlp_trading_old = MlpTrading_old(symbol='^GSPC')
 mlp_trading_old.execute(skip_days=3600,#>400
                         modelType='mlp',#   # mlp lstm drl
-                        epochs=5000,  # best 5000   or 300
+                        epochs=2000,  # best 5000   or 300
                         size_hidden=15,
                         batch_size=128,#best 128
                         percent_test_split=0.33,

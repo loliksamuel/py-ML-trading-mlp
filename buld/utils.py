@@ -516,8 +516,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     # tech_ind = pd.concat([sma, ema, macd, stoc, rsi, adx, cci, aroon, bands, ad, obv, wma, mom, willr], axis=1)
 
     ## labeling
-    shift =0#-1#-1#bug when doing -1 it predict only green
-    df1['range'    ] = df1['Close'].shift(shift) - df1['Open'].shift(shift) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    df1['range'    ] = df1['Close'] - df1['Open'] #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     #df1['rangebug1'] = df1['Close'].shift(1)  - df1['Open'].shift(1) #bug!!! df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     #df1['rangebug2'] = df1['Close'].shift(0)  - df1['Open'].shift(0) #bug!!!  need to use  df.loc[i-1, 'Close'] or df1['Close'] - df1['Close'].shift(1)
     df1 = df1.fillna(0)#https://github.com/pylablanche/gcForest/issues/2
@@ -535,6 +534,11 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
         df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
         df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
         # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
+    shift =0#-1#-1#bug when doing -1 it predict only green
+
+    df1['isNextBarUp'] = df1['isUp'].shift(shift)# today's dataset  procuce  prediction is tommorow is up
+    df1['isNextBarUp'] = df1['isNextBarUp'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
+    df1['isNextBarUp'] = df1['isNextBarUp'].astype(int)
     '''
     df1=
     Date            Open        Close      range      isUp
@@ -591,7 +595,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     #print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
     #print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
     print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
-    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range', 'isUp']])
+    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range', 'isUp', 'isNextBarUp']])
 
     # df = pd.DataFrame(record, columns = ['Name', 'Age', 'Stream', 'Percentage'])
     # rslt_df = df[df1['isUp'] == 1]

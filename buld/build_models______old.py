@@ -81,24 +81,24 @@ class MlpTrading_old(object):
         init       = ['glorot_normal']#, 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform',  'he_uniform', 'he_normal']#all same except he_normal worse
         optimizers = ['RMSprop']#, 'SGD', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam'] # same for all
         losses =     ['categorical_crossentropy']#, 'categorical_crossentropy']#['mse', 'mae']  #better=binary_crossentropy
-        epochs =     [100]#,500]  # , 100, 150] # default epochs=1,  better=100
+        epochs =     [2000]#,500]  # , 100, 150] # default epochs=1,  better=100
         batches =    [150]#],150,200]  # , 10, 20]   #  default = none best=32
         size_hiddens = [100]#], 200, 300, 400, 600]  # 5, 10, 20] best = 100 0.524993 Best score: 0.525712 using params {'batch_size': 128, 'dropout': 0.2, 'epochs': 100, 'loss': 'binary_crossentropy', 'size_hidden': 100}
         dropouts =     [0.2]#, 0.2, 0.3, 0.4]  # , 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         weights =      [1, 2]  # , 3, 4, 5]
-        lrs     =      [0.02]#,0.03, 0.05, 0.07]#,0.001,0.0001,1,0.1,0.00001]#best 0.01 0.001 0.0001
+        lrs     =      [0.00001, 0.00002, 0.00003, 0.00004]#,0.03, 0.05, 0.07]#,0.001,0.0001,1,0.1,0.00001]#best 0.01 0.001 0.0001
         rhos    =      [0.01, 0.1, 0.2, 0.6]#all same
-        param_grid = dict(  activation  = activation,
-                            init=init,
+        param_grid = dict(  #activation  = activation,
+                            #init=init,
                             # weight_constraint=weights,
                             #optimizer=optimizers,
                             epochs=epochs,
-                            batch_size=batches,
-                            loss= losses,
-                            size_hidden = size_hiddens,
-                            dropout=dropouts,
-                            lr= lrs,
-                            rho = rhos
+                            #batch_size=batches,
+                            #loss= losses,
+                            #size_hidden = size_hiddens,
+                            #dropout=dropouts,
+                            lr= lrs
+                            #rho = rhos
         )
         model = KerasClassifier(build_fn=self._model_create_mlp, verbose=0)
         grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=2)
@@ -269,7 +269,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _label_split(self, df_all, percent_test_split):
-        df_y = df_all['isUp']  # np.random.randint(0,2,size=(shape[0], ))
+        df_y = df_all['isNextBarUp']  # np.random.randint(0,2,size=(shape[0], ))
         print(df_y)
         (self.y_train, self.y_test) = train_test_split(df_y.values, test_size=percent_test_split, shuffle=False)
 
@@ -341,6 +341,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     def _label_transform(self):
         print(f'categorizing   {self.size_output} classes')
+        print('y_test=',self.y_test)
         self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
         self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
         print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
