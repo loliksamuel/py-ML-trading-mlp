@@ -9,7 +9,8 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 
-from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, normalize2, normalize3
+from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
+    plot_histogram, normalize2, normalize3
 
 
 class MlpTrading_old(object):
@@ -25,9 +26,9 @@ class MlpTrading_old(object):
                             # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
                             'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
                             'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200']
-        self.names_output = ['Green bar', 'Red Bar']  # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+        self.names_output = []#'Green bar', 'Red Bar' , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         self.size_input = len(self.names_input)
-        self.size_output = len(self.names_output)
+        #self.size_output = len(self.names_output)
         self.x_train = None
         self.x_test = None
         self.y_train = None
@@ -55,12 +56,13 @@ class MlpTrading_old(object):
                     , use_grid_search = False
                     , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                     , activation='softmax'#softmax'
+                    , use_random_label = False
 
                 ):
 
         self.names_output = names_output
         self.size_output = len(self.names_output)
-        df_all = self.data_prepare(percent_test_split, skip_days)
+        df_all = self.data_prepare(percent_test_split, skip_days, use_random_label)
 
 
         if use_grid_search:
@@ -113,11 +115,11 @@ class MlpTrading_old(object):
         for mean, stdev, param in zip(means, stds, params):
             print("%f (%f) with params: %r" % (mean, stdev, param))
 
-    def data_prepare(self, percent_test_split, skip_days):
+    def data_prepare(self, percent_test_split, skip_days, use_random_label=False):
         print('\n======================================')
         print('\nLoading the data')
         print('\n======================================')
-        df_all = self._data_load(skip_days)
+        df_all = self._data_load(skip_days, use_random_label)
         # print('\n======================================')
         # print('\nPlotting features')
         # print('\n======================================')
@@ -194,8 +196,8 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_load(self, skip_days):
-        df_all = data_load_and_transform(self.symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = skip_days, size_output=self.size_output)
+    def _data_load(self, skip_days, use_random_label=False):
+        df_all = data_load_and_transform(self.symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = skip_days, size_output=self.size_output, use_random_label=use_random_label)
         # df_all = df_all.loc[:, self.names_input]
         # print('\ndf_all describe=\n', df_all.loc[:,
         #                               self.names_input].describe())
@@ -342,6 +344,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     def _label_transform(self):
         print(f'categorizing   {self.size_output} classes')
         print('y_test=',self.y_test)
+        # self.y_train = shift(self.y_train,1)
+        # self.y_test  = shift(self.y_test,1)
         self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
         self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
         print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')

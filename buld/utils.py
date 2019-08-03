@@ -74,7 +74,8 @@ def plot_confusion_matrix(cm,
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
                  horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+                 color="red"#"white" if cm[i, j] > thresh else "black"
+                 )
 
     plt.tight_layout()
     plt.ylabel('True label')
@@ -418,10 +419,10 @@ def data_select(df, columns_input):
     print ('dfs=',dfs)
     return dfs
 
-def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2):
+def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2, use_random_label=False):
     df1 = get_data_from_disc(symbol, usecols)
     dfc = data_clean(df1)
-    dft = data_transform(dfc, skip_first_lines , size_output)
+    dft = data_transform(dfc, skip_first_lines ,size_output, use_random_label)
     return dft
 
 def data_clean(df):
@@ -432,12 +433,12 @@ def data_clean(df):
     dfc = utils.dropna(df)
     return dfc
 
-def data_transform(df1, skip_first_lines = 400, size_output=2):
+def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=False):
     if  skip_first_lines < 400:
         print (f'error: skip_first_lines must be > 400 existing...')
         exit(1)
     print('\n============================================================================')
-    print(f'#Transform raw data skip_first_lines={skip_first_lines}, size_output={size_output}')
+    print(f'#Transform raw data skip_first_lines={skip_first_lines}, size_output={size_output}, use_random_label={use_random_label}')
     print('===============================================================================')
 
 
@@ -522,19 +523,21 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     df1 = df1.fillna(0)#https://github.com/pylablanche/gcForest/issues/2
     df1['percentage'] = df1['range'] / df1['Open'] * 100
     ## smart labeling
-    if size_output == -2:
-        df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
-    elif size_output == -3:
-        df1['isUp']  = np.random.randint(3, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
-    elif size_output == 2:
-        df1.loc[df1.range  > 0.0, 'isUp'] = 1
-        df1.loc[df1.range <= 0.0, 'isUp'] = 0
+    if size_output == 2 :
+        if use_random_label==True:
+            df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
+        else:
+            df1.loc[df1.range  > 0.0, 'isUp'] = 1
+            df1.loc[df1.range <= 0.0, 'isUp'] = 0
     elif size_output == 3:
-        df1['isUp'] = 1#hold
-        df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
-        df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
-        # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
-    shift =0#-1#-1#bug when doing -1 it predict only green
+        if use_random_label==True:
+            df1['isUp']  = np.random.randint(3, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
+        else:
+            df1['isUp'] = 1#hold
+            df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
+            df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
+            # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
+    shift =-1#-1#-1#-1#bug when doing -1 it predict only green
 
     df1['isNextBarUp'] = df1['isUp'].shift(shift)# today's dataset  procuce  prediction is tommorow is up
     df1['isNextBarUp'] = df1['isNextBarUp'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
@@ -615,6 +618,8 @@ def data_transform(df1, skip_first_lines = 400, size_output=2):
     df1 = df1.round(4)
 
     return df1
+
+
 
 def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']):
     """Read stock data (adjusted close) for given symbols from CSV files.
