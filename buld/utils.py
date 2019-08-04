@@ -201,7 +201,7 @@ def plot_stat_loss_vs_accuracy2(history_dict, title='model Loss, accuracy over t
     #loss_test = history_dict['val_loss']
     epochs = range(1, len(acc_train) + 1)
 
-
+    plt.clf()
     plt.plot(epochs, loss_train, 'b', color='red', label='train loss')
     #plt.plot(epochs, loss_test, 'b', color='orange', label='test_loss')
     plt.plot(epochs, acc_train, 'b', color='green', label='train accuracy')
@@ -543,7 +543,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
             df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
             df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
             # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
-    shift =0#-1#-1#-1#bug when doing -1 it predict only green
+    shift =-1#-1#-1#bug when doing -1 it predict only green
 
     df1['isNextBarUp'] = df1['isUp'].shift(shift)# today's dataset  procuce  prediction is tommorow is up
     df1['isNextBarUp'] = df1['isNextBarUp'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2

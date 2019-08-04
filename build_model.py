@@ -4,6 +4,10 @@ from buld.build_models import MlpTrading
 from buld.utils import get_data_from_disc, data_transform, data_clean
 import numpy as np
 import pandas_datareader.data as pd
+import time
+from datetime import datetime
+
+start_time = time.time()
 
 # pd.set_option('display.max_columns', 500)
 # pd.set_option('display.width', 1000)
@@ -101,3 +105,6 @@ print('=========================================================================
 model.summary()
 model.save(folder='files/output/', filename=params, iteration_id='')
 
+print('time is')
+print(datetime.now().strftime('%H:%M:%S'))
+print("program ran %s seconds ---" % (time.time() - start_time))

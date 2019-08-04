@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 from buld.utils import plot_stat_loss_vs_accuracy2
 
 mlp = MlpTrading_old(symbol='^GSPC')
-df_all = mlp.data_prepare(0.33, 3660, False)
+df_all = mlp.data_prepare(0.33, 16660, False)
 sk_params = {'size_input': mlp.size_input,  'size_output':mlp.size_output, 'size_hidden':15, 'dropout':0.0, 'optimizer':'rmsprop', 'activation':'sigmoid'}
 model = KerasClassifier(build_fn=mlp.model_create_mlp, **sk_params)
-history = model.fit(mlp.x_train, mlp.y_train, sample_weight=None, batch_size=128, epochs=1000   , verbose=1 )#validation_data=(mlp.x_test, mlp.y_test) kwargs=kwargs)
+history = model.fit(mlp.x_train, mlp.y_train, sample_weight=None, batch_size=128, epochs=10   , verbose=1 )#validation_data=(mlp.x_test, mlp.y_test) kwargs=kwargs)
 
 # model  = mlp.model_create_mlp(activation='softmax')#575/2575 [==============================] - 0s 25us/step - loss: 0.6850 - acc: 0.5538 - val_loss: 0.6900 - val_acc: 0.5296 ypeError: If no scoring is specified, the estimator passed should have a 'score' method. The estimator <keras.engine.sequential.Sequential object at 0x138a7fd68> does not.
 # history = mlp.model_fit(model,epochs=10, verbose=1)

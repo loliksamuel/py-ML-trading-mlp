@@ -1,3 +1,4 @@
+import seaborn as sns
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
@@ -17,21 +18,11 @@ import eli5
 from eli5.sklearn import PermutationImportance
 
 class MlpTrading_old(object):
-    def __init__(self, symbol) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.precision = 4
         np.set_printoptions(precision=self.precision)
         np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
-        self.symbol = symbol
-
-        self.names_input = ['rsi5',  'rel_bol_lo10', 'range_sma', 'range_sma1'
-                            ,'nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'range_sma2', 'range_sma3', 'range_sma4',
-                            'rel_bol_hi10',   'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
-                            'rsi10', 'rsi20', 'rsi50',        'stoc10', 'stoc20', 'stoc50', 'stoc200', 'isPrev1Up', 'isPrev2Up'
-                            ]
-        self.names_output = ['Green bar', 'Red Bar']# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
-        self.size_input = len(self.names_input)
-        self.size_output = len(self.names_output)
         self.x_train = None
         self.x_test = None
         self.y_train = None
@@ -42,8 +33,12 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def execute(self, skip_days    = 3600
+    def execute(self, symbol       = '^GSPC'
                     , modelType    = 'mlp'
+                    , classifier   = 'keras'#'grid','scikit', 'keras'
+                    , names_input  = ['nvo']
+                    , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+                    , skip_days    = 3600
                     , epochs       = 5000
                     , size_hidden  = 15
                     , batch_size   = 128
@@ -56,73 +51,63 @@ class MlpTrading_old(object):
                     , kernel_init  = 'glorot_uniform'
                     , dropout      = 0.2
                     , verbose      = 0
-                    , classifier = 'keras'#'grid','scikit', 'keras'
-                    , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+
                     , activation='sigmoid'#sigmoid'
                     , use_random_label = False
 
                 ):
+        self.symbol = symbol
 
-        self.names_output = names_output
+        self.names_output = names_output# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+        self.names_input  = names_input
         self.size_output = len(self.names_output)
+        self.size_input  = len(self.names_input)
         df_all = self.data_prepare(percent_test_split, skip_days, use_random_label)
-        params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
+        params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}_{classifier}'
 
 
         if classifier=='grid':
             model = self.model_grid_search()
         elif classifier == 'scikit':
-            model = self.model_create_scikit()
+            model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop', params=params)
         elif classifier =='keras':
             model = self.model_create_keras(df_all, activation=activation, loss=loss
                                     , optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)
                                     , batch_size=batch_size, decay=decay, dropout=dropout, epochs=epochs
                                     , epsilon=epsilon, kernel_init=kernel_init, lr=lr
                                     , modelType=modelType, rho=rho, size_hidden=size_hidden, verbose=verbose, params=params)
+            print('\n======================================')
+            print('\nSaving the model')
+            print('\n======================================')
+            self.model_save(model, params)
 
 
-        print('\n======================================')
-        print('\nSaving the model')
-        print('\n======================================')
-        self.model_save(model, params)
 
-    def model_create_scikit(self):
-        sk_params = {'size_input': self.size_input, 'size_output': self.size_output, 'size_hidden': 15, 'dropout': 0.0,
-                     'optimizer': 'rmsprop', 'activation': 'sigmoid'}
-        model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
-        history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=128, epochs=1000,
-                            verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
-        self.model_weights(model, self.x_test, self.y_test, self.names_input)
-        plot_stat_loss_vs_accuracy2(history.history)
-        plt.show()
-        score = model.score(self.x_test, self.y_test)
-        print(f'accuracy= {score} ')
-        self.model_predict(model)
-        return model
+
 
     def model_grid_search(self):
         print("use_grid_search")
-        activation = [ 'softmax']#, 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear', 'relu']#best 'softmax', 'softplus', 'softsign'
-        init       = ['glorot_normal']#, 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform',  'he_uniform', 'he_normal']#all same except he_normal worse
+        activations = [ 'sigmoid']#, 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear', 'relu']#best 'softmax', 'softplus', 'softsign'
+        inits       = ['glorot_uniform']#, 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform',  'he_uniform', 'he_normal']#all same except he_normal worse
         optimizers = ['RMSprop']#, 'SGD', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam'] # same for all
         losses =     ['categorical_crossentropy']#, 'categorical_crossentropy']#['mse', 'mae']  #better=binary_crossentropy
-        epochs =     [100,200]#,500]  # , 100, 150] # default epochs=1,  better=100
-        batches =    [150]#],150,200]  # , 10, 20]   #  default = none best=32
-        size_hiddens = [100]#], 200, 300, 400, 600]  # 5, 10, 20] best = 100 0.524993 Best score: 0.525712 using params {'batch_size': 128, 'dropout': 0.2, 'epochs': 100, 'loss': 'binary_crossentropy', 'size_hidden': 100}
+        epochs =     [300]#,500]  # , 100, 150] # default epochs=1,  better=100
+        batch_sizes =[128]#],150,200]  # , 10, 20]   #  default = none best=32
+        size_hiddens = [1]#], 200, 300, 400, 600]  # 5, 10, 20] best = 100 0.524993 Best score: 0.525712 using params {'batch_size': 128, 'dropout': 0.2, 'epochs': 100, 'loss': 'binary_crossentropy', 'size_hidden': 100}
         dropouts =     [0.2]#, 0.2, 0.3, 0.4]  # , 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         weights =      [1, 2]  # , 3, 4, 5]
-        lrs     =      [0.00001, 0.00002, 0.00003, 0.00004]#,0.03, 0.05, 0.07]#,0.001,0.0001,1,0.1,0.00001]#best 0.01 0.001 0.0001
+        lrs     =      [0.02]#,0.03, 0.05, 0.07]#,0.001,0.0001,1,0.1,0.00001]#best 0.01 0.001 0.0001
         rhos    =      [0.01, 0.1, 0.2, 0.6]#all same
-        param_grid = dict(  #activation  = activation,
-                            #init=init,
+        grid_params = dict( activation  = activations,
+                            init=inits,
                             # weight_constraint=weights,
                             #optimizer=optimizers,
                             epochs=epochs,
-                            #batch_size=batches,
-                            #loss= losses,
-                            #size_hidden = size_hiddens,
+                            batch_size=batch_sizes,
+                            loss= losses,
+                            size_hidden = size_hiddens,
                             #dropout=dropouts,
-                            #lr= lrs
+                            lr= lrs
                             #rho = rhos
 
         )
@@ -132,10 +117,10 @@ class MlpTrading_old(object):
         # weights = eli5.formatters.as_dataframe.explain_weights_df(perm, feature_names=self.names_input)
         # print('\nweights=',weights)
 
-        grid = GridSearchCV(estimator=model, param_grid=param_grid, scoring='accuracy', cv=2)
+        grid = GridSearchCV(estimator=model, param_grid=grid_params, cv=2)
         X = np.concatenate((self.x_train, self.x_test), axis=0)
         Y = np.concatenate((self.y_train, self.y_test), axis=0)
-        grid_result = grid.fit(X, Y)
+        grid_result = grid.fit(self.x_train, self.y_train, verbose=2)
         # summarize results
         print("Best score: %f using params %s" % (grid_result.best_score_, grid_result.best_params_))
         means = grid_result.cv_results_['mean_test_score']
@@ -143,6 +128,21 @@ class MlpTrading_old(object):
         params = grid_result.cv_results_['params']
         for mean, stdev, param in zip(means, stds, params):
             print("%f (%f) with params: %r" % (mean, stdev, param))
+        return model
+
+
+    def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid', params=''):
+        sk_params = {'size_input': self.size_input, 'size_output': self.size_output, 'size_hidden': size_hidden, 'dropout': dropout,
+                     'optimizer': optimizer, 'activation': activation}
+        model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
+        history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=batch_size, epochs=epochs,
+                            verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
+        self.model_weights(model, self.x_test, self.y_test, self.names_input)
+        plot_stat_loss_vs_accuracy2(history.history)
+        plt.savefig(f'files/output/{params}_Accuracy.png')
+        score = model.score(self.x_test, self.y_test)
+        print(f'accuracy= {score} ')
+        self.model_predict(model, params=params)
         return model
 
 
@@ -179,7 +179,7 @@ class MlpTrading_old(object):
         print('\n======================================')
         print(f'\nPredict unseen data with {self.size_output} probabilities, for classes {self.names_output} (choose the highest)')
         print('\n======================================')
-        self.model_predict(model)
+        self.model_predict(model,params=params)
 
         return model
 
@@ -265,7 +265,21 @@ class MlpTrading_old(object):
                       columns=['rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200'],
                       shouldNormalize=False, symbol=self.symbol)
 
-    # |--------------------------------------------------------|
+        plt.figure(figsize = (9, 5))
+        df_all['rsi5'].plot(kind ="hist")
+        plt.savefig('files/output/TA-rsi5.png')
+
+        corrmat = df_all.corr()
+        f, ax = plt.subplots(figsize =(9, 8))
+        sns.heatmap(corrmat, ax = ax, cmap ="YlGnBu", linewidths = 0.1)
+
+        #corrmat = df_all.corr()
+        cg = sns.clustermap(corrmat, cmap ="YlGnBu", linewidths = 0.1);
+        plt.setp(cg.ax_heatmap.yaxis.get_majorticklabels(), rotation = 0)
+        plt.savefig('files/output/TA-corr.png')
+
+
+# |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_split(self, df_all, percent_test_split):
@@ -513,7 +527,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def model_predict(self, model):
+    def model_predict(self, model, params=''):
         y_pred = model.predict(self.x_test)
         print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
         print(f'predicted as {y_pred[0]} highest confidence for index {np.argmax(y_pred[0])}')
@@ -528,8 +542,11 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         # plot_conf_mtx(Y_true, Y_pred, self.names_output)
 
         Y_true = np.argmax(self.y_test, axis=1)
-        Y_pred = np.argmax(y_pred)#, axis=1)
-        plot_conf_mtx(Y_true, Y_pred, self.names_output)
+        if isinstance(y_pred[0],(np.int64)):
+            Y_pred = y_pred
+        else:
+            Y_pred = np.argmax(y_pred, axis=1)
+        plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_conf_mtx.png')
 
 
 
@@ -539,7 +556,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     def model_save(self, model, filename):
         folder = 'files/output/'
         print(f'\nSave model as {folder}model{filename}.model')
-        model.save(f'{folder}model{filename}.model')
+        model.save(f'{folder}{filename}.model')
 
     # |--------------------------------------------------------|
     # |                                                        |
