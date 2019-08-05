@@ -4,6 +4,21 @@ from datetime import datetime
 import time
 print('time is')
 print(datetime.now().strftime('%H:%M:%S'))
+'''
+bug tracker
+-----------------------------
+priority | name
+-----------------------------
+1        | why accuracy so low?? 64%  bug
+2.       |  why so volatile ?  lr
+2        | should use PURGED K-FOLD Cross Validation or  TimeSeriesSplit instead of standard split? yes
+3        | which normalize function to use? normalize3
+4        | grid search? done
+5        | confusion matrix? done
+6        | ensamble LSTM+RNN
+7        | auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
+7        | add economic features rate
+'''
 
 # pd.set_option('display.max_columns', 500)
 # pd.set_option('display.width', 1000)
