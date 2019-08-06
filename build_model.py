@@ -15,7 +15,10 @@ priority | done | name
 3        |done  |  fix normalize function  
 4        |done  |  grid search?  
 5        |done  |  confusion matrix? 
-6        |      |  ensamble LSTM+RNN+meta learning?
+6        |      |  add ensamble 
+6        |      |  add LSTM 
+6        |      |  add meta learning 
+6        |      |  add rnn
 7        |      |  auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
 7        |      |  add economic features rate
 '''
@@ -40,13 +43,13 @@ mlp_trading_old.execute(symbol='^GSPC',
                         epsilon=None,#None
                         decay=0.0,  # 0.0 - 1.0
                         dropout=0.2,  # 0.0 - 1.0
-                        names_input = ['rsi20','rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','nvo', 'isPrev1Up', 'isPrev2Up'
-                                            #    'range_sma1', 'rel_bol_lo10',
-                                            # 'mom50',       'range_sma2', 'range_sma3', 'range_sma4',
-                                            #  'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
-                                            # 'rsi50',        'stoc20', 'stoc50', 'stoc200'
-                                            ],
-                                            #  'rsi5','mom5', 'mom20', 'mom10','rsi10','range_sma', 'stoc10','rel_bol_hi50',
+                        names_input = ['rsi20','rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','nvo', 'isPrev1Up', 'isPrev2Up',
+                                                'range_sma1', 'rel_bol_lo10',
+                                             'mom50',       'range_sma2', 'range_sma3', 'range_sma4',
+                                              'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
+                                             'rsi50',        'stoc20', 'stoc50', 'stoc200',
+
+                                             'rsi5','mom5', 'mom20', 'mom10','rsi10','range_sma', 'stoc10','rel_bol_hi50' ],
                         names_output = ['Green bar', 'Red Bar'],# 'Hold Bar'],  #bug on adding 3rd class classify all to green
 
                         use_random_label = False,
