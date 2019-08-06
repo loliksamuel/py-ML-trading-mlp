@@ -8,7 +8,7 @@ from eli5.sklearn import PermutationImportance
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.wrappers.scikit_learn import KerasClassifier
-from buld.build_models______old import MlpTrading_old
+from buld.build_models import MlpTrading_old
 import matplotlib.pyplot as plt
 
 from buld.utils import plot_stat_loss_vs_accuracy2
