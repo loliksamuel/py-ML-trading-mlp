@@ -543,9 +543,10 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |                                                        |
     # |--------------------------------------------------------|
     def model_predict(self, model, params=''):
-        y_pred = model.predict(self.x_test)
+        y_pred_proba = model.predict      (self.x_test)# same as probs  = model.predict_proba(self.x_test)
+
         print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
-        print(f'predicted as {y_pred[0]} highest confidence for index {np.argmax(y_pred[0])}')
+        print(f'predicted as {y_pred_proba[0]} highest confidence for index {np.argmax(y_pred_proba[0])}')
 #        print('y_train class distribution',self.y_train.value_counts(normalize=True))
          #print(pd.DataFrame(y_pred).describe())
         x_all = np.concatenate((self.x_train, self.x_test), axis=0)
@@ -556,17 +557,25 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
 
 
 
-# Y_true = [0, 1, 0, 1]
+        # Y_true = [0, 1, 0, 1]
         # Y_pred = [1, 1, 1, 0]
         # plot_conf_mtx(Y_true, Y_pred, self.names_output)
 
         Y_true = np.argmax(self.y_test, axis=1)
-        if isinstance(y_pred[0],(np.int64)):#for scikit learn model
-            Y_pred = y_pred
+        if isinstance(y_pred_proba[0],(np.int64)):#for scikit learn model
+            Y_pred = y_pred_proba
         else:
-            Y_pred = np.argmax(y_pred, axis=1)
+            Y_pred = np.argmax(y_pred_proba, axis=1)
         plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
-        plot_roc     (Y_true, Y_pred , file_name=f'files/output/{params}_roc.png')
+
+
+        # keep probabilities for the positive outcome only
+        print('probs1=',y_pred_proba)
+
+
+        y_pred_proba = y_pred_proba[:, 1]
+        print('probs=',y_pred_proba)
+        plot_roc     (Y_true, Y_pred, y_pred_proba , file_name=f'files/output/{params}_roc.png')
 
 
 

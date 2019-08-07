@@ -9,7 +9,7 @@ import pandas_datareader.data as pdr
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
-from sklearn.metrics import confusion_matrix, roc_curve
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
 from sklearn.metrics import precision_recall_fscore_support as scorex
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
@@ -115,9 +115,11 @@ def plot_confusion_matrix(cm,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
-def plot_roc(Y_true, Y_pred, file_name='files/output/roc.png'):
+def plot_roc(Y_true, Y_pred, probs, file_name='files/output/roc.png'):
     precision, recall, fscore, support = scorex(Y_true, Y_pred)
-    fpr, tpr, thresholds = roc_curve(Y_true, Y_pred)
+    auc = roc_auc_score(Y_true, probs)
+    print('AUC: %.3f' % auc)
+    fpr, tpr, thresholds = roc_curve(Y_true, probs)
     print('\nprecision: {}'.format(precision))
     print('recall: {}'.format(recall))
     print('fscore: {}'.format(fscore))
@@ -126,8 +128,8 @@ def plot_roc(Y_true, Y_pred, file_name='files/output/roc.png'):
     plt.plot([0,1], [0,1], linestyle='--')
     plt.plot(fpr,tpr,'bo-', label = 'model');
     plt.plot(list(np.linspace(0, 1, num = 10)), list(np.linspace(0, 1, num = 10)), 'ro--', label = 'naive classifier');
-    for x, y, s in zip(fpr, tpr, thresholds):
-        plt.text(x - 0.04,y + 0.02, s, fontdict={'size': 14});
+    # for x, y, s in zip(fpr, tpr, thresholds):
+    #     plt.text(x - 0.04,y + 0.02, s, fontdict={'size': 14});
     plt.legend(prop={'size':14})
     plt.ylabel('True Positive Rate', size = 14);
     plt.xlabel('False Positive Rate', size = 14);
