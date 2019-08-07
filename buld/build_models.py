@@ -19,7 +19,8 @@ from scipy import stats
 from IPython.display import display
 from mpl_toolkits.mplot3d import Axes3D
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
-    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, precision_threshold, recall_threshold, plot_roc
+    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, precision_threshold, recall_threshold, \
+    plot_roc, plot_hist_proba
 
 
 class MlpTrading_old(object):
@@ -535,7 +536,10 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         score = model.evaluate(x,y,  verbose=0)
         print(f'Test loss:    {score[0]} (is it close to 0 ?)')
         print(f'Test accuracy:{score[1]} (is it close to 1 and close to train accuracy ?)')
-
+        if self.size_output == 2:
+           print(f'null accuracy={max(y.mean(), 1 - y.mean())}')# # calculate null accuracy (for multi-class classification problems)
+#        elif self.size_output > 2:
+ #           print(f'null accuracy={y.value_counts().head(1) / len(y)}')## calculate null accuracy (for multi-class classification problems)
 
 
 
@@ -566,16 +570,17 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
             Y_pred = y_pred_proba
         else:
             Y_pred = np.argmax(y_pred_proba, axis=1)
+            print('probs1=',y_pred_proba)
+            y_pred_proba = y_pred_proba[:, 1]
         plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
 
 
-        # keep probabilities for the positive outcome only
-        print('probs1=',y_pred_proba)
 
+        #print('probs=',y_pred_proba)
+        if self.size_output == 2:#multiclass format is not supported
+            plot_roc     (Y_true, Y_pred, y_pred_proba , file_name=f'files/output/{params}_roc.png')
 
-        y_pred_proba = y_pred_proba[:, 1]
-        print('probs=',y_pred_proba)
-        plot_roc     (Y_true, Y_pred, y_pred_proba , file_name=f'files/output/{params}_roc.png')
+        plot_hist_proba(y_pred_proba, file_name=f'files/output/{params}_proba.png')
 
 
 

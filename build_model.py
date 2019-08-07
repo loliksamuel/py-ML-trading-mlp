@@ -43,14 +43,14 @@ mlp_trading_old.execute(symbol='^GSPC',
                         epsilon=None,#None
                         decay=0.0,  # 0.0 - 1.0
                         dropout=0.2,  # 0.0 - 1.0
-                        names_input = ['rsi20','rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','nvo', 'isPrev1Up', 'isPrev2Up',
-                                                'range_sma1', 'rel_bol_lo10',
-                                             'mom50',       'range_sma2', 'range_sma3', 'range_sma4',
-                                              'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
-                                             'rsi50',        'stoc20', 'stoc50', 'stoc200',
+                        names_output = ['Green bar', 'Red Bar'],#, 'Hold Bar'],  #bug on adding 3rd class classify all to green
 
-                                             'rsi5','mom5', 'mom20', 'mom10','rsi10','range_sma', 'stoc10','rel_bol_hi50' ],
-                        names_output = ['Green bar', 'Red Bar'],# 'Hold Bar'],  #bug on adding 3rd class classify all to green
+                        names_input = ['rsi20','rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','nvo', 'isPrev1Up', 'isPrev2Up',
+                                        'range_sma1', 'rel_bol_lo10',
+                                         'mom50',       'range_sma2', 'range_sma3', 'range_sma4',
+                                          'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
+                                         'rsi50',        'stoc20', 'stoc50', 'stoc200',
+                                         'rsi5','mom5', 'mom20', 'mom10','rsi10','range_sma', 'stoc10','rel_bol_hi50' ],
 
                         use_random_label = False,
                         classifier = 'keras',# 'keras' 'grid','scikit',

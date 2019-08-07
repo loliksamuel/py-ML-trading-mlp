@@ -115,6 +115,19 @@ def plot_confusion_matrix(cm,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
+
+def plot_hist_proba(y_pred_prob, file_name='files/output/probability histogram.png'):
+    plt.clf()
+    plt.hist(y_pred_prob, bins=20)
+
+    # x-axis limit from 0 to 1
+    plt.xlim(0,1)
+    plt.title('Histogram of predicted probabilities')
+    plt.xlabel('Predicted probability of diabetes')
+    plt.ylabel('Frequency')
+    plt.savefig(file_name)
+
+
 def plot_roc(Y_true, Y_pred, probs, file_name='files/output/roc.png'):
     precision, recall, fscore, support = scorex(Y_true, Y_pred)
     auc = roc_auc_score(Y_true, probs)
@@ -130,10 +143,10 @@ def plot_roc(Y_true, Y_pred, probs, file_name='files/output/roc.png'):
     plt.plot(list(np.linspace(0, 1, num = 10)), list(np.linspace(0, 1, num = 10)), 'ro--', label = 'naive classifier');
     # for x, y, s in zip(fpr, tpr, thresholds):
     #     plt.text(x - 0.04,y + 0.02, s, fontdict={'size': 14});
-    plt.legend(prop={'size':14})
-    plt.ylabel('True Positive Rate', size = 14);
-    plt.xlabel('False Positive Rate', size = 14);
-    plt.title('Receiver Operating Characteristic Curve', size = 14);
+    plt.legend(prop={'size':12})
+    plt.ylabel('True Positive Rate', size = 12);
+    plt.xlabel('False Positive Rate', size = 12);
+    plt.title('AUC: %.3f' % auc, size = 12);#'Receiver Operating Characteristic Curve'
     plt.savefig(file_name)
 
 
@@ -585,18 +598,15 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1 = df1.fillna(0)#https://github.com/pylablanche/gcForest/issues/2
     df1['percentage'] = df1['range0'] / df1['Open'] * 100
     ## smart labeling
-    if size_output == 2 :
-        if use_random_label==True:
-            df1['isUp']  = np.random.randint(2, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
-        else:
-            df1.loc[df1.range0  > 0.0, 'isUp'] = 1
-            df1.loc[df1.range0 <= 0.0, 'isUp'] = 0
-    elif size_output == 3:
-        if use_random_label==True:
-            df1['isUp']  = np.random.randint(3, size=df1.shape[0])# if u the model accuracy with random labaling expect to get 0.5
-        else:
-            df1['isUp'] = 1#hold
-            df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
+    if use_random_label==True:
+        df1['isUp']  = np.random.randint(size_output, size=df1.shape[0])
+    else:
+        if size_output == 2 :
+            df1.loc[df1.range0  > 0.0, 'isUp'] = 1#up
+            df1.loc[df1.range0 <= 0.0, 'isUp'] = 0#dn
+        if size_output == 3 :
+            df1['isUp'] = 2#hold
+            df1.loc[df1.percentage >= +0.1, 'isUp'] = 1#up
             df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
             # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
     shift =-1 #-1
