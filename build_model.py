@@ -21,6 +21,7 @@ priority | done | name
 6        |      |  add rnn
 7        |      |  auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
 7        |      |  add economic features rate
+6        |      |  use 2 thresholds , 1 to reduce fp , 1 to reduce fn
 '''
 
 # pd.set_option('display.max_columns', 500)
@@ -33,7 +34,7 @@ start_time = time.time()
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol='^GSPC',
                         skip_days=3600,#>400  best=3600 #17460 #17505 rows
-                        modelType='mlp',#   # mlp lstm drl
+                        modelType='mlp',#   # mlp lstm drl xgb
                         epochs=300,  # best 5000   or 300
                         size_hidden=15, #best 15 try 170
                         batch_size=128,#best 128

@@ -70,13 +70,6 @@ def kpi_risk(df):
     return df.std()
 
 
-def plot_histogram(x, bins, title, xlabel, ylabel):
-    plt.clf()
-    plt.hist(x, bins=bins)
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.savefig('files/output/' + title + '.png')
 
 
 def plot_confusion_matrix(cm,
@@ -116,16 +109,18 @@ def plot_confusion_matrix(cm,
     plt.xlabel('Predicted label')
 
 
-def plot_hist_proba(y_pred_prob, file_name='files/output/probability histogram.png'):
+def plot_histogram(x, bins, title, xlabel, ylabel, xmin=None, xmax=None):
     plt.clf()
-    plt.hist(y_pred_prob, bins=20)
+    plt.hist(x, bins=bins)
+    if xmin != None:
+        plt.xlim(xmin, xmax)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig('files/output/' + title + '.png')
 
-    # x-axis limit from 0 to 1
-    plt.xlim(0,1)
-    plt.title('Histogram of predicted probabilities')
-    plt.xlabel('Predicted probability of diabetes')
-    plt.ylabel('Frequency')
-    plt.savefig(file_name)
+
+
 
 
 def plot_roc(Y_true, Y_pred, probs, file_name='files/output/roc.png'):

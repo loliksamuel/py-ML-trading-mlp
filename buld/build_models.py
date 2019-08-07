@@ -4,8 +4,9 @@ from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.optimizers import RMSprop
-from sklearn.metrics import f1_score, precision_score, recall_score
-
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
+from sklearn.metrics.classification import _check_targets
+import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
@@ -20,7 +21,7 @@ from IPython.display import display
 from mpl_toolkits.mplot3d import Axes3D
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
     plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, precision_threshold, recall_threshold, \
-    plot_roc, plot_hist_proba
+    plot_roc
 
 
 class MlpTrading_old(object):
@@ -40,7 +41,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def execute(self, symbol       = '^GSPC'
-                    , modelType    = 'mlp'#mlp lstm drl
+                    , modelType    = 'mlp'#mlp lstm drl xgb
                     , classifier   = 'keras'#'grid','scikit', 'keras'
                     , names_input  = ['nvo']
                     , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
@@ -76,6 +77,30 @@ class MlpTrading_old(object):
             model = self.model_grid_search()
         elif classifier == 'scikit':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop', params=params)
+        elif classifier == 'xgb':
+            print('not implemented')
+            #https://www.datacamp.com/community/tutorials/xgboost-in-python
+            #model = xgb.XGBRegressor(objective ='reg:linear', colsample_bytree = 0.3, learning_rate = 0.1,  max_depth = 5, alpha = 10, n_estimators = 10)
+            #model = xgb.XGBClassifier(max_depth=7,
+                                        # min_child_weight=1,
+                                        # learning_rate=0.1,
+                                        # n_estimators=500,
+                                        # silent=True,
+                                        # objective='binary:logistic',
+                                        # gamma=0,
+                                        # max_delta_step=0,
+                                        # subsample=1,
+                                        # colsample_bytree=1,
+                                        # colsample_bylevel=1,
+                                        # reg_alpha=0,
+                                        # reg_lambda=0,
+                                        # scale_pos_weight=1,
+                                        # seed=1,
+                                        # missing=None)
+            #model.fit(self.x_train,self. y_train, eval_metric='auc', verbose=True, eval_set=[(self.x_test, self.y_test)])
+            #preds = model.predict(self.x_test)
+            #cv_results = xgb.cv
+            #xgb.plot_importance(xg_reg)
         elif classifier =='keras':
             model = self.model_create_keras(df_all, activation=activation, loss=loss
                                     , optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)
@@ -564,23 +589,46 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         # Y_true = [0, 1, 0, 1]
         # Y_pred = [1, 1, 1, 0]
         # plot_conf_mtx(Y_true, Y_pred, self.names_output)
-
+        y_pred_proba_r = y_pred_proba
         Y_true = np.argmax(self.y_test, axis=1)
         if isinstance(y_pred_proba[0],(np.int64)):#for scikit learn model
             Y_pred = y_pred_proba
         else:
             Y_pred = np.argmax(y_pred_proba, axis=1)
-            print('probs1=',y_pred_proba)
-            y_pred_proba = y_pred_proba[:, 1]
+            print('proba=',y_pred_proba[:40])
+            y_pred_proba_r = y_pred_proba[:, 1]
         plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
 
 
 
         #print('probs=',y_pred_proba)
         if self.size_output == 2:#multiclass format is not supported
-            plot_roc     (Y_true, Y_pred, y_pred_proba , file_name=f'files/output/{params}_roc.png')
+            plot_roc     (Y_true, Y_pred, y_pred_proba_r , file_name=f'files/output/{params}_roc.png')
+        #y_pred_proba = 0.1 0.2 0.3
+        #y_pred_proba_right = 0.1 0.2
 
-        plot_hist_proba(y_pred_proba, file_name=f'files/output/{params}_proba.png')
+
+
+        # print('Y_true=',Y_true[:40])
+        # print('Y_pred=',Y_pred[:40])
+        # print('accuracy=',accuracy_score(Y_true, Y_pred))
+        #
+
+
+
+
+        y_pred_proba_ok=[]
+        for i, (p, t) in enumerate(zip(Y_pred,Y_true)):
+            if p == t:
+               y_pred_proba_ok.append(y_pred_proba_r[i])
+        #       print(f'{i} ,{p} ,{t}, {y_pred_proba_r[i]} added' )
+        #    else:
+        #        print(f'{i} ,{p} ,{t}, {y_pred_proba_r[i]}')
+        print (f'len {len(y_pred_proba_ok)} > {len(y_pred_proba_r)} = {len(Y_pred)} = {len(Y_true)}' )
+        #print('y_pred_proba_ok=',y_pred_proba_ok[:40])#[0.59, 0.41], dtype=float32), array([0.45, 0.55], dtype=float32), array([0.3, 0.7], dtype=float32), array([0.42, 0.58]
+        plot_histogram(y_pred_proba_r   , 20, f'{params}_predAll'   , 'Predicted probability', 'Frequency', xmin=0, xmax=1)
+        plot_histogram(y_pred_proba_ok  , 20, f'{params}_predOk', 'Predicted probability', 'Frequency', xmin=0, xmax=1)
+
 
 
 
