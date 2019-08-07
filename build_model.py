@@ -34,8 +34,8 @@ start_time = time.time()
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol='^GSPC',
                         skip_days=3600,#>400  best=3600 #17460 #17505 rows
-                        modelType='mlp',#   # mlp lstm drl xgb
-                        epochs=300,  # best 5000   or 300
+                        modelType='xgb',# mlp lstm drl xgb   grid  scikit
+                        epochs=500,  # best 5000   or 300
                         size_hidden=15, #best 15 try 170
                         batch_size=128,#best 128
                         percent_test_split=0.33, #best .33
@@ -54,7 +54,6 @@ mlp_trading_old.execute(symbol='^GSPC',
                                          'rsi5','mom5', 'mom20', 'mom10','rsi10','range_sma', 'stoc10','rel_bol_hi50' ],
 
                         use_random_label = False,
-                        classifier = 'keras',# 'keras' 'grid','scikit',
                         kernel_init='glorot_uniform',
                         activation='softmax',#sigmoid',#softmax',
                         loss='categorical_crossentropy',#binary_crossentropy #categorical_crossentropy

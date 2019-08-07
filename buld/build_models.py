@@ -41,8 +41,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def execute(self, symbol       = '^GSPC'
-                    , modelType    = 'mlp'#mlp lstm drl xgb
-                    , classifier   = 'keras'#'grid','scikit', 'keras'
+                    , modelType    = 'mlp'#mlp lstm drl xgb 'grid','scikit',
                     , names_input  = ['nvo']
                     , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                     , skip_days    = 3600
@@ -70,50 +69,82 @@ class MlpTrading_old(object):
         self.size_output = len(self.names_output)
         self.size_input  = len(self.names_input)
 
-        df_all = self.data_prepare(percent_test_split, skip_days, use_random_label)
-        params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}_{classifier}'
-
-        if classifier=='grid':
+        df_all = self.data_prepare(percent_test_split, skip_days, use_random_label, modelType)
+        params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
+        print(f'running with modelType {modelType}')
+        if modelType=='grid':
             model = self.model_grid_search()
-        elif classifier == 'scikit':
+        elif modelType == 'scikit':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop', params=params)
-        elif classifier == 'xgb':
-            print('not implemented')
-            #https://www.datacamp.com/community/tutorials/xgboost-in-python
-            #model = xgb.XGBRegressor(objective ='reg:linear', colsample_bytree = 0.3, learning_rate = 0.1,  max_depth = 5, alpha = 10, n_estimators = 10)
-            #model = xgb.XGBClassifier(max_depth=7,
-                                        # min_child_weight=1,
-                                        # learning_rate=0.1,
-                                        # n_estimators=500,
-                                        # silent=True,
-                                        # objective='binary:logistic',
-                                        # gamma=0,
-                                        # max_delta_step=0,
-                                        # subsample=1,
-                                        # colsample_bytree=1,
-                                        # colsample_bylevel=1,
-                                        # reg_alpha=0,
-                                        # reg_lambda=0,
-                                        # scale_pos_weight=1,
-                                        # seed=1,
-                                        # missing=None)
-            #model.fit(self.x_train,self. y_train, eval_metric='auc', verbose=True, eval_set=[(self.x_test, self.y_test)])
-            #preds = model.predict(self.x_test)
-            #cv_results = xgb.cv
-            #xgb.plot_importance(xg_reg)
-        elif classifier =='keras':
-            model = self.model_create_keras(df_all, activation=activation, loss=loss
-                                    , optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-                                    , batch_size=batch_size, decay=decay, dropout=dropout, epochs=epochs
-                                    , epsilon=epsilon, kernel_init=kernel_init, lr=lr
-                                    , modelType=modelType, rho=rho, size_hidden=size_hidden, verbose=verbose, params=params)
+        elif modelType == 'xgb':
+            model = self.model_create_xgb(epochs, params)
+
+        elif modelType == 'mlp':
+            model = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params)
             print('\n======================================')
             print('\nSaving the model')
             print('\n======================================')
             self.model_save(model, params)
+        elif modelType == 'lstm':
+            model = self._model_create_lstm(activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay),  loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params)
+            print('\n======================================')
+            print('\nSaving the model')
+            print('\n======================================')
+            self.model_save(model, params)
+        else:
+            print('unsupported model. exiting')
+            exit(0)
 
 
 
+
+    def model_create_xgb(self, epochs,params):
+        # https://www.datacamp.com/community/tutorials/xgboost-in-python
+        #model = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1, max_depth=5, alpha=10,  n_estimators=10)
+
+        print(self.y_train.shape)
+        model = xgb.XGBClassifier(max_depth=17, min_child_weight=1, learning_rate=0.1, n_estimators=epochs, silent=True,
+                                  objective='binary:logistic', gamma=0, max_delta_step=0, subsample=1,
+                                  colsample_bytree=1, colsample_bylevel=1, reg_alpha=0, reg_lambda=0,
+                                  scale_pos_weight=1, seed=1, missing=None)
+
+        eval_set = [(self.x_train, self.y_train), (self.x_test, self.y_test)]
+        model.fit(self.x_train, self.y_train, eval_metric=["error", "logloss"], verbose=True, eval_set=eval_set)
+        preds = model.predict(self.x_test)  # cv_results = xgb.cv  # xgb.plot_importance(xg_reg)
+        score = model.score(self.x_test, self.y_test)
+        print(f'error=#(wrong cases)/#(all cases)= {score} ')
+
+        #make predictions for test data
+        y_pred = model.predict(self.x_test)
+        predictions = [round(value) for value in y_pred]
+        # evaluate predictions
+        accuracy = accuracy_score(self.y_test, predictions)
+        print("Accuracy: %.2f%%" % (accuracy * 100.0))
+        # retrieve performance metrics
+        results = model.evals_result()
+        epochs = len(results['validation_0']['error'])
+        x_axis = range(0, epochs)
+        # plot log loss
+        fig, ax = plt.subplots()
+        ax.plot(x_axis, results['validation_0']['logloss'], label='Train')
+        ax.plot(x_axis, results['validation_1']['logloss'], label='Test')
+        ax.legend()
+        plt.ylabel('Log Loss')
+        plt.title('XGBoost Log Loss')
+        plt.savefig(f'files/output/{params}_logloss.png')
+
+        # plot classification error
+        fig, ax = plt.subplots()
+        ax.plot(x_axis, results['validation_0']['error'], label='Train')
+        ax.plot(x_axis, results['validation_1']['error'], label='Test')
+        ax.legend()
+        plt.ylabel('Classification Error')
+        plt.title('XGBoost Classification Error')
+        plt.savefig(f'files/output/{params}_error.png')
+
+        return model
 
 
     def model_grid_search(self):
@@ -166,8 +197,7 @@ class MlpTrading_old(object):
         sk_params = {'size_input': self.size_input, 'size_output': self.size_output, 'size_hidden': size_hidden, 'dropout': dropout,
                      'optimizer': optimizer, 'activation': activation}
         model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
-        history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=batch_size, epochs=epochs,
-                            verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
+        history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=batch_size, epochs=epochs,  verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
         self.model_weights(model, self.x_test, self.y_test, self.names_input)
         plot_stat_loss_vs_accuracy2(history.history)
         plt.savefig(f'files/output/{params}_Accuracy.png')
@@ -177,18 +207,8 @@ class MlpTrading_old(object):
         return model
 
 
-    def model_create_keras(self, df_all, activation='relu', optimizer='rmsprop', loss='categorical_crossentropy', kernel_init='glorot_uniform', batch_size=128, decay=0.0, dropout=0.2, epochs=200, epsilon=None, lr=0.001,
-                           modelType='mlp', rho=0.9, size_hidden=15, verbose=2, params=''):#rho=0.9, epsilon=None, decay=0.0
-        print('\n======================================')
-        print('\nCreating the model')
-        print('\n======================================')
-        if modelType == 'mlp':
-            model = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=optimizer, loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-        elif modelType == 'lstm':
-            model = self._model_create_lstm(activation=activation, optimizer=optimizer,  loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-        else:
-            print('unsupported model. supported only, lstm, mlp')
-            exit(0)
+    def model_fitt(self, model, batch_size=128, epochs=200, verbose=2, params=''):
+
 
         print('\n======================================')
         print(f"\nTrain model for {epochs} epochs...")
@@ -215,7 +235,7 @@ class MlpTrading_old(object):
         return model
 
 
-    def data_prepare(self, percent_test_split, skip_days, use_random_label=False):
+    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, modelType='mlp'):
         print('\n======================================')
         print('\nLoading the data')
         print('\n======================================')
@@ -248,7 +268,7 @@ class MlpTrading_old(object):
         print('\nTransform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
               '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
         print('\n======================================')
-        self._label_transform()
+        self._label_transform(modelType)
         return df_all
 
 
@@ -421,14 +441,15 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _label_transform(self):
+    def _label_transform(self, modelType):
         print(f'categorizing   {self.size_output} classes')
         print('y_test=',self.y_test)
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
         self.y_train_bak = self.y_train
-        self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
-        self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
+        if modelType != 'xgb':
+            self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
+            self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
         print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
         print(f'y_test[0]={self.y_test[0]}, it means label={np.argmax(self.y_test[0])}')
 
