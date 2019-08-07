@@ -9,8 +9,6 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import precision_recall_fscore_support as scorex
-
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -21,7 +19,7 @@ from scipy import stats
 from IPython.display import display
 from mpl_toolkits.mplot3d import Axes3D
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
-    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, precision_threshold, recall_threshold
+    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, precision_threshold, recall_threshold, plot_roc
 
 
 class MlpTrading_old(object):
@@ -568,12 +566,11 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         else:
             Y_pred = np.argmax(y_pred, axis=1)
         plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
-        precision, recall, fscore, support = scorex(Y_true, Y_pred)
+        plot_roc     (Y_true, Y_pred , file_name=f'files/output/{params}_roc.png')
 
-        print('\nprecision: {}'.format(precision))
-        print('recall: {}'.format(recall))
-        print('fscore: {}'.format(fscore))
-        print('support: {}'.format(support))
+
+
+
 
 
     # |--------------------------------------------------------|

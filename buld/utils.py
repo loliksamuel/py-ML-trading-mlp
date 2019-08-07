@@ -9,7 +9,8 @@ import pandas_datareader.data as pdr
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_curve
+from sklearn.metrics import precision_recall_fscore_support as scorex
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
 from ta import *
@@ -114,6 +115,25 @@ def plot_confusion_matrix(cm,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
+def plot_roc(Y_true, Y_pred, file_name='files/output/roc.png'):
+    precision, recall, fscore, support = scorex(Y_true, Y_pred)
+    fpr, tpr, thresholds = roc_curve(Y_true, Y_pred)
+    print('\nprecision: {}'.format(precision))
+    print('recall: {}'.format(recall))
+    print('fscore: {}'.format(fscore))
+    print('support: {}'.format(support))
+    plt.clf()
+    plt.plot([0,1], [0,1], linestyle='--')
+    plt.plot(fpr,tpr,'bo-', label = 'model');
+    plt.plot(list(np.linspace(0, 1, num = 10)), list(np.linspace(0, 1, num = 10)), 'ro--', label = 'naive classifier');
+    for x, y, s in zip(fpr, tpr, thresholds):
+        plt.text(x - 0.04,y + 0.02, s, fontdict={'size': 14});
+    plt.legend(prop={'size':14})
+    plt.ylabel('True Positive Rate', size = 14);
+    plt.xlabel('False Positive Rate', size = 14);
+    plt.title('Receiver Operating Characteristic Curve', size = 14);
+    plt.savefig(file_name)
+
 
 def plot_conf_mtx(Y_true, Y_pred, target_names, file_name='files/output/Confusion matrix.png'):
     print('\nplot_conf_mtx')
@@ -130,6 +150,7 @@ def plot_conf_mtx(Y_true, Y_pred, target_names, file_name='files/output/Confusio
     np.set_printoptions(precision=2)
 
     # Plot non-normalized confusion matrix
+    plt.clf()
     plt.figure()
     plt.subplot(1, 2, 1)
     title = 'not normalized'
@@ -576,7 +597,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
             df1.loc[df1.percentage >= +0.1, 'isUp'] = 2#up
             df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
             # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
-    shift =-1#-1#-1#bug when doing -1 it predict only green
+    shift =-1 #-1
 
     df1['isNextBarUp'] = df1['isUp'].shift(shift)# today's dataset  procuce  prediction is tommorow is up
     df1['isNextBarUp'] = df1['isNextBarUp'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
