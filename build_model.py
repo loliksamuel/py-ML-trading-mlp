@@ -9,19 +9,24 @@ bug tracker
 -----------------------------
 priority | done | name
 -----------------------------
-1        |      | why accuracy so low?? 52%  bug?
-2.       |done  |  why so volatile ?  lr 
-2        |      |  should use PURGED K-FOLD Cross Validation or  TimeSeriesSplit instead of standard split? yes
-3        |done  |  fix normalize function  
-4        |done  |  grid search?  
-5        |done  |  confusion matrix? 
-6        |      |  add ensamble 
-6        |      |  add LSTM 
-6        |      |  add meta learning 
-6        |      |  add rnn
-7        |      |  auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
-7        |      |  add economic features rate
-6        |      |  use 2 thresholds , 1 to reduce fp , 1 to reduce fn
+1        |      |  model: why accuracy so low?? 52%  bug?
+2.       |done  |  model: why so accuracy volatile ?  lr 
+2        |      |  model: should use PURGED K-FOLD Cross Validation or  TimeSeriesSplit instead of standard split? yes
+3        |done  |  data: fix normalize function  
+5        |done  |  model: add confusion matrix? 
+4        |done  |  model: add grid search?  
+6        |      |  model: add ensamble 
+6        |      |  model: add LSTM 
+6        |done  |  model: add xgb
+6        |      |  model: add meta learning 
+6        |      |  model: add rnn
+7        |      |  data: auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
+7        |      |  data: add economic features rate
+6        |      |  model: use 2 thresholds , 1 to reduce fp , 1 to reduce fn
+9        |      |  data: log not normally distributed data
+10       |      |  data: check Relation of features to target 
+11       |      |  data: Outliers
+12       |done  |   data: plot_corr_matrix
 '''
 
 # pd.set_option('display.max_columns', 500)
@@ -35,7 +40,7 @@ mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol='^GSPC',
                         skip_days=3600,#>400  best=3600 #17460 #17505 rows
                         modelType='xgb',# mlp lstm drl xgb   grid  scikit
-                        epochs=500,  # best 5000   or 300
+                        epochs=400,  # best 5000   or 300
                         size_hidden=15, #best 15 try 170
                         batch_size=128,#best 128
                         percent_test_split=0.33, #best .33

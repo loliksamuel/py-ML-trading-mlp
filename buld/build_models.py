@@ -105,10 +105,15 @@ class MlpTrading_old(object):
         #model = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1, max_depth=5, alpha=10,  n_estimators=10)
 
         print(self.y_train.shape)
-        model = xgb.XGBClassifier(max_depth=17, min_child_weight=1, learning_rate=0.1, n_estimators=epochs, silent=True,
-                                  objective='binary:logistic', gamma=0, max_delta_step=0, subsample=1,
-                                  colsample_bytree=1, colsample_bylevel=1, reg_alpha=0, reg_lambda=0,
-                                  scale_pos_weight=1, seed=1, missing=None)
+        model = xgb.XGBClassifier(max_depth=19,#20=52.19 19=18 52.52 , 17=51.75
+                                  gamma=0, #  misunderstood parameter, it acts as a regularization (0,1,5)
+                                  learning_rate=0.001,
+                                  n_estimators=epochs,# # of sub trees
+                                  subsample=1,        #  % of rows used for each tree (0.5-1)
+                                  colsample_bytree =1, #  % of cols used for each tree.(0.5-1)
+                                  colsample_bylevel=1, reg_alpha=0, reg_lambda=0,max_delta_step=0,
+                                  min_child_weight =1,  silent=True,objective='binary:logistic',
+                                  scale_pos_weight =1, seed=1, missing=None)
 
         eval_set = [(self.x_train, self.y_train), (self.x_test, self.y_test)]
         model.fit(self.x_train, self.y_train, eval_metric=["error", "logloss"], verbose=True, eval_set=eval_set)
@@ -126,6 +131,7 @@ class MlpTrading_old(object):
         results = model.evals_result()
         epochs = len(results['validation_0']['error'])
         x_axis = range(0, epochs)
+
         # plot log loss
         fig, ax = plt.subplots()
         ax.plot(x_axis, results['validation_0']['logloss'], label='Train')
