@@ -9,7 +9,7 @@ import pandas_datareader.data as pdr
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
-from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support as scorex
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
@@ -397,12 +397,25 @@ def get_data_from_disc_join(symbols, dates):
 
 'from year 2000 only https://www.alphavantage.co'
 
+def calc_scores(models, X, y):
+
+    for model in models:
+        y_pred = model.predict(X)
+        acc = accuracy_score(y, y_pred)
+        f1 = f1_score(y, y_pred)
+        auc = roc_auc_score(y, y_pred)
+        print('\nmodel :',model)
+        print("Accuracy Score: {0:0.2f} %".format(acc * 100))
+        print("F1 Score: {0:0.4f}".format(f1))
+        print("Area Under ROC Curve Score: {0:0.4f}".format(auc))
+
 
 def calc_indicators2(symbol):
     YOUR_API_KEY = '7JRR5YWCLV4KGB9U'
+
     # Technical Indicators
     ti = TechIndicators(key='7JRR5YWCLV4KGB9U', output_format='pandas')
-    ts = TimeSeries(key='7JRR5YWCLV4KGB9U', output_format='pandas')
+    ts = TimeSeries    (key='7JRR5YWCLV4KGB9U', output_format='pandas')
     sma, _ = ti.get_sma(symbol=symbol, interval='daily', time_period=20, series_type='close')
     wma, _ = ti.get_wma(symbol=symbol, interval='daily')
     ema, _ = ti.get_ema(symbol=symbol, interval='daily')

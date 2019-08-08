@@ -4,9 +4,12 @@ from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.optimizers import RMSprop
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 from sklearn.metrics.classification import _check_targets
 import xgboost as xgb
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
@@ -19,9 +22,11 @@ from eli5.sklearn import PermutationImportance
 from scipy import stats
 from IPython.display import display
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.svm import SVC
+
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
     plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, precision_threshold, recall_threshold, \
-    plot_roc
+    plot_roc, calc_scores
 
 
 class MlpTrading_old(object):
@@ -41,7 +46,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def execute(self, symbol       = '^GSPC'
-                    , modelType    = 'mlp'#mlp lstm drl xgb 'grid','scikit',
+                    , modelType    = 'mlp'#mlp lstm drl xgb xgbgrid 'scigrid','scikit',
                     , names_input  = ['nvo']
                     , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                     , skip_days    = 3600
@@ -57,8 +62,7 @@ class MlpTrading_old(object):
                     , kernel_init  = 'glorot_uniform'
                     , dropout      = 0.2
                     , verbose      = 0
-
-                    , activation='softmax'#sigmoid'
+                    , activation   = 'softmax'#sigmoid'
                     , use_random_label = False
 
                 ):
@@ -66,38 +70,54 @@ class MlpTrading_old(object):
 
         self.names_output = names_output# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         self.names_input  = names_input
-        self.size_output = len(self.names_output)
-        self.size_input  = len(self.names_input)
+        self.size_output  = len(self.names_output)
+        self.size_input   = len(self.names_input)
 
         df_all = self.data_prepare(percent_test_split, skip_days, use_random_label, modelType)
         params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
-        print(f'running with modelType {modelType}')
-        if modelType=='grid':
-            model = self.model_grid_search()
+        print(f'\nrunning with modelType {modelType}')
+        if modelType == 'svc':
+            models = [GaussianNB            (),
+                      SVC                   (random_state=5, kernel='rbf', C=0.01),#C=0.01 = 53.65 %
+                      RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20),#50.84 %
+                      MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))]#50.86 %
+
+            for model in models:
+                model.fit(self.x_train, self.y_train)
+
+            calc_scores(models, self.x_test, self.y_test)
+
         elif modelType == 'scikit':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop', params=params)
+        elif modelType=='scigrid':
+            model = self.model_create_scigrid()
         elif modelType == 'xgb':
             model = self.model_create_xgb(epochs, params)
-
+        elif modelType == 'xgbgrid':
+            model = self.model_create_xgb_grid()
         elif modelType == 'mlp':
             model = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
             model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params)
-            print('\n======================================')
-            print('\nSaving the model')
-            print('\n======================================')
             self.model_save(model, params)
         elif modelType == 'lstm':
             model = self._model_create_lstm(activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay),  loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
             model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params)
-            print('\n======================================')
-            print('\nSaving the model')
-            print('\n======================================')
             self.model_save(model, params)
         else:
             print('unsupported model. exiting')
             exit(0)
 
+    def model_create_xgb_grid(self):
+        xgb_model = xgb.XGBClassifier()
+        optimization_dict = {'max_depth': [18,19,20],
+                             'n_estimators': [320,370,420],
+                             'learning_rate':[0.001]
+                             }
+        model = GridSearchCV(xgb_model, optimization_dict,  scoring='accuracy', verbose=1)
 
+        model.fit(self.x_train, self.y_train)
+        print(f'best_score={model.best_score_}')
+        print(f'best_params_={model.best_params_}')
 
 
     def model_create_xgb(self, epochs,params):
@@ -105,11 +125,11 @@ class MlpTrading_old(object):
         #model = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1, max_depth=5, alpha=10,  n_estimators=10)
 
         print(self.y_train.shape)
-        model = xgb.XGBClassifier(max_depth=19,#20=52.19 19=18 52.52 , 17=51.75
-                                  gamma=0, #  misunderstood parameter, it acts as a regularization (0,1,5)
+        model = xgb.XGBClassifier(max_depth    =19,#20=52.19 19=18 53.02% , 17=51.75
+                                  gamma        =0, #  misunderstood parameter, it acts as a regularization (0,1,5)
                                   learning_rate=0.001,
-                                  n_estimators=epochs,# # of sub trees
-                                  subsample=1,        #  % of rows used for each tree (0.5-1)
+                                  n_estimators =epochs,# # of sub trees
+                                  subsample        =1,#  % of rows used for each tree (0.5-1)
                                   colsample_bytree =1, #  % of cols used for each tree.(0.5-1)
                                   colsample_bylevel=1, reg_alpha=0, reg_lambda=0,max_delta_step=0,
                                   min_child_weight =1, silent=True, objective='binary:logistic',
@@ -154,7 +174,7 @@ class MlpTrading_old(object):
         return model
 
 
-    def model_grid_search(self):
+    def model_create_scigrid(self):
         print("use_grid_search")
         activations = [ 'sigmoid']#, 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear', 'relu']#best 'softmax', 'softplus', 'softsign'
         inits       = ['glorot_uniform']#, 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform',  'he_uniform', 'he_normal']#all same except he_normal worse
@@ -454,7 +474,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
         self.y_train_bak = self.y_train
-        if modelType != 'xgb':
+        models_need_ctgr = ['mlp','lstm', 'xgb', 'xgbgrid', 'scikit', 'scigrid']
+        if modelType in models_need_ctgr :
             self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
             self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
         print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
@@ -672,6 +693,9 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |                                                        |
     # |--------------------------------------------------------|
     def model_save(self, model, filename):
+        print('\n======================================')
+        print('\nSaving the model')
+        print('\n======================================')
         folder = 'files/output/'
         print(f'\nSave model as {folder}model{filename}.model')
         model.save(f'{folder}{filename}.model')
