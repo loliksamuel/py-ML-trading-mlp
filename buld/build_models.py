@@ -112,12 +112,13 @@ class MlpTrading_old(object):
                                   subsample=1,        #  % of rows used for each tree (0.5-1)
                                   colsample_bytree =1, #  % of cols used for each tree.(0.5-1)
                                   colsample_bylevel=1, reg_alpha=0, reg_lambda=0,max_delta_step=0,
-                                  min_child_weight =1,  silent=True,objective='binary:logistic',
+                                  min_child_weight =1, silent=True, objective='binary:logistic',
                                   scale_pos_weight =1, seed=1, missing=None)
 
         eval_set = [(self.x_train, self.y_train), (self.x_test, self.y_test)]
         model.fit(self.x_train, self.y_train, eval_metric=["error", "logloss"], verbose=True, eval_set=eval_set)
-        preds = model.predict(self.x_test)  # cv_results = xgb.cv  # xgb.plot_importance(xg_reg)
+        self.model_predict(model, params, model_type='xgb')
+
         score = model.score(self.x_test, self.y_test)
         print(f'error=#(wrong cases)/#(all cases)= {score} ')
 
@@ -598,7 +599,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def model_predict(self, model, params=''):
+    def model_predict(self, model, params='', model_type='xgb'):
         y_pred_proba = model.predict      (self.x_test)# same as probs  = model.predict_proba(self.x_test)
 
         print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
@@ -617,13 +618,18 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         # Y_pred = [1, 1, 1, 0]
         # plot_conf_mtx(Y_true, Y_pred, self.names_output)
         y_pred_proba_r = y_pred_proba
-        Y_true = np.argmax(self.y_test, axis=1)
+        if model_type != 'xgb':
+            Y_true = np.argmax(self.y_test, axis=1)
         if isinstance(y_pred_proba[0],(np.int64)):#for scikit learn model
             Y_pred = y_pred_proba
         else:
             Y_pred = np.argmax(y_pred_proba, axis=1)
             print('proba=',y_pred_proba[:40])
             y_pred_proba_r = y_pred_proba[:, 1]
+        if model_type == 'xgb':
+            Y_true = self.y_test
+            Y_pred = y_pred_proba # cv_results = xgb.cv  # xgb.plot_importance(xg_reg)
+
         plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
 
 

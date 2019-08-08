@@ -26,7 +26,8 @@ priority | done | name
 9        |      |  data: log not normally distributed data
 10       |      |  data: check Relation of features to target 
 11       |      |  data: Outliers
-12       |done  |   data: plot_corr_matrix
+12       |done  |  data: plot_corr_matrix
+12       |      |  data: Drop all columns with only small correlation to target
 '''
 
 # pd.set_option('display.max_columns', 500)
@@ -40,7 +41,7 @@ mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol='^GSPC',
                         skip_days=3600,#>400  best=3600 #17460 #17505 rows
                         modelType='xgb',# mlp lstm drl xgb   grid  scikit
-                        epochs=400,  # best 5000   or 300
+                        epochs=370,  # best 5000   or 300
                         size_hidden=15, #best 15 try 170
                         batch_size=128,#best 128
                         percent_test_split=0.33, #best .33
