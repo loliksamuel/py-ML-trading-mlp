@@ -41,7 +41,7 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
     df_raw   = get_data_from_disc (symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'])
     df_trans = data_transform     (df_raw,  skip_first_lines=skipRows, size_output=2)
     df_features = data_select     (df_trans, names_input)
-    df_y_observed = data_select   (df_trans, 'isUp')
+    df_y_observed = data_select   (df_trans, 'target')
     df_norm  = data_normalize0    (df_features.values, axis=1)
     df_y_pred_tuples = model.predict(df_norm)
     y_pred = np.argmax(df_y_pred_tuples, axis=1)
@@ -280,6 +280,7 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width'      , 1000)
 seed = 7
 np.random.seed(seed)
+threshold = 0.55#we choose a higher threshold value, to be more confident that the model predicts an Up day
 
 symbol         ='^GSPC'# ^GSPC = SP500 3600, DJI 300
 skip_days      =3600#3600 17000 #total rows= 17505   must be > 400 due to sma(400)

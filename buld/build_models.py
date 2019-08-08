@@ -78,7 +78,7 @@ class MlpTrading_old(object):
         print(f'\nrunning with modelType {modelType}')
         if modelType == 'svc':
             models = [GaussianNB            (),
-                      SVC                   (random_state=5, kernel='rbf', C=0.01),#C=0.01 = 53.65 %
+                      SVC                   (random_state=5, kernel='rbf', C=0.01),#C=0.01 = accuracy 53.65 %
                       RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20),#50.84 %
                       MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))]#50.86 %
 
@@ -398,7 +398,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _label_split(self, df_all, percent_test_split):
-        df_y = df_all['isNextBarUp']  # np.random.randint(0,2,size=(shape[0], ))
+        df_y = df_all['target']  # np.random.randint(0,2,size=(shape[0], ))
         print(df_y)
         (self.y_train, self.y_test) = train_test_split(df_y.values, test_size=percent_test_split, shuffle=False)
 
@@ -474,7 +474,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
         self.y_train_bak = self.y_train
-        models_need_ctgr = ['mlp','lstm', 'xgb', 'xgbgrid', 'scikit', 'scigrid']
+        models_need_ctgr = ['mlp','lstm', 'scikit', 'scigrid']# 'xgb', 'xgbgrid',
         if modelType in models_need_ctgr :
             self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
             self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
