@@ -81,12 +81,9 @@ def plot_confusion_matrix(cm,
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
     """
+
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
     print(cm)
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -125,9 +122,8 @@ def plot_histogram(x, bins, title, xlabel, ylabel, xmin=None, xmax=None):
 
 def plot_roc(Y_true, Y_pred, probs, file_name='files/output/roc.png'):
     precision, recall, fscore, support = scorex(Y_true, Y_pred)
-    auc = roc_auc_score(Y_true, probs)
+    auc                  = roc_auc_score(Y_true, probs)
     fpr, tpr, thresholds = roc_curve(Y_true, probs)
-    print('\n')
     print('auc       : %.3f' % auc)
     print('precision: {}'.format(precision))
     print('recall   : {}'.format(recall))
@@ -147,7 +143,7 @@ def plot_roc(Y_true, Y_pred, probs, file_name='files/output/roc.png'):
 
 
 def plot_conf_mtx(Y_true, Y_pred, target_names, file_name='files/output/Confusion matrix.png'):
-    print('\nplot_conf_mtx')
+    print("Regular/Normalized confusion matrix")
     count = len(Y_true)
     ones = np.count_nonzero(Y_true)
     zero = count - ones

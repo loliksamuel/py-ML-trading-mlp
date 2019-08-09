@@ -40,7 +40,7 @@ start_time = time.time()
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol='^GSPC',
                         skip_days=16600,  #>400  best=3600 #17460 #17505 rows
-                        model_type='mlp',  # svc  xgb  xgbgrid  scikit  scigrid  mlp  lstm
+                        model_type='xgb',  # all gaus mlp2 rf xgb  xgbgrid  scikit  scigrid  mlp  lstm
                         epochs=1,  # best 5000   or 300for mlp, 370 for xbg
                         size_hidden=15,  #best 15 try 170
                         batch_size=128,  #best 128
@@ -67,7 +67,7 @@ mlp_trading_old.execute(symbol='^GSPC',
                         )
 print('time is')
 print(datetime.now().strftime('%H:%M:%S'))
-print("program ran %s seconds ---" % (time.time() - start_time))
+print("------------------------program ran %s seconds -----------------------------------" % (time.time() - start_time))
 #scikit: sec: 69 conf:0.18 , 0.82    val_acc: 0.5286 loss: 0.5700 - acc: 0.5300
 #keras:  sec: 67 conf:0.30 , 0.70    val_acc: 0.5186 loss: 0.6000 - acc: 0.6500 - val_loss: 0.7084 - val_acc: 0.5186
 #grid:

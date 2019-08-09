@@ -41,6 +41,7 @@ class MlpTrading_old(object):
         self.y_test = None
         self.seed = 7
         self.models_need1hot = ['mlp','lstm', 'scikit', 'scigrid']# 'xgb', 'xgbgrid',#if model_type in self.models_need1hot:
+        self.params=''
         np.random.seed(self.seed)
 
     # |--------------------------------------------------------|
@@ -75,36 +76,55 @@ class MlpTrading_old(object):
         self.size_input   = len(self.names_input)
 
         df_all = self.data_prepare(percent_test_split, skip_days, use_random_label, model_type)
-        params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
-        print(f'\nrunning with modelType {model_type}')
-        if model_type == 'svc':
-            models = [#GaussianNB            (),
-                      SVC                   (random_state=5, kernel='rbf', C=0.01)#C=0.01 = accuracy 53.65 %
-                      #RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20),#50.84 %
-                      #MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))50.86 %
-                     ]
 
+        self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
+        print(f'\nrunning with modelType {model_type}')
+        if model_type == 'all':
+            models = [ GaussianNB            ()
+                      ,SVC                   (random_state=5, kernel='rbf', C=0.01)#C=0.01 = accuracy 53.65 %
+                      ,RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
+                      ,MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
+                     ]
             for model in models:
+                self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{type(model).__name__}'
                 model.fit(self.x_train, self.y_train)
-                self.model_predict(model, params, model_type)
+                self.model_predict(model,  type(model).__name__)#
             #calc_scores(models, self.x_test, self.y_test)
 
+        elif model_type == 'gaus':
+            model = GaussianNB            ()
+            model.fit(self.x_train, self.y_train)
+            self.model_predict(model,  type(model).__name__)
+        elif model_type == 'svc':
+            model = SVC                   (random_state=5, kernel='rbf', C=0.01)#
+            model.fit(self.x_train, self.y_train)
+            self.model_predict(model,  type(model).__name__)
+        elif model_type == 'rf':
+            model = RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
+            model.fit(self.x_train, self.y_train)
+            self.model_predict(model,  type(model).__name__)
+        elif model_type == 'mlp2':
+            model = MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
+            model.fit(self.x_train, self.y_train)
+            self.model_predict(model,  type(model).__name__)
         elif model_type == 'scikit':
-            model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop', params=params)
+            model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop' )
         elif model_type== 'scigrid':
             model = self.model_create_scigrid()
         elif model_type == 'xgb':
-            model = self.model_create_xgb(epochs, params)
+            model = self.model_create_xgb(epochs)
         elif model_type == 'xgbgrid':
             model = self.model_create_xgb_grid()
         elif model_type == 'mlp':
-            model = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params, model_type=model_type)
-            self.model_save(model, params)
+            model   = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+            history = self.model_fitt    (model, batch_size=batch_size, epochs=epochs, verbose=verbose)
+            model   = self.model_predictt(model,history, model_type)
+            ok      = self.model_save    (model)
         elif model_type == 'lstm':
-            model = self._model_create_lstm(activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay),  loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params, model_type=model_type)
-            self.model_save(model, params)
+            model   = self._model_create_lstm(activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay),  loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
+            history = self.model_fitt    (model, batch_size=batch_size, epochs=epochs, verbose=verbose)
+            model   = self.model_predictt(model,history,  model_type)
+            ok      = self.model_save    (model)
         else:
             print('unsupported model. exiting')
             exit(0)
@@ -122,7 +142,7 @@ class MlpTrading_old(object):
         print(f'best_params_={model.best_params_}')
 
 
-    def model_create_xgb(self, epochs,params):
+    def model_create_xgb(self, epochs):
         # https://www.datacamp.com/community/tutorials/xgboost-in-python
         #model = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1, max_depth=5, alpha=10,  n_estimators=10)
 
@@ -139,10 +159,10 @@ class MlpTrading_old(object):
 
         eval_set = [(self.x_train, self.y_train), (self.x_test, self.y_test)]
         model.fit(self.x_train, self.y_train, eval_metric=["error", "logloss"], verbose=True, eval_set=eval_set)
-        self.model_predict(model, params, model_type='xgb')
+        self.model_predict(model,  model_type='xgb')
 
         score = model.score(self.x_test, self.y_test)
-        print(f'error=#(wrong cases)/#(all cases)= {score} ')
+        print(f'error= {score} (#(wrong cases)/#(all cases)')
 
         results = model.evals_result()
         epochs = len(results['validation_0']['error'])
@@ -155,7 +175,7 @@ class MlpTrading_old(object):
         ax.legend()
         plt.ylabel('Log Loss')
         plt.title('XGBoost Log Loss')
-        plt.savefig(f'files/output/{params}_logloss.png')
+        plt.savefig(f'files/output/{self.params}_logloss.png')
 
         # plot classification error
         fig, ax = plt.subplots()
@@ -164,7 +184,7 @@ class MlpTrading_old(object):
         ax.legend()
         plt.ylabel('Classification Error')
         plt.title('XGBoost Classification Error')
-        plt.savefig(f'files/output/{params}_error.png')
+        plt.savefig(f'files/output/{self.params}_error.png')
 
         return model
 
@@ -215,36 +235,35 @@ class MlpTrading_old(object):
         return model
 
 
-    def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid', params='', model_type='scikit'):
+    def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid',   model_type='scikit'):
         sk_params = {'size_input': self.size_input, 'size_output': self.size_output, 'size_hidden': size_hidden, 'dropout': dropout,
                      'optimizer': optimizer, 'activation': activation}
         model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
         history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=batch_size, epochs=epochs,  verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
         self.model_weights(model, self.x_test, self.y_test, self.names_input)
         plot_stat_loss_vs_accuracy2(history.history)
-        plt.savefig(f'files/output/{params}_Accuracy.png')
+        plt.savefig(f'files/output/{self.params}_Accuracy.png')
         score = model.score(self.x_test, self.y_test)
         print(f'accuracy= {score} ')
-        self.model_predict(model, params=params,model_type=model_type)
+        self.model_predict(model,  model_type=model_type)
         return model
 
 
-    def model_fitt(self, model, batch_size=128, epochs=200, verbose=2, params='',  model_type='xxx'):
-
-
+    def model_fitt(self, model, batch_size=128, epochs=200, verbose=2):
         print('\n======================================')
         print(f"\nTrain model for {epochs} epochs...")
         print('\n======================================')
         history = self.model_fit(model, epochs, batch_size, verbose)
+        return history
 
-
+    def model_predictt(self, model, history  ,  model_type='xxx'):
         print('\n======================================')
         print('\nPrinting history')
         print('\n======================================')
         # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
         # model Loss, accuracy over time_hid003_RMS0.00001_epc5000_batch128_+1hid
         #params = f'_hid{size_hidden}_RMS{lr}_epc{epochs}_batch{batch_size}_dropout{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
-        self.plot_evaluation( history, params=params)
+        self.plot_evaluation( history )
         print('\n======================================')
         print('\nEvaluate the model with unseen data. pls validate that test accuracy =~ train accuracy and near 1.0')
         print('\n======================================')
@@ -252,7 +271,7 @@ class MlpTrading_old(object):
         print('\n======================================')
         print(f'\nPredict unseen data with {self.size_output} probabilities, for classes {self.names_output} (choose the highest)')
         print('\n======================================')
-        self.model_predict(model,params=params, model_type=model_type)
+        self.model_predict(model, model_type=model_type)
 
         return model
 
@@ -465,7 +484,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     def _label_transform(self, modelType):
         print(f'categorizing   {self.size_output} classes')
-        print('y_test=',self.y_test)
+        print('y_test[0]=',self.y_test[0])
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
         self.y_train_bak = self.y_train
@@ -474,7 +493,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
             self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
             self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
         print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
-        print(f'y_test[0]={self.y_test[0]}, it means label={np.argmax(self.y_test[0])}')
+        print(f'y_test [0]={self.y_test[0]}, it means label={np.argmax(self.y_test[0])}')
 
     # |--------------------------------------------------------|
     # |                                            |
@@ -585,14 +604,14 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def plot_evaluation(self, history, params=''):
+    def plot_evaluation(self, history ):
         print(f'\nsize.model.features(size_input) = {self.size_input}')
         print(f'\nsize.model.target  (size_output)= {self.size_output}')
         print('\nplot_accuracy_loss_vs_time...')
         history_dict = history.history
         print(history_dict.keys())
-        file_name=f'files/output/{params}_accuracy.png'
-        plot_stat_loss_vs_accuracy(history_dict, title=f'{params}_accuracy')
+        file_name=f'files/output/{self.params}_accuracy.png'
+        plot_stat_loss_vs_accuracy(history_dict, title=f'{self.params}_accuracy')
         hist = pd.DataFrame(history.history)
         hist['epoch'] = history.epoch
         print(hist.tail())
@@ -615,7 +634,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def model_predict(self, model, params='', model_type='xxx'):
+    def model_predict(self, model,   model_type='xxx'):
         x_all = np.concatenate((self.x_train, self.x_test), axis=0)
         y_pred_proba_all = model.predict(x_all)
         y_pred_proba     = model.predict(self.x_test)# same as probs  = model.predict_proba(self.x_test)
@@ -635,7 +654,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
                 Y_pred = y_pred_proba
 
             else:
-                y_pred_proba_r = y_pred_proba[:, 1]
+                y_pred_proba_r =   y_pred_proba[:, 1]
                 Y_pred = np.argmax(y_pred_proba, axis=1)
 
             Y_true = np.argmax(self.y_test, axis=1)
@@ -646,21 +665,20 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         else:
             Y_true = self.y_test
             Y_pred = y_pred_proba
-            print('proba=',y_pred_proba[:40])
+            print('pred proba=',y_pred_proba[:4])
 
         print('Y_true[0]=',Y_true[0])
         print('Y_pred[0]=',Y_pred[0])
 
         acc = accuracy_score(Y_true, Y_pred)
         f1  = f1_score      (Y_true, Y_pred)
-        auc = roc_auc_score (Y_true, Y_pred)
-        print('\nmodel :',model)
+        print('\nmodel :',model_type)
+        print('-------------------------')
         print("Accuracy : {0:0.2f} %".format(acc * 100))
         print("F1 Score : {0:0.4f} ".format(f1))
-        print("AOC Score: {0:0.4f} ".format(auc))
         if self.size_output == 2:#multiclass format is not supported
-            plot_roc     (Y_true, Y_pred, y_pred_proba_r   , file_name=f'files/output/{params}_roc.png')
-        plot_conf_mtx    (Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
+            plot_roc     (Y_true, Y_pred, y_pred_proba_r   , file_name=f'files/output/{self.params}_roc.png')
+        plot_conf_mtx    (Y_true, Y_pred, self.names_output, file_name=f'files/output/{self.params}_confusion.png')
 
 
         y_pred_proba_ok=[]
@@ -672,9 +690,10 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         #        print(f'{i} ,{p} ,{t}, {y_pred_proba_r[i]}')
         #print (f'len {len(y_pred_proba_ok)} > {len(y_pred_proba_r)} = {len(Y_pred)} = {len(Y_true)}' )
         #print('y_pred_proba_ok=',y_pred_proba_ok[:40])#[0.59, 0.41], dtype=float32), array([0.45, 0.55], dtype=float32), array([0.3, 0.7], dtype=float32), array([0.42, 0.58]
-        plot_histogram(y_pred_proba_r   , 20, f'{params}_predAll', 'Predicted probability', 'Frequency', xmin=0, xmax=1)
-        plot_histogram(y_pred_proba_ok  , 20, f'{params}_predOk', 'Predicted probability', 'Frequency', xmin=0, xmax=1)
-
+        plot_histogram(y_pred_proba_r   , 20, f'{self.params}_predAll', 'Predicted probability', 'Frequency', xmin=0, xmax=1)
+        plot_histogram(y_pred_proba_ok  , 20, f'{self.params}_predOk', 'Predicted probability', 'Frequency', xmin=0, xmax=1)
+#Y_true[0]= [1. 0.]
+#Y_pred[0]= [0.4714 0.5286]
 
 
 
@@ -684,13 +703,14 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def model_save(self, model, filename):
+    def model_save(self, model):
         print('\n======================================')
         print('\nSaving the model')
         print('\n======================================')
         folder = 'files/output/'
-        print(f'\nSave model as {folder}model{filename}.model')
-        model.save(f'{folder}{filename}.model')
+        print(f'\nSave model as {folder}model{self.params}.model')
+        model.save(f'{folder}{self.params}.model')
+        return 'ok'
 
     # |--------------------------------------------------------|
     # |                                                        |
