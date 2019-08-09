@@ -40,30 +40,31 @@ class MlpTrading_old(object):
         self.y_train = None
         self.y_test = None
         self.seed = 7
+        self.models_need1hot = ['mlp','lstm', 'scikit', 'scigrid']# 'xgb', 'xgbgrid',#if model_type in self.models_need1hot:
         np.random.seed(self.seed)
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
     def execute(self, symbol       = '^GSPC'
-                    , modelType    = 'mlp'#mlp lstm drl xgb xgbgrid 'scigrid','scikit',
-                    , names_input  = ['nvo']
-                    , names_output = ['Green bar', 'Red Bar']# # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
-                    , skip_days    = 3600
-                    , epochs       = 5000
-                    , size_hidden  = 15
-                    , batch_size   = 128
-                    , percent_test_split=0.33
-                    , loss         = 'categorical_crossentropy'
-                    , lr           = 0.00002# default=0.001   best=0.00002
-                    , rho          = 0.9    # default=0.9     0.5 same
-                    , epsilon      = None
-                    , decay        = 0.0
-                    , kernel_init  = 'glorot_uniform'
-                    , dropout      = 0.2
-                    , verbose      = 0
-                    , activation   = 'softmax'#sigmoid'
-                    , use_random_label = False
+                , model_type    ='mlp'  #mlp lstm drl xgb xgbgrid 'scigrid','scikit',
+                , names_input  = ['nvo']
+                , names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+                , skip_days    = 3600
+                , epochs       = 5000
+                , size_hidden  = 15
+                , batch_size   = 128
+                , percent_test_split=0.33
+                , loss         = 'categorical_crossentropy'
+                , lr           = 0.00002  # default=0.001   best=0.00002
+                , rho          = 0.9  # default=0.9     0.5 same
+                , epsilon      = None
+                , decay        = 0.0
+                , kernel_init  = 'glorot_uniform'
+                , dropout      = 0.2
+                , verbose      = 0
+                , activation   = 'softmax'  #sigmoid'
+                , use_random_label = False
 
                 ):
         self.symbol = symbol
@@ -73,35 +74,36 @@ class MlpTrading_old(object):
         self.size_output  = len(self.names_output)
         self.size_input   = len(self.names_input)
 
-        df_all = self.data_prepare(percent_test_split, skip_days, use_random_label, modelType)
-        params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{modelType}'
-        print(f'\nrunning with modelType {modelType}')
-        if modelType == 'svc':
-            models = [GaussianNB            (),
-                      SVC                   (random_state=5, kernel='rbf', C=0.01),#C=0.01 = accuracy 53.65 %
-                      RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20),#50.84 %
-                      MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))]#50.86 %
+        df_all = self.data_prepare(percent_test_split, skip_days, use_random_label, model_type)
+        params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
+        print(f'\nrunning with modelType {model_type}')
+        if model_type == 'svc':
+            models = [#GaussianNB            (),
+                      SVC                   (random_state=5, kernel='rbf', C=0.01)#C=0.01 = accuracy 53.65 %
+                      #RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20),#50.84 %
+                      #MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))50.86 %
+                     ]
 
             for model in models:
                 model.fit(self.x_train, self.y_train)
-
+                self.model_predict(model, params, model_type)
             calc_scores(models, self.x_test, self.y_test)
 
-        elif modelType == 'scikit':
+        elif model_type == 'scikit':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop', params=params)
-        elif modelType=='scigrid':
+        elif model_type== 'scigrid':
             model = self.model_create_scigrid()
-        elif modelType == 'xgb':
+        elif model_type == 'xgb':
             model = self.model_create_xgb(epochs, params)
-        elif modelType == 'xgbgrid':
+        elif model_type == 'xgbgrid':
             model = self.model_create_xgb_grid()
-        elif modelType == 'mlp':
+        elif model_type == 'mlp':
             model = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params)
+            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params, model_type=model_type)
             self.model_save(model, params)
-        elif modelType == 'lstm':
+        elif model_type == 'lstm':
             model = self._model_create_lstm(activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay),  loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
-            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params)
+            model = self.model_fitt(model, batch_size=batch_size, epochs=epochs, verbose=verbose, params=params, model_type=model_type)
             self.model_save(model, params)
         else:
             print('unsupported model. exiting')
@@ -220,7 +222,7 @@ class MlpTrading_old(object):
         return model
 
 
-    def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid', params=''):
+    def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid', params='', model_type='scikit'):
         sk_params = {'size_input': self.size_input, 'size_output': self.size_output, 'size_hidden': size_hidden, 'dropout': dropout,
                      'optimizer': optimizer, 'activation': activation}
         model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
@@ -230,11 +232,11 @@ class MlpTrading_old(object):
         plt.savefig(f'files/output/{params}_Accuracy.png')
         score = model.score(self.x_test, self.y_test)
         print(f'accuracy= {score} ')
-        self.model_predict(model, params=params)
+        self.model_predict(model, params=params,model_type=model_type)
         return model
 
 
-    def model_fitt(self, model, batch_size=128, epochs=200, verbose=2, params=''):
+    def model_fitt(self, model, batch_size=128, epochs=200, verbose=2, params='',  model_type='xxx'):
 
 
         print('\n======================================')
@@ -257,7 +259,7 @@ class MlpTrading_old(object):
         print('\n======================================')
         print(f'\nPredict unseen data with {self.size_output} probabilities, for classes {self.names_output} (choose the highest)')
         print('\n======================================')
-        self.model_predict(model,params=params)
+        self.model_predict(model,params=params, model_type=model_type)
 
         return model
 
@@ -474,8 +476,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
         self.y_train_bak = self.y_train
-        models_need_ctgr = ['mlp','lstm', 'scikit', 'scigrid']# 'xgb', 'xgbgrid',
-        if modelType in models_need_ctgr :
+
+        if modelType in self.models_need1hot :
             self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
             self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
         print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
@@ -620,37 +622,43 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def model_predict(self, model, params='', model_type='xgb'):
-        y_pred_proba = model.predict      (self.x_test)# same as probs  = model.predict_proba(self.x_test)
-
+    def model_predict(self, model, params='', model_type='xxx'):
+        x_all = np.concatenate((self.x_train, self.x_test), axis=0)
+        y_pred_proba_all = model.predict(x_all)
+        y_pred_proba     = model.predict(self.x_test)# same as probs  = model.predict_proba(self.x_test)
+        y_pred_proba_r = y_pred_proba
         print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
         print(f'predicted as {y_pred_proba[0]} highest confidence for index {np.argmax(y_pred_proba[0])}')
 #        print('y_train class distribution',self.y_train.value_counts(normalize=True))
          #print(pd.DataFrame(y_pred).describe())
-        x_all = np.concatenate((self.x_train, self.x_test), axis=0)
-        y_pred_all = model.predict(x_all)
+
         print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
-        print(f'predicted as {y_pred_all[0]} highest confidence for index {np.argmax(y_pred_all[0])}')
+        print(f'predicted as {y_pred_proba_all[0]} highest confidence for index {np.argmax(y_pred_proba_all[0])}')
 
+        # print('Y_true[0]=',Y_true[0])
+        # print('Y_pred[0]=',Y_pred[0])
+        if model_type in self.models_need1hot:# and model_type != 'scikit':
+            if (model_type=='scikit'):
+                Y_pred = y_pred_proba
 
+            else:
+                y_pred_proba_r = y_pred_proba[:, 1]
+                Y_pred = np.argmax(y_pred_proba, axis=1)
 
-
-        # Y_true = [0, 1, 0, 1]
-        # Y_pred = [1, 1, 1, 0]
-        # plot_conf_mtx(Y_true, Y_pred, self.names_output)
-        y_pred_proba_r = y_pred_proba
-        if model_type != 'xgb':
             Y_true = np.argmax(self.y_test, axis=1)
-        if isinstance(y_pred_proba[0],(np.int64)):#for scikit learn model
-            Y_pred = y_pred_proba
-        else:
-            Y_pred = np.argmax(y_pred_proba, axis=1)
-            print('proba=',y_pred_proba[:40])
-            y_pred_proba_r = y_pred_proba[:, 1]
-        if model_type == 'xgb':
-            Y_true = self.y_test
-            Y_pred = y_pred_proba # cv_results = xgb.cv  # xgb.plot_importance(xg_reg)
 
+            # if isinstance(y_pred_proba[0],(np.int64)):#for scikit learn model
+            #     print('probably scikit')
+            #     Y_pred = y_pred_proba
+        else:
+            Y_true = self.y_test
+            Y_pred = y_pred_proba
+            print('proba=',y_pred_proba[:40])
+
+
+
+        print('Y_true[0]=',Y_true[0])
+        print('Y_pred[0]=',Y_pred[0])
         plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
 
 

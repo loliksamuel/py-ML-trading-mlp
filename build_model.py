@@ -39,18 +39,18 @@ start_time = time.time()
 
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol='^GSPC',
-                        skip_days=3600,#>400  best=3600 #17460 #17505 rows
-                        modelType='xgb',# svc  xgb  xgbgrid  scikit  scigrid  mlp  lstm
-                        epochs=370,  # best 5000   or 300for mlp, 370 for xbg
-                        size_hidden=15, #best 15 try 170
-                        batch_size=128,#best 128
-                        percent_test_split=0.33, #best .33
+                        skip_days=16600,  #>400  best=3600 #17460 #17505 rows
+                        model_type='svc',  # svc  xgb  xgbgrid  scikit  scigrid  mlp  lstm
+                        epochs=1,  # best 5000   or 300for mlp, 370 for xbg
+                        size_hidden=15,  #best 15 try 170
+                        batch_size=128,  #best 128
+                        percent_test_split=0.33,  #best .33
                         lr=0.002,  # default=0.001   best=0.00001 or 0.002, for mlp, 0.0001 for lstm
                         rho=0.9,  # default=0.9
-                        epsilon=None,#None
+                        epsilon=None,  #None
                         decay=0.0,  # 0.0 - 1.0
                         dropout=0.2,  # 0.0 - 1.0
-                        names_output = ['Green bar', 'Red Bar'],#, 'Hold Bar'],  #bug on adding 3rd class classify all to green
+                        names_output = ['Green bar', 'Red Bar'],  #, 'Hold Bar'],  #bug on adding 3rd class classify all to green
 
                         names_input = ['rsi20','rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','nvo', 'isPrev1Up', 'isPrev2Up',
                                         'range_sma1', 'rel_bol_lo10',
@@ -61,8 +61,8 @@ mlp_trading_old.execute(symbol='^GSPC',
 
                         use_random_label = False,
                         kernel_init='glorot_uniform',
-                        activation='softmax',#sigmoid',#softmax',
-                        loss='categorical_crossentropy',#binary_crossentropy #categorical_crossentropy
+                        activation='softmax',  #sigmoid',#softmax',
+                        loss='categorical_crossentropy',  #binary_crossentropy #categorical_crossentropy
                         verbose = 2  # 0, 1, 2
                         )
 print('time is')
