@@ -126,12 +126,13 @@ def plot_histogram(x, bins, title, xlabel, ylabel, xmin=None, xmax=None):
 def plot_roc(Y_true, Y_pred, probs, file_name='files/output/roc.png'):
     precision, recall, fscore, support = scorex(Y_true, Y_pred)
     auc = roc_auc_score(Y_true, probs)
-    print('AUC: %.3f' % auc)
     fpr, tpr, thresholds = roc_curve(Y_true, probs)
-    print('\nprecision: {}'.format(precision))
-    print('recall: {}'.format(recall))
-    print('fscore: {}'.format(fscore))
-    print('support: {}'.format(support))
+    print('\n')
+    print('auc       : %.3f' % auc)
+    print('precision: {}'.format(precision))
+    print('recall   : {}'.format(recall))
+    print('fscore   : {}'.format(fscore))
+    print('support  : {}'.format(support))
     plt.clf()
     plt.plot([0,1], [0,1], linestyle='--')
     plt.plot(fpr,tpr,'bo-', label = 'model');

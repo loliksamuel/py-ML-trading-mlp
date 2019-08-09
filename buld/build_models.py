@@ -5,7 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.optimizers import RMSprop
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
 from sklearn.metrics.classification import _check_targets
 import xgboost as xgb
 from sklearn.naive_bayes import GaussianNB
@@ -87,7 +87,7 @@ class MlpTrading_old(object):
             for model in models:
                 model.fit(self.x_train, self.y_train)
                 self.model_predict(model, params, model_type)
-            calc_scores(models, self.x_test, self.y_test)
+            #calc_scores(models, self.x_test, self.y_test)
 
         elif model_type == 'scikit':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop', params=params)
@@ -144,13 +144,6 @@ class MlpTrading_old(object):
         score = model.score(self.x_test, self.y_test)
         print(f'error=#(wrong cases)/#(all cases)= {score} ')
 
-        #make predictions for test data
-        y_pred = model.predict(self.x_test)
-        predictions = [round(value) for value in y_pred]
-        # evaluate predictions
-        accuracy = accuracy_score(self.y_test, predictions)
-        print("Accuracy: %.2f%%" % (accuracy * 100.0))
-        # retrieve performance metrics
         results = model.evals_result()
         epochs = len(results['validation_0']['error'])
         x_axis = range(0, epochs)
@@ -655,28 +648,19 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
             Y_pred = y_pred_proba
             print('proba=',y_pred_proba[:40])
 
-
-
         print('Y_true[0]=',Y_true[0])
         print('Y_pred[0]=',Y_pred[0])
-        plot_conf_mtx(Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
 
-
-
-        #print('probs=',y_pred_proba)
+        acc = accuracy_score(Y_true, Y_pred)
+        f1  = f1_score      (Y_true, Y_pred)
+        auc = roc_auc_score (Y_true, Y_pred)
+        print('\nmodel :',model)
+        print("Accuracy : {0:0.2f} %".format(acc * 100))
+        print("F1 Score : {0:0.4f} ".format(f1))
+        print("AOC Score: {0:0.4f} ".format(auc))
         if self.size_output == 2:#multiclass format is not supported
-            plot_roc     (Y_true, Y_pred, y_pred_proba_r , file_name=f'files/output/{params}_roc.png')
-        #y_pred_proba = 0.1 0.2 0.3
-        #y_pred_proba_right = 0.1 0.2
-
-
-
-        # print('Y_true=',Y_true[:40])
-        # print('Y_pred=',Y_pred[:40])
-        # print('accuracy=',accuracy_score(Y_true, Y_pred))
-        #
-
-
+            plot_roc     (Y_true, Y_pred, y_pred_proba_r   , file_name=f'files/output/{params}_roc.png')
+        plot_conf_mtx    (Y_true, Y_pred, self.names_output, file_name=f'files/output/{params}_confusion.png')
 
 
         y_pred_proba_ok=[]
@@ -686,9 +670,9 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         #       print(f'{i} ,{p} ,{t}, {y_pred_proba_r[i]} added' )
         #    else:
         #        print(f'{i} ,{p} ,{t}, {y_pred_proba_r[i]}')
-        print (f'len {len(y_pred_proba_ok)} > {len(y_pred_proba_r)} = {len(Y_pred)} = {len(Y_true)}' )
+        #print (f'len {len(y_pred_proba_ok)} > {len(y_pred_proba_r)} = {len(Y_pred)} = {len(Y_true)}' )
         #print('y_pred_proba_ok=',y_pred_proba_ok[:40])#[0.59, 0.41], dtype=float32), array([0.45, 0.55], dtype=float32), array([0.3, 0.7], dtype=float32), array([0.42, 0.58]
-        plot_histogram(y_pred_proba_r   , 20, f'{params}_predAll'   , 'Predicted probability', 'Frequency', xmin=0, xmax=1)
+        plot_histogram(y_pred_proba_r   , 20, f'{params}_predAll', 'Predicted probability', 'Frequency', xmin=0, xmax=1)
         plot_histogram(y_pred_proba_ok  , 20, f'{params}_predOk', 'Predicted probability', 'Frequency', xmin=0, xmax=1)
 
 
