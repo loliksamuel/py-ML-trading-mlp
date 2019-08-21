@@ -9,10 +9,22 @@ bug tracker
 -----------------------------
 priority | done | name
 -----------------------------
+1        |      |  data: data discovery, histograms, missing etc...
+1        |      |  data: missing # #fillna, avg, median, frequent 
+3        |done  |  data: fix normalize function  
+7        |      |  data: auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
+12       |      |  data: feature importance 
+12       |      |  data: https://github.com/rasbt/mlxtend, https://github.com/automl/auto-sklearn
+7        |      |  data: add economic features rate + sentiment + https://www.featuretools.com
+9        |      |  data: log not normally distributed data, skew data
+10       |      |  data: check Relation of features to target 
+11       |      |  data: Outliers
+12       |done  |  data: plot_corr_matrix
+12       |      |  data: Drop all columns with only small correlation to target
+1        |      |  model: model selection https://github.com/ypeleg/HungaBunga
 1        |      |  model: why accuracy so low?? accuracy SVC=53.65 % , xgb=53.02%   bug?
 2.       |done  |  model: why so accuracy volatile ?  lr 
 2        |      |  model: should use PURGED K-FOLD Cross Validation or  TimeSeriesSplit instead of standard split? yes
-3        |done  |  data: fix normalize function  
 5        |done  |  model: add confusion matrix? 
 4        |done  |  model: add grid search?  
 6        |      |  model: add ensamble 
@@ -20,14 +32,9 @@ priority | done | name
 6        |done  |  model: add xgb
 6        |      |  model: add meta learning 
 6        |      |  model: add rnn
-7        |      |  data: auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
-7        |      |  data: add economic features rate
 6        |      |  model: use 2 thresholds , 1 to reduce fp , 1 to reduce fn
-9        |      |  data: log not normally distributed data
-10       |      |  data: check Relation of features to target 
-11       |      |  data: Outliers
-12       |done  |  data: plot_corr_matrix
-12       |      |  data: Drop all columns with only small correlation to target
+
+ 
 '''
 
 # pd.set_option('display.max_columns', 500)

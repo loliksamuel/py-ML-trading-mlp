@@ -9,6 +9,8 @@ import pandas_datareader.data as pdr
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
+from scipy.special.cython_special import boxcox1p
+from scipy.stats import boxcox_normmax
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support as scorex
 from sklearn.preprocessing import StandardScaler
@@ -34,6 +36,16 @@ def precision_threshold(threshold=0.5):
         precision_ratio = true_positives / (predicted_positives + K.epsilon())
         return precision_ratio
     return precision
+
+#todo
+def skew(df, features):
+    for col in df.columns:
+        df[col] = boxcox1p(df[col], boxcox_normmax(features[col] + 1)) if skew(df[col]) > 0.5 else df[col]
+
+#todo
+def fill(df):
+    pass#fill with avg, median, most frequent
+
 
 def recall_threshold(threshold = 0.5):
     def recall(y_true, y_pred):
@@ -507,6 +519,7 @@ def data_clean(df):
     dfc = utils.dropna(df)
     return dfc
 
+
 def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=False):
     if  skip_first_lines < 400:
         print (f'error: skip_first_lines must be > 400 existing...')
@@ -544,6 +557,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['mom20'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=20, fillna=True)
     df1['mom50'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=50, fillna=True)
 
+    #these 5 are not normalized. do not use those
     df1['sma10'] = df1['Close'].rolling(window=10).mean()  # .shift(1, axis = 0)
     df1['sma20'] = df1['Close'].rolling(window=20).mean()
     df1['sma50'] = df1['Close'].rolling(window=50).mean()
