@@ -381,6 +381,7 @@ def normalize2(df, axis):
 def normalize3(x, axis):
     scaler = StandardScaler()
     x_norm = scaler.fit_transform(x)
+    #x_norm = scaler.fit(x)
     #x_norm = pd.DataFrame(x_norm, index=x.index, columns=x.columns)
     return x_norm
 
@@ -615,7 +616,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     ## labeling
     df1['range2'    ] = df1['Close'].shift(2)  - df1['Open'].shift(2) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     df1['range1'    ] = df1['Close'].shift(1)  - df1['Open'].shift(1) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
-    df1['range0'    ] = df1['Close'].shift(0)   - df1['Open'].shift(0) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    df1['range0'    ] = df1['Close'].shift(0)  - df1['Open'].shift(0) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     df1.loc[df1.range1  > 0.0, 'isPrev1Up'] = 1
     df1.loc[df1.range1 <= 0.0, 'isPrev1Up'] = 0
     df1.loc[df1.range2  > 0.0, 'isPrev2Up'] = 1
@@ -704,7 +705,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     #print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
     print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
     print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range0', 'isPrev2Up','isPrev1Up', 'isUp', 'target']])
-
+    #pd.to_pickle('sp500.csv')
     # df = pd.DataFrame(record, columns = ['Name', 'Age', 'Stream', 'Percentage'])
     # rslt_df = df[df1['isUp'] == 1]
     # print ('\ndf1 describe direction = +1\n',rslt_df.describe())

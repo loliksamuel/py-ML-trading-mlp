@@ -47,7 +47,7 @@ start_time = time.time()
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol      ='^GSPC',
                         skip_days   =3600,  #>400  best=3600 #17460 #17505 rows
-                        model_type  ='xgb',  # all gaus mlp2 rf xgb  xgbgrid  scikit  scigrid  mlp  lstm
+                        model_type  ='mlp',  # all gaus mlp2 rf xgb  xgbgrid  scikit  scigrid  mlp  lstm
                         epochs      =300,  # best 5000   or 300for mlp, 370 for xbg
                         size_hidden =15,  #best 15 try 170
                         batch_size  =128,  #best 128
@@ -59,12 +59,12 @@ mlp_trading_old.execute(symbol      ='^GSPC',
                         dropout     =0.2,  # 0.0 - 1.0
                         names_output= ['Green bar', 'Red Bar'],  #, 'Hold Bar'],  #bug on adding 3rd class classify all to green
 
-                        names_input = ['rsi20','rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','nvo', 'isPrev1Up', 'isPrev2Up',
-                                        'range_sma1', 'rel_bol_lo10',
-                                         'mom50',       'range_sma2', 'range_sma3', 'range_sma4',
-                                          'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
-                                         'rsi50',        'stoc20', 'stoc50', 'stoc200',
-                                         'rsi5','mom5', 'mom20', 'mom10','rsi10','range_sma', 'stoc10','rel_bol_hi50' ],
+                        names_input = [  'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','rel_bol_lo10',  'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200', 'rel_bol_hi50'
+                                       , 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4' ,'nvo'
+                                       , 'rsi5'  ,'rsi10', 'rsi20', 'rsi50'
+                                       , 'stoc10', 'stoc20', 'stoc50', 'stoc200'
+                                       , 'mom5'  , 'mom20', 'mom10',   'mom50'
+                                       , 'isPrev1Up', 'isPrev2Up', 'target' ],
 
                         use_random_label = False,
                         kernel_init ='glorot_uniform',

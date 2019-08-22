@@ -25,8 +25,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.svm import SVC
 
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
-    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2,  \
-    plot_roc, calc_scores
+    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, plot_roc, calc_scores, data_normalize0
 
 
 class MlpTrading_old(object):
@@ -73,9 +72,9 @@ class MlpTrading_old(object):
         self.names_output = names_output# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         self.names_input  = names_input
         self.size_output  = len(self.names_output)
-        self.size_input   = len(self.names_input)
+        self.size_input   = len(self.names_input)-1
 
-        df_all = self.data_prepare(percent_test_split, skip_days, use_random_label, model_type)
+        self.data_prepare(percent_test_split, skip_days, use_random_label, model_type)
 
         self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
         print(f'\nrunning with modelType {model_type}')
@@ -286,31 +285,40 @@ class MlpTrading_old(object):
         # print('\n======================================')
         # self._plot_features(df_all)
         print('\n======================================')
-        print('\nSplitting the data to train & test data')
+        print('\nselecting features')
         print('\n======================================')
-        self._data_split(df_all, percent_test_split)
-        print('\n======================================')
-        print('\nLabeling the data')
-        print('\n======================================')
-        self._label_split(df_all, percent_test_split)
+        df_data = self._data_select_features(df_all)
         print('\n======================================')
         print('\nCleaning the data')
         print('\n======================================')
-        self._data_clean()
-        print('\n======================================')
-        print('\nNormalizing the data')
-        print('\n======================================')
-        self._data_normalize()
+        df_data = self._data_clean(df_data)
         print('\n======================================')
         print('\nRebalancing Data')
         print('\n======================================')
-        self._data_rebalance()
+        df_data = self._data_rebalance(df_data)
+        print('\n======================================')
+        print('\nNormalizing the data')
+        print('\n======================================')
+        df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+        df_x = df_data.drop(columns=['target'])
+        print('df_y',df_y)
+        print('\ndf_x',df_x)
+        print('\ndf_x describe\n', df_x.describe())
+
+        df_x = self._data_normalize(df_x)
+        print('\n======================================')
+        print('\nLabeling the data')
+        print('\n======================================')
+        self._split(df_x, df_y, percent_test_split)
+
+
+
         print('\n======================================')
         print('\nTransform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
               '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
         print('\n======================================')
         self._label_transform(modelType)
-        return df_all
+        #return df_all
 
 
 
@@ -376,15 +384,30 @@ class MlpTrading_old(object):
         # sns.pairplot(df_all)
 
 
-# |--------------------------------------------------------|
+    # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_split(self, df_all, percent_test_split):
-        elements = df_all.size
-        shape = df_all.shape
+    def _data_split(self, df, percent_test_split):
+        #df_data = df_data.drop(columns=['target'])
+        (self.x_train, self.x_test) = train_test_split(df, test_size=percent_test_split,  shuffle=False)  # shuffle=False in timeseries
+        # # tscv = TimeSeriesSplit(n_splits=5)
+        # print('\ntrain data', self.x_train.shape)
+        # print(self.x_train[0])
+        # print(self.x_train[1])
+        #
+        # print('\ntest data', self.x_test.shape)
+        # print(self.x_test[0])
+        # print(self.x_test[1])
+        # print(self.x_test)
+        #
+        # print(self.x_train.shape[0], 'train samples')
+        # print(self.x_test.shape[0], 'test samples')
 
-        df_data = df_all.loc[:, self.names_input]
-        print (df_data.dtypes)
+    def _data_select_features(self, df):
+        elements = df.size
+        shape = df.shape
+        df_data = df.loc[:, self.names_input]
+        print(df_data.dtypes)
         df_data = df_data.round(self.precision)
         df_data.style.format("{:.4f}")
         # today = datetime.date.today()
@@ -393,60 +416,48 @@ class MlpTrading_old(object):
         print('columns=', df_data.columns)
         print('\ndata describe=\n', df_data.describe())
         print('shape=', str(shape), " elements=" + str(elements), ' rows=', str(shape[0]))
-        (self.x_train, self.x_test) = train_test_split(df_data.values, test_size=percent_test_split,
-                                                       shuffle=False)  # shuffle=False in timeseries
-        # tscv = TimeSeriesSplit(n_splits=5)
-        print('\ntrain data', self.x_train.shape)
-        print(self.x_train[0])
-        print(self.x_train[1])
-
-        print('\ntest data', self.x_test.shape)
-        print(self.x_test[0])
-        print(self.x_test[1])
-        print(self.x_test)
-
-        print(self.x_train.shape[0], 'train samples')
-        print(self.x_test.shape[0], 'test samples')
+        return df_data
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _label_split(self, df_all, percent_test_split):
-        df_y = df_all['target']  # np.random.randint(0,2,size=(shape[0], ))
-        print(df_y)
-        (self.y_train, self.y_test) = train_test_split(df_y.values, test_size=percent_test_split, shuffle=False)
+    def _split(self, df_x, df_y, percent_test_split):
 
-        print(df_y.tail())
-        print('\nlabel describe\n', df_y.describe())
-        # (self.x_train, self.y_train)  = train_test_split(df.as_matrix(), test_size=0.33, shuffle=False)
+        (self.x_train, self.x_test) = train_test_split(df_x, test_size=percent_test_split, shuffle=False)
+        (self.y_train, self.y_test) = train_test_split(df_y, test_size=percent_test_split, shuffle=False)
 
-        print('\ntrain labels', self.y_train.shape)
-        print(self.y_train[0])
-        print(self.y_train[1])
-
-        print('\ntest labels', self.y_test.shape)
-        print(self.y_test[0])
-        print(self.y_test[1])
-
-    # |--------------------------------------------------------|
-    # |                                                        |
-    # |--------------------------------------------------------|
-    def _data_clean(self):
-        pass
+        # print(df.tail())
+        # print('\nlabel describe\n', df.describe())
+        # # (self.x_train, self.y_train)  = train_test_split(df.as_matrix(), test_size=0.33, shuffle=False)
+        #
+        # print('\ntrain labels', self.y_train.shape)
+        # print(self.y_train[0])
+        # print(self.y_train[1])
+        #
+        # print('\ntest labels', self.y_test.shape)
+        # print(self.y_test[0])
+        # print(self.y_test[1])
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_normalize(self):
+    def _data_clean(self, df):
+        return df
 
-        self.x_train = normalize3(self.x_train, axis=1)
-        self.x_test  = normalize3(self.x_test , axis=1)
+    # |--------------------------------------------------------|
+    # |                                                        |
+    # |--------------------------------------------------------|
+    def _data_normalize(self, df):
+        df = normalize3(df, axis=1)
+        # self.x_train = normalize3(self.x_train, axis=1)
+        # self.x_test  = normalize3(self.x_test , axis=1)
         # print('columns=', self.x_train.columns)
         # print ('\ndf1=\n',self.x_train.loc[:, ['Open','High', 'Low', 'Close', 'range0']])
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])
-        print('finished normalizing \n',stats.describe(self.x_train))
-        print('\ndfn0=\n',self.x_train[0])
-        print('\ndfn=\n',self.x_train)
+        #print('finished normalizing \n',stats.describe(df))
+        #print('\ndfn0=\n',df[0])
+        #print('\ndfn=\n',self.x_train)
+        return df
 
         '''
 finished normalizing  DescribeResult
@@ -476,8 +487,9 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_rebalance(self):
-        pass
+    def _data_rebalance(self, df):
+        #use over sampling or under sampling cause 53% green bars
+        return df
 
     # |--------------------------------------------------------|
     # |                                                        |
