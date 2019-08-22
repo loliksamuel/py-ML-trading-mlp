@@ -46,9 +46,9 @@ start_time = time.time()
 
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol      ='^GSPC',
-                        skip_days   =16600,  #>400  best=3600 #17460 #17505 rows
+                        skip_days   =3600,  #>400  best=3600 #17460 #17505 rows
                         model_type  ='xgb',  # all gaus mlp2 rf xgb  xgbgrid  scikit  scigrid  mlp  lstm
-                        epochs      =1,  # best 5000   or 300for mlp, 370 for xbg
+                        epochs      =300,  # best 5000   or 300for mlp, 370 for xbg
                         size_hidden =15,  #best 15 try 170
                         batch_size  =128,  #best 128
                         percent_test_split=0.33,  #best .33

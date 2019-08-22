@@ -1,11 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import pandas_datareader.data as pdr
+
 import itertools
 import os
 
 import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
-import pandas_datareader.data as pdr
+
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
@@ -20,22 +22,6 @@ from ta import *
 np.set_printoptions(precision=2)
 np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
 
-def precision_threshold(threshold=0.5):
-    def precision(y_true, y_pred):
-        """Precision metric.
-        Computes the precision over the whole batch using threshold_value.
-        """
-        threshold_value = threshold
-        # Adaptation of the "round()" used before to get the predictions. Clipping to make sure that the predicted raw values are between 0 and 1.
-        y_pred = K.cast(K.greater(K.clip(y_pred, 0, 1), threshold_value), K.floatx())
-        # Compute the number of true positives. Rounding in prevention to make sure we have an integer.
-        true_positives = K.round(K.sum(K.clip(y_true * y_pred, 0, 1)))
-        # count the predicted positives
-        predicted_positives = K.sum(y_pred)
-        # Get the precision ratio
-        precision_ratio = true_positives / (predicted_positives + K.epsilon())
-        return precision_ratio
-    return precision
 
 #todo
 def skew(df, features):
@@ -46,22 +32,42 @@ def skew(df, features):
 def fill(df):
     pass#fill with avg, median, most frequent
 
+#
+# def precision_threshold(threshold=0.5):
+#     def precision(y_true, y_pred):
+#         """Precision metric.
+#         Computes the precision over the whole batch using threshold_value.
+#         """
+#         threshold_value = threshold
+#         # Adaptation of the "round()" used before to get the predictions. Clipping to make sure that the predicted raw values are between 0 and 1.
+#         y_pred = K.cast(K.greater(K.clip(y_pred, 0, 1), threshold_value), K.floatx())
+#         # Compute the number of true positives. Rounding in prevention to make sure we have an integer.
+#         true_positives = K.round(K.sum(K.clip(y_true * y_pred, 0, 1)))
+#         # count the predicted positives
+#         predicted_positives = K.sum(y_pred)
+#         # Get the precision ratio
+#         precision_ratio = true_positives / (predicted_positives + K.epsilon())
+#         return precision_ratio
+#     return precision
 
-def recall_threshold(threshold = 0.5):
-    def recall(y_true, y_pred):
-        """Recall metric.
-        Computes the recall over the whole batch using threshold_value.
-        """
-        threshold_value = threshold
-        # Adaptation of the "round()" used before to get the predictions. Clipping to make sure that the predicted raw values are between 0 and 1.
-        y_pred = K.cast(K.greater(K.clip(y_pred, 0, 1), threshold_value), K.floatx())
-        # Compute the number of true positives. Rounding in prevention to make sure we have an integer.
-        true_positives = K.round(K.sum(K.clip(y_true * y_pred, 0, 1)))
-        # Compute the number of positive targets.
-        possible_positives = K.sum(K.clip(y_true, 0, 1))
-        recall_ratio = true_positives / (possible_positives + K.epsilon())
-        return recall_ratio
-    return recall
+
+
+#
+# def recall_threshold(threshold = 0.5):
+#     def recall(y_true, y_pred):
+#         """Recall metric.
+#         Computes the recall over the whole batch using threshold_value.
+#         """
+#         threshold_value = threshold
+#         # Adaptation of the "round()" used before to get the predictions. Clipping to make sure that the predicted raw values are between 0 and 1.
+#         y_pred = K.cast(K.greater(K.clip(y_pred, 0, 1), threshold_value), K.floatx())
+#         # Compute the number of true positives. Rounding in prevention to make sure we have an integer.
+#         true_positives = K.round(K.sum(K.clip(y_true * y_pred, 0, 1)))
+#         # Compute the number of positive targets.
+#         possible_positives = K.sum(K.clip(y_true, 0, 1))
+#         recall_ratio = true_positives / (possible_positives + K.epsilon())
+#         return recall_ratio
+#     return recall
 
 def kpi_returns(prices):
     return ((prices - prices.shift(-1)) / prices)[:-1]
@@ -532,6 +538,14 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     # Add ta features filling NaN values
     # df1 = add_all_ta_features(df, "Open", "High", "Low", "Close",  fillna=True)#, "Volume_BTC",
 
+
+    #these 13 are not normalized. do not use those
+    df1['sma10' ] = df1['Close'].rolling(window=10).mean()  # .shift(1, axis = 0)
+    df1['sma20' ] = df1['Close'].rolling(window=20).mean()
+    df1['sma50' ] = df1['Close'].rolling(window=50).mean()
+    df1['sma200'] = df1['Close'].rolling(window=200).mean()
+    df1['sma400'] = df1['Close'].rolling(window=400).mean()
+
     # Add bollinger band high indicator filling NaN values
     df1['bb_hi10'] = bollinger_hband_indicator(df1["Close"], n=10, ndev=2, fillna=True)
     df1['bb_lo10'] = bollinger_lband_indicator(df1["Close"], n=10, ndev=2, fillna=True)
@@ -542,46 +556,40 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['bb_hi200'] = bollinger_hband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
     df1['bb_lo200'] = bollinger_lband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
 
-    df1['rsi5'] = rsi(df1["Close"], n=5, fillna=True)
+    df1['rsi5' ] = rsi(df1["Close"], n=5 , fillna=True)
     df1['rsi10'] = rsi(df1["Close"], n=10, fillna=True)
     df1['rsi20'] = rsi(df1["Close"], n=20, fillna=True)
     df1['rsi50'] = rsi(df1["Close"], n=50, fillna=True)
 
-    df1['stoc10'] = stoch(df1["High"], df1["Low"], df1["Close"], n=10, fillna=True)
-    df1['stoc20'] = stoch(df1["High"], df1["Low"], df1["Close"], n=20, fillna=True)
-    df1['stoc50'] = stoch(df1["High"], df1["Low"], df1["Close"], n=50, fillna=True)
+    df1['stoc10' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=10 , fillna=True)
+    df1['stoc20' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=20 , fillna=True)
+    df1['stoc50' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=50 , fillna=True)
     df1['stoc200'] = stoch(df1["High"], df1["Low"], df1["Close"], n=200, fillna=True)
 
-    df1['mom5'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=5, fillna=True)
+    df1['mom5' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=5 , fillna=True)
     df1['mom10'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=10, fillna=True)
     df1['mom20'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=20, fillna=True)
     df1['mom50'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=50, fillna=True)
 
-    #these 5 are not normalized. do not use those
-    df1['sma10'] = df1['Close'].rolling(window=10).mean()  # .shift(1, axis = 0)
-    df1['sma20'] = df1['Close'].rolling(window=20).mean()
-    df1['sma50'] = df1['Close'].rolling(window=50).mean()
-    df1['sma200'] = df1['Close'].rolling(window=200).mean()
-    df1['sma400'] = df1['Close'].rolling(window=400).mean()
     # df1['mom']=pandas.stats.
     df1 = df1[-(df1.shape[0] - skip_first_lines):]  # skip 1st x rows, x years due to NAN in sma, range
     df1['nvo'] = df1['Volume'] / df1['sma10'] / 100  # normalized volume
 
     # df/df.iloc[0,:]
-    df1['range_sma'] = (df1['Close'] - df1['sma10']) / df1['Close']*100
-    df1['range_sma1'] = (df1['sma10'] - df1['sma20']) / df1[ 'sma10'] *100 # small sma above big sma indicates that price is going up
-    df1['range_sma2'] = (df1['sma20'] - df1['sma50']) / df1['sma20'] *100 # small sma above big sma indicates that price is going up
-    df1['range_sma3'] = (df1['sma50'] - df1['sma200']) / df1['sma50'] *100 # small sma above big sma indicates that price is going up
-    df1['range_sma4'] = (df1['sma200'] - df1['sma400']) / df1['sma200'] *100 # small sma above big sma indicates that price is going up
+    df1['range_sma' ] = np.log(df1['Close' ] / df1['sma10'])
+    df1['range_sma1'] = np.log(df1['sma10' ] / df1['sma20'])  # small sma above big sma indicates that price is going up
+    df1['range_sma2'] = np.log(df1['sma20' ] / df1['sma50'])  # small sma above big sma indicates that price is going up
+    df1['range_sma3'] = np.log(df1['sma50' ] / df1['sma200']) # small sma above big sma indicates that price is going up
+    df1['range_sma4'] = np.log(df1['sma200'] / df1['sma400']) # small sma above big sma indicates that price is going up
 
-    df1['rel_bol_hi10'] = (df1['High'] - df1['bb_hi10']) / df1['High']*100
-    df1['rel_bol_lo10'] = (df1['Low'] - df1['bb_lo10']) / df1['Low']*100
-    df1['rel_bol_hi20'] = (df1['High'] - df1['bb_hi20']) / df1['High']*100
-    df1['rel_bol_lo20'] = (df1['Low'] - df1['bb_lo20']) / df1['Low']*100
-    df1['rel_bol_hi50'] = (df1['High'] - df1['bb_hi50']) / df1['High']*100
-    df1['rel_bol_lo50'] = (df1['Low'] - df1['bb_lo50']) / df1['Low']*100
-    df1['rel_bol_hi200'] = (df1['High'] - df1['bb_hi200']) / df1['High']*100
-    df1['rel_bol_lo200'] = (df1['Low'] - df1['bb_lo200']) / df1['Low']*100
+    df1['rel_bol_hi10' ] = np.log(df1['High'] / df1['bb_hi10'])
+    df1['rel_bol_lo10' ] = np.log(df1['Low' ] / df1['bb_lo10'])
+    df1['rel_bol_hi20' ] = np.log(df1['High'] / df1['bb_hi20'])
+    df1['rel_bol_lo20' ] = np.log(df1['Low' ] / df1['bb_lo20'])
+    df1['rel_bol_hi50' ] = np.log(df1['High'] / df1['bb_hi50'])
+    df1['rel_bol_lo50' ] = np.log(df1['Low' ] / df1['bb_lo50'])
+    df1['rel_bol_hi200'] = np.log(df1['High'] / df1['bb_hi200'])
+    df1['rel_bol_lo200'] = np.log(df1['Low' ] / df1['bb_lo200'])
 
     # df1['isUp'] = 0
     print(df1)
@@ -743,12 +751,12 @@ def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 
 #     prices = data['Adj Close']
 #     prices = prices.astype(float)
 #     return prices
-def get_data_from_web2(symbol):
-    start, end = '1970-01-03', '2019-07-12'  # '2007-05-02', '2016-04-11'
-    data = pdr.get_data_yahoo(symbol, start, end)
-    closePrice = data["Close"]
-    print(closePrice)
-    return closePrice
+# def get_data_from_web2(symbol):
+#     start, end = '1970-01-03', '2019-07-12'  # '2007-05-02', '2016-04-11'
+#     data = pdr.get_data_yahoo(symbol, start, end)
+#     closePrice = data["Close"]
+#     print(closePrice)
+#     return closePrice
 
 
 def get_state(parameters, t, window_size=20):

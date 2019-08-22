@@ -25,7 +25,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.svm import SVC
 
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
-    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, precision_threshold, recall_threshold, \
+    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2,  \
     plot_roc, calc_scores
 
 
@@ -48,11 +48,11 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def execute(self, symbol       = '^GSPC'
-                , model_type    ='mlp'  #mlp lstm drl xgb xgbgrid 'scigrid','scikit',
+                , model_type    ='drl'  #mlp lstm drl xgb xgbgrid 'scigrid','scikit',
                 , names_input  = ['nvo']
                 , names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                 , skip_days    = 3600
-                , epochs       = 5000
+                , epochs       = 500
                 , size_hidden  = 15
                 , batch_size   = 128
                 , percent_test_split=0.33
