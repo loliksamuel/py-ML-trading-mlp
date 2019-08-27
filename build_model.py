@@ -62,7 +62,7 @@ mlp_trading_old.execute(symbol      ='^GSPC',
 
                         names_input = [  'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','rel_bol_lo10',  'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200', 'rel_bol_hi50'
                                        , 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4' ,'nvo'
-                                       , 'rsi5'  ,'rsi10', 'rsi20', 'rsi50'
+                                       , 'rsi5'  ,'rsi6'  ,'rsi7', 'rsi8'  ,'rsi9', 'rsi10'  ,'rsi12','rsi15', 'rsi20', 'rsi50'
                                        , 'stoc10', 'stoc20', 'stoc50', 'stoc200'
                                        , 'mom5'  , 'mom20', 'mom10',   'mom50'
                                        , 'isPrev1Up', 'isPrev2Up', 'target' ],

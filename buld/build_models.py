@@ -98,11 +98,10 @@ class MlpTrading_old(object):
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'gaus')
         elif model_type == 'svc':
-            model = SVC                   (random_state=5, kernel='sigmoid', C=0.1, gamma=0.9)#'poly', 'rbf', 'sigmoid
+            model = SVC                   (random_state=5, kernel='linear', C=0.1, gamma=0.9)#poly, rbf, sigmoid linear
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'svc')
-            print('svc weights: ')
-            print(model._get_coef())
+            print(f'svc weights: {model._get_coef()}')
             #print('Intercept: ')
             #print(model.class_weight_)
         elif model_type == 'rf':
@@ -304,7 +303,7 @@ class MlpTrading_old(object):
         print('\n======================================')
         df_data = self._data_rebalance(df_data)
         print('\n======================================')
-        print('\nNormalizing the data')
+        print('\nsplitting cols to data+label')
         print('\n======================================')
         df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
         df_x = df_data.drop(columns=['target'])
@@ -312,17 +311,23 @@ class MlpTrading_old(object):
         print('\ndf_x',df_x)
         print('\ndf_x describe\n', df_x.describe())
 
-        df_x = self._data_normalize(df_x)
         print('\n======================================')
-        print('\nLabeling the data')
+        print('\nsplitting rows to train+test')
         print('\n======================================')
         self._split(df_x, df_y, percent_test_split)
 
+        print('\n======================================')
+        print('\nNormalizing the data')
+        print('\n======================================')
+        self.x_train = self._data_normalize(self.x_train)
+        self.x_test  = self._data_normalize(self.x_test)
+
+
 
 
         print('\n======================================')
-        print('\nTransform data. Convert class vectors to binary class matrices (for ex. convert digit 7 to bit array['
-              '0. 0. 0. 0. 0. 0. 0. 1. 0. 0.]')
+        print('\nTransform label. Convert class vectors to binary class matrices (for ex. convert digit 2 to bit array['
+              '0. 1]')
         print('\n======================================')
         self._label_transform(modelType)
         #return df_all
@@ -422,7 +427,7 @@ class MlpTrading_old(object):
         # df_data.to_csv(file_name)
         print('columns=', df_data.columns)
         print('\ndata describe=\n', df_data.describe())
-        print('shape=', str(shape), " elements=" + str(elements), ' rows=', str(shape[0]))
+        print(f'shape={str(shape)} >> {df_data.shape},  elements={str(elements)}, rows={str(shape[0])}')
         return df_data
 
     # |--------------------------------------------------------|

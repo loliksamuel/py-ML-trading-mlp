@@ -558,7 +558,13 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['bb_lo200'] = bollinger_lband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
 
     df1['rsi5' ] = rsi(df1["Close"], n=5 , fillna=True)
+    df1['rsi6' ] = rsi(df1["Close"], n=6 , fillna=True)
+    df1['rsi7' ] = rsi(df1["Close"], n=7 , fillna=True)
+    df1['rsi8' ] = rsi(df1["Close"], n=8 , fillna=True)
+    df1['rsi9' ] = rsi(df1["Close"], n=9 , fillna=True)
     df1['rsi10'] = rsi(df1["Close"], n=10, fillna=True)
+    df1['rsi12'] = rsi(df1["Close"], n=12, fillna=True)
+    df1['rsi15'] = rsi(df1["Close"], n=15, fillna=True)
     df1['rsi20'] = rsi(df1["Close"], n=20, fillna=True)
     df1['rsi50'] = rsi(df1["Close"], n=50, fillna=True)
 
@@ -571,6 +577,12 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['mom10'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=10, fillna=True)
     df1['mom20'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=20, fillna=True)
     df1['mom50'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=50, fillna=True)
+
+    # df1['pct_change1']=df1.pct_change()
+    # df1['pct_change2']=df1.pct_change(periods=2)
+    # for i in range(10):
+    #     #res.append(sigmoid(block[i + 1] - block[i]))
+    #     df1[f'diff{i}'] = np.log(df1[i + 1] / df1[i])
 
     # df1['mom']=pandas.stats.
     df1 = df1[-(df1.shape[0] - skip_first_lines):]  # skip 1st x rows, x years due to NAN in sma, range
@@ -648,6 +660,8 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['isPrev1Up'] = df1['isPrev1Up'].astype(int)
     df1['isPrev2Up'] = df1['isPrev2Up'].astype(int)
     df1['isUp'] = df1['isUp'].astype(int)
+
+
     '''
     df1=
     Date            Open        Close      range      isUp
