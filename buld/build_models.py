@@ -28,6 +28,8 @@ from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_
     plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, plot_roc, calc_scores, data_normalize0
 
 
+
+
 class MlpTrading_old(object):
     def __init__(self) -> None:
         super().__init__()
@@ -40,6 +42,7 @@ class MlpTrading_old(object):
         self.y_test = None
         self.seed = 7
         self.models_need1hot = ['mlp','lstm', 'scikit', 'scigrid']# 'xgb', 'xgbgrid',#if model_type in self.models_need1hot:
+        self.models_df       = ['svc', 'gaus', 'rf', 'mlp2']
         self.params=''
         np.random.seed(self.seed)
 
@@ -93,9 +96,9 @@ class MlpTrading_old(object):
         elif model_type == 'gaus':
             model = GaussianNB            ()
             model.fit(self.x_train, self.y_train)
-            self.model_predict(model,  type(model).__name__)
+            self.model_predict(model,  'gaus')
         elif model_type == 'svc':
-            model = SVC                   (random_state=5, kernel='poly', C=0.1, gamma=0.9)#'poly', 'rbf', 'sigmoid
+            model = SVC                   (random_state=5, kernel='sigmoid', C=0.1, gamma=0.9)#'poly', 'rbf', 'sigmoid
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'svc')
             print('svc weights: ')
@@ -105,11 +108,11 @@ class MlpTrading_old(object):
         elif model_type == 'rf':
             model = RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
             model.fit(self.x_train, self.y_train)
-            self.model_predict(model,  type(model).__name__)
+            self.model_predict(model,  'rf')
         elif model_type == 'mlp2':
             model = MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
             model.fit(self.x_train, self.y_train)
-            self.model_predict(model,  type(model).__name__)
+            self.model_predict(model,  'mlp2')
         elif model_type == 'scikit':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop' )
         elif model_type== 'scigrid':
@@ -687,7 +690,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
 
         print('Y_true[0:10]=',Y_true[0:10])#Y_true[0:10]= [1 1 0 1 0 0 0 0 0 1]
         print('Y_pred[0:10]=',Y_pred[0:10])#Y_pred[0:10]= [1 0 0 1 0 0 0 1 1 1]
-        if (model_type=='svc'):
+        if model_type in self.models_df:
             Y_true = Y_true.values
             print('Y_true[0:10]=',Y_true[0:10])#Y_true[0:10]= [1 1 0 1 0 0 0 0 0 1]
 
