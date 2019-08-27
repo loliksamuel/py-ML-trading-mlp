@@ -95,9 +95,13 @@ class MlpTrading_old(object):
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  type(model).__name__)
         elif model_type == 'svc':
-            model = SVC                   (random_state=5, kernel='rbf', C=0.01)#
+            model = SVC                   (random_state=5, kernel='poly', C=0.1, gamma=0.9)#'poly', 'rbf', 'sigmoid
             model.fit(self.x_train, self.y_train)
-            self.model_predict(model,  type(model).__name__)
+            self.model_predict(model,  'svc')
+            print('svc weights: ')
+            print(model._get_coef())
+            #print('Intercept: ')
+            #print(model.class_weight_)
         elif model_type == 'rf':
             model = RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
             model.fit(self.x_train, self.y_train)
@@ -496,7 +500,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     def _label_transform(self, modelType):
         print(f'categorizing   {self.size_output} classes')
-        print('y_test[0]=',self.y_test[0])
+        print('y_train[0:10]=',self.y_train[0:10])
+        print('y_test[0:10]=',self.y_test[0:10])
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
         self.y_train_bak = self.y_train
@@ -504,8 +509,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         if modelType in self.models_need1hot :
             self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
             self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
-        print(f'y_train[0]={self.y_train[0]}, it means label={np.argmax(self.y_train[0])}')
-        print(f'y_test [0]={self.y_test[0]}, it means label={np.argmax(self.y_test[0])}')
+        print(f'y_train[0]={self.y_train[0]}, it is in index {np.argmax(self.y_train[0])}')
+        print(f'y_test [0]={self.y_test[0]}, it is in index {np.argmax(self.y_test[0])}')
 
     # |--------------------------------------------------------|
     # |                                            |
@@ -651,13 +656,14 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         y_pred_proba_all = model.predict(x_all)
         y_pred_proba     = model.predict(self.x_test)# same as probs  = model.predict_proba(self.x_test)
         y_pred_proba_r = y_pred_proba
-        print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
-        print(f'predicted as {y_pred_proba[0]} highest confidence for index {np.argmax(y_pred_proba[0])}')
+        print(f'predicting test data for model: {model_type}')
+        print(f'labeled   as {self.y_test[0]}. (highest confidence for index {np.argmax(self.y_test[0])})')
+        print(f'predicted as {y_pred_proba[0]}. (highest confidence for index {np.argmax(y_pred_proba[0])})')
 #        print('y_train class distribution',self.y_train.value_counts(normalize=True))
          #print(pd.DataFrame(y_pred).describe())
-
-        print(f'labeled   as {self.y_test[0]} highest confidence for index {np.argmax(self.y_test[0])}')
-        print(f'predicted as {y_pred_proba_all[0]} highest confidence for index {np.argmax(y_pred_proba_all[0])}')
+        print(f'predicting train data')
+        print(f'labeled   as {self.y_test[0]}. (highest confidence for index {np.argmax(self.y_test[0])})')
+        print(f'predicted as {y_pred_proba_all[0]}. (highest confidence for index {np.argmax(y_pred_proba_all[0])})')
 
         # print('Y_true[0]=',Y_true[0])
         # print('Y_pred[0]=',Y_pred[0])
@@ -679,8 +685,11 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
             Y_pred = y_pred_proba
             print('pred proba=',y_pred_proba[:4])
 
-        print('Y_true[0]=',Y_true[0])
-        print('Y_pred[0]=',Y_pred[0])
+        print('Y_true[0:10]=',Y_true[0:10])#Y_true[0:10]= [1 1 0 1 0 0 0 0 0 1]
+        print('Y_pred[0:10]=',Y_pred[0:10])#Y_pred[0:10]= [1 0 0 1 0 0 0 1 1 1]
+        if (model_type=='svc'):
+            Y_true = Y_true.values
+            print('Y_true[0:10]=',Y_true[0:10])#Y_true[0:10]= [1 1 0 1 0 0 0 0 0 1]
 
         acc = accuracy_score(Y_true, Y_pred)
         f1  = f1_score      (Y_true, Y_pred)
