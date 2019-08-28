@@ -4,6 +4,8 @@ from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.optimizers import RMSprop
+from sklearn.cross_validation import StratifiedShuffleSplit
+from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
 from sklearn.metrics.classification import _check_targets
@@ -40,7 +42,7 @@ class MlpTrading_old(object):
         self.y_train = None
         self.y_test = None
         self.seed = 7
-        self.models_need1hot = ['mlp','lstm', 'scikit', 'scigrid']# 'xgb', 'xgbgrid',#if model_type in self.models_need1hot:
+        self.models_need1hot = ['mlp','lstm', 'scikit', 'gridmlp']# 'xgb', 'gridxgb',#if model_type in self.models_need1hot:
         self.models_df       = ['svc', 'gaus', 'rf', 'mlp2']
         self.params=''
         np.random.seed(self.seed)
@@ -49,7 +51,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def execute(self, symbol       = '^GSPC'
-                , model_type    ='drl'  #mlp lstm drl xgb xgbgrid 'scigrid','scikit',
+                , model_type    ='drl'  #mlp lstm drl xgb gridxgb 'gridmlp','scikit',
                 , names_input  = ['nvo']
                 , names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                 , skip_days    = 3600
@@ -96,43 +98,6 @@ class MlpTrading_old(object):
             model = GaussianNB            ()
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'gaus')
-        elif model_type == 'svc':
-            model = SVC                   (random_state=5, kernel='linear', C=0.1, gamma=0.9)#poly, rbf, sigmoid linear
-            model.fit(self.x_train, self.y_train)
-            self.model_predict(model,  'svc')
-            print(f'svc weights: {model._get_coef()}')
-            print(len(self.names_input))
-            self.names_input.remove('target')
-            print(len(self.names_input))
-            plot_feature_weight_coef(model, self.names_input)
-            '''     0                1                2              3               4                 5                6               7                8            9             10          11              12          13      14      15          16      17      18      19          20      21      22      23          24      25          26
-                 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','rel_bol_lo10',  'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200', 'rel_bol_hi50'  , 'range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400' ,'nvo' , 'rsi5'  ,'rsi6'  ,'rsi7', 'rsi8'  ,'rsi9', 'rsi10'  ,'rsi12','rsi15', 'rsi20', 'rsi50'  , 'stoc10', 'stoc12', 'stoc15', 'stoc20', 'stoc50', 'stoc200' , 'mom5'  ,'mom6',  'mom7'  ,'mom8',  'mom9'  ,'mom10', 'mom12'  ,'mom15', 'mom20',    'mom50'  , 'isPrev1Up', 'isPrev2Up',
-            svc weights: [[ 0.03    0.02            -0.28         -0.32            -0.01            -0.06             0.07               0.06           0.17          0.04           -0.04        -0.06,        0.01         0.13    0.95     0.36     0.1   -0.01    -0.05    -0.07    -0.08    -0.09    -0.07     0.12,     -0.01     -0.18      0.09     -0.05     -0.09      0.23       0.01     0.06    -0.27     0.04     -0.01    -0.01,    -0.18     0.09    -0.05       -0.09       -0.22        -0.15]]
-                           0.95 rsi5 
-                           0.36 rsi6
-                           0.32 rel_bol_lo10 
-                           0.28 rel_bol_hi10
-                           0.27 mom7 
-                           0.23 stoc200
-                           0.22 isPrev1Up 
-                           0.18 stoc12  mom12
-                           stoc15
-                           log_sma20
-
-scikit
-weights=    feature  weight  std
-0      x26    0.01 0.00 stoc15
-1       x0    0.01 0.00 rel_bol_hi20
-2       x9    0.01 0.00 log_sma20
-3       x2    0.01 0.00 rel_bol_hi10
-4      x25    0.01 0.00
-5      x16    0.01 0.00
-6       x4    0.00 0.00 rel_bol_lo50
-7       x1    0.00 0.00 rel_bol_lo20
-                            '''
-
-            #print('Intercept: ')
-            #print(model.class_weight_)
         elif model_type == 'rf':
             model = RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
             model.fit(self.x_train, self.y_train)
@@ -143,12 +108,41 @@ weights=    feature  weight  std
             self.model_predict(model,  'mlp2')
         elif model_type == 'scikit':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop' )
-        elif model_type== 'scigrid':
-            model = self.model_create_scigrid()
+        elif model_type == 'gridmlp':
+            model = self.model_create_grid_mlp()
+        elif model_type == 'gridsvc':# gridsvc is very slow(4 days). use it  only with fraction of data
+            kernel = 'rbf'
+            model = self.model_create_grid_csv(kernel)
+        elif model_type == 'gridxgb':
+            model = self.model_create_grid_xgb()
         elif model_type == 'xgb':
             model = self.model_create_xgb(epochs)
-        elif model_type == 'xgbgrid':
-            model = self.model_create_xgb_grid()
+        elif model_type == 'svc':# poly is very slow(4 hours). linear is fast
+            kernel2 = 'linear'
+            model = SVC                   (random_state=5, kernel=kernel2, C=10.1, gamma=0.9)#poly, rbf, sigmoid linear
+            model.fit(self.x_train, self.y_train)
+            self.model_predict(model,  'svc')
+            if kernel2 == 'linear':
+                print(f'svc weights: {model._get_coef()}')
+                print(len(self.names_input))
+                self.names_input.remove('target')
+                print(len(self.names_input))
+                plot_feature_weight_coef(model, self.names_input)
+            '''     
+            gridmlp
+            weights=    feature  weight  std
+            0      x26    0.01 0.00 stoc15
+            1       x0    0.01 0.00 rel_bol_hi20
+            2       x9    0.01 0.00 log_sma20
+            3       x2    0.01 0.00 rel_bol_hi10
+            4      x25    0.01 0.00
+            5      x16    0.01 0.00
+            6       x4    0.00 0.00 rel_bol_lo50
+            7       x1    0.00 0.00 rel_bol_lo20
+                                        '''
+
+        #print('Intercept: ')
+        #print(model.class_weight_)
         elif model_type == 'mlp':
             model   = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
             history = self.model_fitt    (model, batch_size=batch_size, epochs=epochs, verbose=verbose)
@@ -163,17 +157,76 @@ weights=    feature  weight  std
             print('unsupported model. exiting')
             exit(0)
 
-    def model_create_xgb_grid(self):
-        xgb_model = xgb.XGBClassifier()
-        optimization_dict = {'max_depth': [18,19,20],
-                             'n_estimators': [320,370,420],
-                             'learning_rate':[0.001]
-                             }
-        model = GridSearchCV(xgb_model, optimization_dict,  scoring='accuracy', verbose=1)
+    def model_create_grid_mlp(self):
+        print("use_grid_search")
+        activations = [ 'sigmoid']#, 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear', 'relu']#best 'softmax', 'softplus', 'softsign'
+        inits       = ['glorot_uniform']#, 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform',  'he_uniform', 'he_normal']#all same except he_normal worse
+        optimizers = ['RMSprop']#, 'SGD', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam'] # same for all
+        losses =     ['categorical_crossentropy']#, 'categorical_crossentropy']#['mse', 'mae']  #better=binary_crossentropy
+        epochs =     [300]#,500]  # , 100, 150] # default epochs=1,  better=100
+        batch_sizes =[128]#],150,200]  # , 10, 20]   #  default = none best=32
+        size_hiddens = [1]#], 200, 300, 400, 600]  # 5, 10, 20] best = 100 0.524993 Best score: 0.525712 using params {'batch_size': 128, 'dropout': 0.2, 'epochs': 100, 'loss': 'binary_crossentropy', 'size_hidden': 100}
+        dropouts =     [0.2]#, 0.2, 0.3, 0.4]  # , 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        weights =      [1, 2]  # , 3, 4, 5]
+        lrs     =      [0.02]#,0.03, 0.05, 0.07]#,0.001,0.0001,1,0.1,0.00001]#best 0.01 0.001 0.0001
+        rhos    =      [0.01, 0.1, 0.2, 0.6]#all same
+        grid_params = dict( activation  = activations,
+                            init=inits,
+                            # weight_constraint=weights,
+                            #optimizer=optimizers,
+                            epochs=epochs,
+                            batch_size=batch_sizes,
+                            loss= losses,
+                            size_hidden = size_hiddens,
+                            #dropout=dropouts,
+                            lr= lrs
+                            #rho = rhos
 
+                            )
+        sk_params = {'size_input': self.size_input ,  'size_output':self.size_output}
+        model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
+        #perm = PermutationImportance(model, random_state=1).fit(self.x_test, self.y_test)
+        # weights = eli5.formatters.as_dataframe.explain_weights_df(perm, feature_names=self.names_input)
+        # print('\nweights=',weights)
+
+        grid = GridSearchCV(estimator=model, param_grid=grid_params, cv=2)
+        X = np.concatenate((self.x_train, self.x_test), axis=0)
+        Y = np.concatenate((self.y_train, self.y_test), axis=0)
+        grid_result = grid.fit(self.x_train, self.y_train, verbose=2)
+        # summarize results
+        print("Best score: %f using params %s" % (grid_result.best_score_, grid_result.best_params_))
+        means = grid_result.cv_results_['mean_test_score']
+        stds = grid_result.cv_results_['std_test_score']
+        params = grid_result.cv_results_['params']
+        for mean, stdev, param in zip(means, stds, params):
+            print("%f (%f) with params: %r" % (mean, stdev, param))
+        return model
+
+    def model_create_grid_xgb(self):
+        grid_model = xgb.XGBClassifier()
+        cv          = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
+        param_grid = {'max_depth'    : [18,19,20],
+                      'n_estimators' : [320,370,420],
+                      'learning_rate': [0.001]
+                      }
+        model      = GridSearchCV(grid_model, param_grid=param_grid,  scoring='accuracy', verbose=1)#, cv=cv)
         model.fit(self.x_train, self.y_train)
-        print(f'best_score={model.best_score_}')
-        print(f'best_params_={model.best_params_}')
+        print("The best parameters are %s with a score of %0.2f"  % (model.best_params_, model.best_score_))
+
+    def model_create_grid_csv(self, kernel):
+
+        grid_model  = SVC(kernel=kernel)
+        cv          = StratifiedShuffleSplit(n_splits=3, test_size=0.2, random_state=42)
+        C_range     = np.logspace(-2, 10, 13)
+        gamma_range = np.logspace(-9, 3, 13)
+        param_grid  = dict(gamma=gamma_range, C=C_range)
+
+        model       = GridSearchCV(grid_model, param_grid=param_grid, scoring='accuracy', cv=cv)
+        model.fit(self.x_train, self.y_train)
+        #The best parameters are {'C': 10000000.0, 'gamma': 1e-07} with a score of 0.98
+        #The best parameters are {'C': 1.0, 'gamma': 0.1} with a score of 0.97
+        print("The best parameters are %s with a score of %0.2f"   % (model.best_params_, model.best_score_))
+
 
 
     def model_create_xgb(self, epochs):
@@ -223,50 +276,7 @@ weights=    feature  weight  std
         return model
 
 
-    def model_create_scigrid(self):
-        print("use_grid_search")
-        activations = [ 'sigmoid']#, 'softplus', 'softsign', 'sigmoid',  'tanh', 'hard_sigmoid', 'linear', 'relu']#best 'softmax', 'softplus', 'softsign'
-        inits       = ['glorot_uniform']#, 'zero', 'uniform', 'normal', 'lecun_uniform',  'glorot_uniform',  'he_uniform', 'he_normal']#all same except he_normal worse
-        optimizers = ['RMSprop']#, 'SGD', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam'] # same for all
-        losses =     ['categorical_crossentropy']#, 'categorical_crossentropy']#['mse', 'mae']  #better=binary_crossentropy
-        epochs =     [300]#,500]  # , 100, 150] # default epochs=1,  better=100
-        batch_sizes =[128]#],150,200]  # , 10, 20]   #  default = none best=32
-        size_hiddens = [1]#], 200, 300, 400, 600]  # 5, 10, 20] best = 100 0.524993 Best score: 0.525712 using params {'batch_size': 128, 'dropout': 0.2, 'epochs': 100, 'loss': 'binary_crossentropy', 'size_hidden': 100}
-        dropouts =     [0.2]#, 0.2, 0.3, 0.4]  # , 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-        weights =      [1, 2]  # , 3, 4, 5]
-        lrs     =      [0.02]#,0.03, 0.05, 0.07]#,0.001,0.0001,1,0.1,0.00001]#best 0.01 0.001 0.0001
-        rhos    =      [0.01, 0.1, 0.2, 0.6]#all same
-        grid_params = dict( activation  = activations,
-                            init=inits,
-                            # weight_constraint=weights,
-                            #optimizer=optimizers,
-                            epochs=epochs,
-                            batch_size=batch_sizes,
-                            loss= losses,
-                            size_hidden = size_hiddens,
-                            #dropout=dropouts,
-                            lr= lrs
-                            #rho = rhos
 
-        )
-        sk_params = {'size_input': self.size_input ,  'size_output':self.size_output}
-        model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
-        #perm = PermutationImportance(model, random_state=1).fit(self.x_test, self.y_test)
-        # weights = eli5.formatters.as_dataframe.explain_weights_df(perm, feature_names=self.names_input)
-        # print('\nweights=',weights)
-
-        grid = GridSearchCV(estimator=model, param_grid=grid_params, cv=2)
-        X = np.concatenate((self.x_train, self.x_test), axis=0)
-        Y = np.concatenate((self.y_train, self.y_test), axis=0)
-        grid_result = grid.fit(self.x_train, self.y_train, verbose=2)
-        # summarize results
-        print("Best score: %f using params %s" % (grid_result.best_score_, grid_result.best_params_))
-        means = grid_result.cv_results_['mean_test_score']
-        stds = grid_result.cv_results_['std_test_score']
-        params = grid_result.cv_results_['params']
-        for mean, stdev, param in zip(means, stds, params):
-            print("%f (%f) with params: %r" % (mean, stdev, param))
-        return model
 
 
     def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid',   model_type='scikit'):
@@ -274,6 +284,7 @@ weights=    feature  weight  std
                      'optimizer': optimizer, 'activation': activation}
         model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
         history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=batch_size, epochs=epochs,  verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
+
         self.model_weights(model, self.x_test, self.y_test, self.names_input.remove('target'))
         plot_stat_loss_vs_accuracy2(history.history)
         plt.savefig(f'files/output/{self.params}_Accuracy.png')
@@ -334,8 +345,13 @@ weights=    feature  weight  std
         print('\n======================================')
         print('\nsplitting cols to data+label')
         print('\n======================================')
+        df_data.to_csv('files/input/^GSPC_not_normalized.csv')
         df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
         df_x = df_data.drop(columns=['target'])
+        # iris = load_iris()
+        # df_y = iris.target
+        # df_x = iris.data
+
         print('df_y',df_y)
         print('\ndf_x',df_x)
         #print('\ndf_x describe\n', df_x.describe())
@@ -346,7 +362,7 @@ weights=    feature  weight  std
         self._split(df_x, df_y, percent_test_split)
 
         print('\n======================================')
-        print('\nNormalizing the data')
+        print('\nNormalizing the data(must be after split)')
         print('\n======================================')
         self.x_train = self._data_normalize(self.x_train)
         self.x_test  = self._data_normalize(self.x_test)

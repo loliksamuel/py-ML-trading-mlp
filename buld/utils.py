@@ -89,7 +89,7 @@ def kpi_commulativeReturn():
 def kpi_risk(df):
     return df.std()
 
-#for linear svm
+#This method of feature selection is applicable only when the input features are normalized and for linear svm https://medium.com/@aneesha/visualising-top-features-in-linear-svm-with-scikit-learn-and-matplotlib-3454ab18a14d
 def plot_feature_weight_coef(classifier, feature_names, top_features=20):
     coef = classifier.coef_.ravel()
     top_positive_coefficients = np.argsort(coef)[-top_features:]
