@@ -77,4 +77,4 @@ print(f'accuracy= {score} ')
 # 0          rsi5    0.36 0.01
 # 1  rel_bol_lo10    0.10 0.00
 # 2     range_sma    0.06 0.00
-# 3    range_sma1    0.01 0.00
+# 3    log_sma20    0.01 0.00

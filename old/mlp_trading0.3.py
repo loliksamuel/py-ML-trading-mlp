@@ -51,7 +51,7 @@ epsilon      = None
 decay        = 0.0
 kernel_init  = 'glorot_uniform'#  'glorot_uniform'(default),'normal', 'uniform'
 #iterations  = 60000/128
-names_input   = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50', 'rel_bol_hi200', 'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
+names_input   = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50', 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50', 'rel_bol_hi200', 'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200']
 names_output  = ['Green bar', 'Red Bar']#, 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
 size_input   = len(names_input) # 39#x_train.shape[1] # no of features
 size_output  = len(names_output)#  2 # there are 3 classes (buy.sell. hold) or (green,red,hold)
@@ -91,7 +91,7 @@ plot_selected(df_all,           title='TA-price of '+symbol+' vs time'          
 
 plot_selected(df_all.tail(500), title='TA-sma 1,10,20,50,200 of '+symbol+' vs time' , columns=[  'Close', 'sma10', 'sma20', 'sma50',  'sma200',  'sma400', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50',  'bb_lo200', 'bb_lo50', 'bb_hi200'],  shouldNormalize=False, symbol=symbol)
 
-plot_selected(df_all.tail(500), title='TA-range sma,bband of '+symbol+' vs time'    , columns=[  'range_sma', 'range_sma1', 'range_sma2', 'range_sma3',  'range_sma4', 'rel_bol_hi10',  'rel_bol_hi20', 'rel_bol_hi200', 'rel_bol_hi50'],  shouldNormalize=False, symbol=symbol)
+plot_selected(df_all.tail(500), title='TA-range sma,bband of '+symbol+' vs time'    , columns=[  'range_sma', 'log_sma20', 'log_sma50', 'log_sma200',  'log_sma400', 'rel_bol_hi10',  'rel_bol_hi20', 'rel_bol_hi200', 'rel_bol_hi50'],  shouldNormalize=False, symbol=symbol)
 plot_selected(df_all.tail(500), title='TA-rsi,stoc of '+symbol+' vs time'           , columns=[  'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200'],  shouldNormalize=False, symbol=symbol)
 
 #plot_selected(df, ['Date','Close']                                    , start_date, end_date, shouldNormalize=False)

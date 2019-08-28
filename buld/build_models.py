@@ -25,9 +25,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.svm import SVC
 
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
-    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, plot_roc, calc_scores, data_normalize0
-
-
+    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, plot_roc, calc_scores, data_normalize0, \
+    plot_feature_weight_coef
 
 
 class MlpTrading_old(object):
@@ -102,6 +101,36 @@ class MlpTrading_old(object):
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'svc')
             print(f'svc weights: {model._get_coef()}')
+            print(len(self.names_input))
+            self.names_input.remove('target')
+            print(len(self.names_input))
+            plot_feature_weight_coef(model, self.names_input)
+            '''     0                1                2              3               4                 5                6               7                8            9             10          11              12          13      14      15          16      17      18      19          20      21      22      23          24      25          26
+                 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','rel_bol_lo10',  'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200', 'rel_bol_hi50'  , 'range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400' ,'nvo' , 'rsi5'  ,'rsi6'  ,'rsi7', 'rsi8'  ,'rsi9', 'rsi10'  ,'rsi12','rsi15', 'rsi20', 'rsi50'  , 'stoc10', 'stoc12', 'stoc15', 'stoc20', 'stoc50', 'stoc200' , 'mom5'  ,'mom6',  'mom7'  ,'mom8',  'mom9'  ,'mom10', 'mom12'  ,'mom15', 'mom20',    'mom50'  , 'isPrev1Up', 'isPrev2Up',
+            svc weights: [[ 0.03    0.02            -0.28         -0.32            -0.01            -0.06             0.07               0.06           0.17          0.04           -0.04        -0.06,        0.01         0.13    0.95     0.36     0.1   -0.01    -0.05    -0.07    -0.08    -0.09    -0.07     0.12,     -0.01     -0.18      0.09     -0.05     -0.09      0.23       0.01     0.06    -0.27     0.04     -0.01    -0.01,    -0.18     0.09    -0.05       -0.09       -0.22        -0.15]]
+                           0.95 rsi5 
+                           0.36 rsi6
+                           0.32 rel_bol_lo10 
+                           0.28 rel_bol_hi10
+                           0.27 mom7 
+                           0.23 stoc200
+                           0.22 isPrev1Up 
+                           0.18 stoc12  mom12
+                           stoc15
+                           log_sma20
+
+scikit
+weights=    feature  weight  std
+0      x26    0.01 0.00 stoc15
+1       x0    0.01 0.00 rel_bol_hi20
+2       x9    0.01 0.00 log_sma20
+3       x2    0.01 0.00 rel_bol_hi10
+4      x25    0.01 0.00
+5      x16    0.01 0.00
+6       x4    0.00 0.00 rel_bol_lo50
+7       x1    0.00 0.00 rel_bol_lo20
+                            '''
+
             #print('Intercept: ')
             #print(model.class_weight_)
         elif model_type == 'rf':
@@ -245,7 +274,7 @@ class MlpTrading_old(object):
                      'optimizer': optimizer, 'activation': activation}
         model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
         history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=batch_size, epochs=epochs,  verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
-        self.model_weights(model, self.x_test, self.y_test, self.names_input)
+        self.model_weights(model, self.x_test, self.y_test, self.names_input.remove('target'))
         plot_stat_loss_vs_accuracy2(history.history)
         plt.savefig(f'files/output/{self.params}_Accuracy.png')
         score = model.score(self.x_test, self.y_test)
@@ -309,7 +338,7 @@ class MlpTrading_old(object):
         df_x = df_data.drop(columns=['target'])
         print('df_y',df_y)
         print('\ndf_x',df_x)
-        print('\ndf_x describe\n', df_x.describe())
+        #print('\ndf_x describe\n', df_x.describe())
 
         print('\n======================================')
         print('\nsplitting rows to train+test')
@@ -370,7 +399,7 @@ class MlpTrading_old(object):
                                'bb_lo20', 'bb_hi50', 'bb_lo200', 'bb_lo50', 'bb_hi200'], shouldNormalize=False,
                       symbol=self.symbol)
         plot_selected(df_all.tail(500), title=f'TA-range sma,bband of {self.symbol} vs time',
-                      columns=['range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'rel_bol_hi10',
+                      columns=['range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400', 'rel_bol_hi10',
                                'rel_bol_hi20', 'rel_bol_hi200', 'rel_bol_hi50'], shouldNormalize=False,
                       symbol=self.symbol)
         plot_selected(df_all.tail(500), title=f'TA-rsi,stoc of {self.symbol} vs time',
@@ -474,7 +503,7 @@ class MlpTrading_old(object):
         '''
 finished normalizing  DescribeResult
 (nobs=9315, 
-            'nvo', 'mom5', 'mom10', 'mom20', 'mom50',  'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50'  'rel_bol_hi200',  'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200'
+            'nvo', 'mom5', 'mom10', 'mom20', 'mom50',  'range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50'  'rel_bol_hi200',  'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi5', 'stoc10', 'stoc20', 'stoc50', 'stoc200'
 min=       [ 0.63, -0.21,  -0.21,  -0.18   ,  -0.18  , -0.  , -0.  , -0.  , -0.  ,-0.  , -0.  , -0.  , -0.  , -0.  , -0.  , -0.  , -0.  ,  0.  ,0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ]), 
 max=       [ 1.  , -0.  , -0.  , -0.  , -0.          ,  0.  ,  0.  ,  0.  ,  0.  ,0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.27,0.26,  0.24,  0.26,  0.26,  0.29,  0.29,  0.3 ])), 
 mean=      [ 0.99, -0.02, -0.02, -0.02, -0.02,         -0.  ,  0.  ,  0.  ,  0.  ,0.  ,  0.  , -0.  ,  0.  , -0.  ,  0.  , -0.  ,  0.  ,  0.02,0.02,  0.02,  0.02,  0.02,  0.02,  0.02,  0.03]), 

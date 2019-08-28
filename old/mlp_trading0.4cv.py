@@ -71,7 +71,7 @@ plot_selected(df_all.tail(500), title='TA-sma 1,10,20,50,200 of ' + symbol + ' v
                        'bb_lo20', 'bb_hi50', 'bb_lo200', 'bb_lo50', 'bb_hi200'], shouldNormalize=False, symbol=symbol)
 
 plot_selected(df_all.tail(500), title='TA-range sma,bband of ' + symbol + ' vs time',
-              columns=['range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'rel_bol_hi10',
+              columns=['range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400', 'rel_bol_hi10',
                        'rel_bol_hi20', 'rel_bol_hi200', 'rel_bol_hi50'], shouldNormalize=False, symbol=symbol)
 plot_selected(df_all.tail(500), title='TA-rsi,stoc of ' + symbol + ' vs time',
               columns=['rsi10', 'rsi20', 'rsi50', 'rsi200', 'stoc10', 'stoc20', 'stoc50', 'stoc200'],
@@ -84,8 +84,8 @@ shape = df_all.shape
 print('\nInput Data')
 print('\n======================================')
 df_data = df_all.loc[:,
-          ['sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3',
-           'range_sma4', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200',
+          ['sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'range_sma', 'log_sma20', 'log_sma50', 'log_sma200',
+           'log_sma400', 'bb_hi10', 'bb_lo10', 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200',
            'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',
            'rel_bol_hi200', 'rel_bol_lo200', 'rsi10', 'rsi20', 'rsi50', 'rsi200', 'stoc10', 'stoc20', 'stoc50',
            'stoc200']]

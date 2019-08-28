@@ -8,6 +8,8 @@ import os
 import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
 
+
+
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
@@ -87,7 +89,22 @@ def kpi_commulativeReturn():
 def kpi_risk(df):
     return df.std()
 
-
+#for linear svm
+def plot_feature_weight_coef(classifier, feature_names, top_features=20):
+    coef = classifier.coef_.ravel()
+    top_positive_coefficients = np.argsort(coef)[-top_features:]
+    top_negative_coefficients = np.argsort(coef)[:top_features]
+    top_coefficients = np.hstack([top_negative_coefficients, top_positive_coefficients])
+    # create plot
+    plt.clf()
+    plt.figure(figsize=(15, 5))
+    colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
+    plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
+    feature_names = np.array(feature_names)
+    plt.xticks(np.arange(1, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')
+    title = f'top {top_features*2} features'
+    plt.title(title)
+    plt.savefig('files/output/' + title + '.png')
 
 
 def plot_confusion_matrix(cm,
@@ -540,16 +557,29 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     # df1 = add_all_ta_features(df, "Open", "High", "Low", "Close",  fillna=True)#, "Volume_BTC",
 
 
-    #these 13 are not normalized. do not use those
+    #these sma+bol are not normalized. do not use those
+    df1['sma8'  ] = df1['Close'].rolling(window=8).mean()  # .shift(1, axis = 0)
+    df1['sma9'  ] = df1['Close'].rolling(window=9).mean()  # .shift(1, axis = 0)
     df1['sma10' ] = df1['Close'].rolling(window=10).mean()  # .shift(1, axis = 0)
+    df1['sma12' ] = df1['Close'].rolling(window=12).mean()  # .shift(1, axis = 0)
+    df1['sma15' ] = df1['Close'].rolling(window=15).mean()
     df1['sma20' ] = df1['Close'].rolling(window=20).mean()
+    df1['sma25' ] = df1['Close'].rolling(window=25).mean()
     df1['sma50' ] = df1['Close'].rolling(window=50).mean()
     df1['sma200'] = df1['Close'].rolling(window=200).mean()
     df1['sma400'] = df1['Close'].rolling(window=400).mean()
 
     # Add bollinger band high indicator filling NaN values
+    df1['bb_hi08'] = bollinger_hband_indicator(df1["Close"], n=8, ndev=2, fillna=True)
+    df1['bb_lo08'] = bollinger_lband_indicator(df1["Close"], n=8, ndev=2, fillna=True)
+    df1['bb_hi09'] = bollinger_hband_indicator(df1["Close"], n=9, ndev=2, fillna=True)
+    df1['bb_lo09'] = bollinger_lband_indicator(df1["Close"], n=9, ndev=2, fillna=True)
     df1['bb_hi10'] = bollinger_hband_indicator(df1["Close"], n=10, ndev=2, fillna=True)
     df1['bb_lo10'] = bollinger_lband_indicator(df1["Close"], n=10, ndev=2, fillna=True)
+    df1['bb_hi12'] = bollinger_hband_indicator(df1["Close"], n=12, ndev=2, fillna=True)
+    df1['bb_lo12'] = bollinger_lband_indicator(df1["Close"], n=12, ndev=2, fillna=True)
+    df1['bb_hi15'] = bollinger_hband_indicator(df1["Close"], n=15, ndev=2, fillna=True)
+    df1['bb_lo15'] = bollinger_lband_indicator(df1["Close"], n=15, ndev=2, fillna=True)
     df1['bb_hi20'] = bollinger_hband_indicator(df1["Close"], n=20, ndev=2, fillna=True)
     df1['bb_lo20'] = bollinger_lband_indicator(df1["Close"], n=20, ndev=2, fillna=True)
     df1['bb_hi50'] = bollinger_hband_indicator(df1["Close"], n=50, ndev=2, fillna=True)
@@ -557,6 +587,9 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['bb_hi200'] = bollinger_hband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
     df1['bb_lo200'] = bollinger_lband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
 
+    df1['rsi2' ] = rsi(df1["Close"], n=2 , fillna=True)
+    df1['rsi3' ] = rsi(df1["Close"], n=3 , fillna=True)
+    df1['rsi4' ] = rsi(df1["Close"], n=4 , fillna=True)
     df1['rsi5' ] = rsi(df1["Close"], n=5 , fillna=True)
     df1['rsi6' ] = rsi(df1["Close"], n=6 , fillna=True)
     df1['rsi7' ] = rsi(df1["Close"], n=7 , fillna=True)
@@ -569,12 +602,23 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['rsi50'] = rsi(df1["Close"], n=50, fillna=True)
 
     df1['stoc10' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=10 , fillna=True)
+    df1['stoc12' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=12 , fillna=True)
+    df1['stoc15' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=15 , fillna=True)
     df1['stoc20' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=20 , fillna=True)
     df1['stoc50' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=50 , fillna=True)
+    df1['stoc150'] = stoch(df1["High"], df1["Low"], df1["Close"], n=150, fillna=True)
+    df1['stoc175'] = stoch(df1["High"], df1["Low"], df1["Close"], n=175, fillna=True)
     df1['stoc200'] = stoch(df1["High"], df1["Low"], df1["Close"], n=200, fillna=True)
+    df1['stoc225'] = stoch(df1["High"], df1["Low"], df1["Close"], n=225, fillna=True)
 
     df1['mom5' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=5 , fillna=True)
+    df1['mom6' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=6 , fillna=True)
+    df1['mom7' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=7 , fillna=True)
+    df1['mom8' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=8 , fillna=True)
+    df1['mom9' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=9 , fillna=True)
     df1['mom10'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=10, fillna=True)
+    df1['mom12'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=12, fillna=True)
+    df1['mom15'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=15, fillna=True)
     df1['mom20'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=20, fillna=True)
     df1['mom50'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=50, fillna=True)
 
@@ -587,16 +631,30 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     # df1['mom']=pandas.stats.
     df1 = df1[-(df1.shape[0] - skip_first_lines):]  # skip 1st x rows, x years due to NAN in sma, range
     df1['nvo'] = df1['Volume'] / df1['sma10'] / 100  # normalized volume
+    df1['nvolog'] = np.log(df1['nvo'])  # normalized volume
 
     # df/df.iloc[0,:]
-    df1['range_sma' ] = np.log(df1['Close' ] / df1['sma10'])
-    df1['range_sma1'] = np.log(df1['sma10' ] / df1['sma20'])  # small sma above big sma indicates that price is going up
-    df1['range_sma2'] = np.log(df1['sma20' ] / df1['sma50'])  # small sma above big sma indicates that price is going up
-    df1['range_sma3'] = np.log(df1['sma50' ] / df1['sma200']) # small sma above big sma indicates that price is going up
-    df1['range_sma4'] = np.log(df1['sma200'] / df1['sma400']) # small sma above big sma indicates that price is going up
+    df1['log_sma8'  ] = np.log(df1['Close' ] / df1['sma8'])
+    df1['log_sma9'  ] = np.log(df1['Close' ] / df1['sma9'])
+    df1['log_sma10' ] = np.log(df1['Close' ] / df1['sma10'])
+    df1['log_sma12' ] = np.log(df1['sma10' ] / df1['sma12'])
+    df1['log_sma15' ] = np.log(df1['sma10' ] / df1['sma15'])  # small sma above big sma indicates that price is going up
+    df1['log_sma20' ] = np.log(df1['sma10' ] / df1['sma20'])  # small sma above big sma indicates that price is going up
+    df1['log_sma25' ] = np.log(df1['sma10' ] / df1['sma25'])  # small sma above big sma indicates that price is going up
+    df1['log_sma50' ] = np.log(df1['sma20' ] / df1['sma50'])  # small sma above big sma indicates that price is going up
+    df1['log_sma200'] = np.log(df1['sma50' ] / df1['sma200']) # small sma above big sma indicates that price is going up
+    df1['log_sma400'] = np.log(df1['sma200'] / df1['sma400']) # small sma above big sma indicates that price is going up
 
+    df1['rel_bol_hi08' ] = np.log(df1['High'] / df1['bb_hi08'])
+    df1['rel_bol_lo08' ] = np.log(df1['Low' ] / df1['bb_lo08'])
+    df1['rel_bol_hi09' ] = np.log(df1['High'] / df1['bb_hi09'])
+    df1['rel_bol_lo09' ] = np.log(df1['Low' ] / df1['bb_lo09'])
     df1['rel_bol_hi10' ] = np.log(df1['High'] / df1['bb_hi10'])
     df1['rel_bol_lo10' ] = np.log(df1['Low' ] / df1['bb_lo10'])
+    df1['rel_bol_hi12' ] = np.log(df1['High'] / df1['bb_hi12'])
+    df1['rel_bol_lo12' ] = np.log(df1['Low' ] / df1['bb_lo12'])
+    df1['rel_bol_hi15' ] = np.log(df1['High'] / df1['bb_hi15'])
+    df1['rel_bol_lo15' ] = np.log(df1['Low' ] / df1['bb_lo15'])
     df1['rel_bol_hi20' ] = np.log(df1['High'] / df1['bb_hi20'])
     df1['rel_bol_lo20' ] = np.log(df1['Low' ] / df1['bb_lo20'])
     df1['rel_bol_hi50' ] = np.log(df1['High'] / df1['bb_hi50'])
@@ -696,7 +754,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     # loss:    nan - acc: 0.4711 - val_loss:    nan - val_acc: 0.4563    DJI 2000
     # loss:    nan - acc: 0.4906 - val_loss:    nan - val_acc: 0.4626    QQQ 2000
     
-                          nvo         Open         High          Low        Close  range_sma  isUp
+                          nvo         Open         High          Low        Close  log_sma10  isUp
     Date                                                                                         
     1964-05-01    748.525452    79.459999    80.470001    79.459999    80.169998   0.001821   1.0
     1964-05-04    669.824179    80.169998    81.010002    79.870003    80.470001   0.005580   1.0
@@ -707,7 +765,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     pd.set_option('display.width', 1000)
     pd.options.display.float_format = '{:.2f}'.format
     print('columns=', df1.columns)
-    print('\ndf1=\n', df1.loc[:, ['sma10', 'sma20', 'sma50', 'sma200', 'range_sma1']])
+    print('\ndf1=\n', df1.loc[:, ['sma10', 'sma20', 'sma50', 'sma200', 'log_sma20']])
     print('\ndf1=\n', df1.loc[:, ['rsi10', 'rsi20', 'rsi50', 'rsi5', 'nvo', 'High', 'Low']])
     print('\ndf1=\n', df1.loc[:, ['stoc10', 'stoc20', 'stoc50', 'stoc200']])
     print('\ndf1=\n', df1.loc[:, ['bb_hi10', 'bb_hi20', 'bb_hi50', 'bb_hi200']])  # , 'sma4002']])
@@ -729,11 +787,12 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     # print ('\ndf1 describe direction =  0\n',rslt_df.describe())
     # # print ('\ndf1=\n',df1.loc[:, ['ema','macd','stoc', 'rsi']])
     print('\ndf11 describe=\n', df1.loc[:,
-                                ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4',
+                                ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'log_sma10', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400',
                                  # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
                                  # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
-                                 'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
-                                 'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200', 'isUp']].describe())
+                                 'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20',  'isUp']].describe())
+                                                                                   #'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
+                              #   'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200',]].describe())
 
     df1 = df1.round(4)
 

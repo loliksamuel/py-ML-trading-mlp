@@ -9,7 +9,7 @@ class MlpTrading(object):
     def __init__(self, symbol) -> None:
         super().__init__()
         self.symbol = symbol
-        self.names_input = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4',
+        self.names_input = ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400',
                             # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
                             # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
                             'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
@@ -125,7 +125,7 @@ class MlpTrading(object):
                                'bb_lo20', 'bb_hi50', 'bb_lo200', 'bb_lo50', 'bb_hi200'], shouldNormalize=False,
                       symbol=self.symbol)
         plot_selected(df_all.tail(500), title=f'{iteration_id}TA-range sma,bband of {self.symbol} vs time',
-                      columns=['range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4', 'rel_bol_hi10',
+                      columns=['range_sma', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400', 'rel_bol_hi10',
                                'rel_bol_hi20', 'rel_bol_hi200', 'rel_bol_hi50'], shouldNormalize=False,
                       symbol=self.symbol)
         plot_selected(df_all.tail(500), title=f'{iteration_id}TA-rsi,stoc of {self.symbol} vs time',

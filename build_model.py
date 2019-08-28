@@ -16,7 +16,7 @@ priority | done | name
 7        |      |  data: auto feature engineer https://towardsdatascience.com/automated-feature-engineering-in-python-99baf11cc219
 12       |      |  data: feature importance 
 12       |      |  data: https://github.com/rasbt/mlxtend, https://github.com/automl/auto-sklearn
-7        |      |  data: add economic features rate + sentiment + https://www.featuretools.com
+7        |      |  data: add economic features rate + sentiment + https://www.featuretools.com + https://www.quandl.com/
 9        |      |  data: log not normally distributed data, skew data
 10       |      |  data: check Relation of features to target 
 11       |      |  data: Outliers
@@ -48,7 +48,7 @@ priority | done | name
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol      ='^GSPC',
                         skip_days   =3600,  #>400  best=3600 #17460 #17505 rows
-                        model_type  ='svc',  # all gaus rf xgb  xgbgrid  scikit  scigrid  mlp mlp2 lstm svc
+                        model_type  ='scikit',  # all gaus rf xgb  xgbgrid  scikit  scigrid  mlp mlp2 lstm svc
                         epochs      =300,  # best 5000   or 300for mlp, 370 for xbg
                         size_hidden =15,  #best 15 try 170
                         batch_size  =128,  #best 128
@@ -60,11 +60,11 @@ mlp_trading_old.execute(symbol      ='^GSPC',
                         dropout     =0.2,  # 0.0 - 1.0
                         names_output= ['Green bar', 'Red Bar'],  #, 'Hold Bar'],  #bug on adding 3rd class classify all to green
 
-                        names_input = [  'rel_bol_hi20', 'rel_bol_lo20', 'rel_bol_hi10','rel_bol_lo10',  'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200', 'rel_bol_hi50'
-                                       , 'range_sma', 'range_sma1', 'range_sma2', 'range_sma3', 'range_sma4' ,'nvo'
-                                       , 'rsi5'  ,'rsi6'  ,'rsi7', 'rsi8'  ,'rsi9', 'rsi10'  ,'rsi12','rsi15', 'rsi20', 'rsi50'
-                                       , 'stoc10', 'stoc20', 'stoc50', 'stoc200'
-                                       , 'mom5'  , 'mom20', 'mom10',   'mom50'
+                        names_input = [  'rel_bol_hi08',  'rel_bol_lo08', 'rel_bol_hi09', 'rel_bol_lo09', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi12','rel_bol_lo12', 'rel_bol_hi15','rel_bol_lo15', 'rel_bol_hi20', 'rel_bol_lo20',    'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200'
+                                       , 'log_sma8', 'log_sma9', 'log_sma10', 'log_sma12' , 'log_sma15', 'log_sma20','log_sma25', 'log_sma50', 'log_sma200', 'log_sma400' ,'nvo' ,'nvolog'
+                                                                  , 'stoc10',    'stoc12',     'stoc15',    'stoc20',                'stoc50', 'stoc150', 'stoc175', 'stoc200', 'stoc225'
+                                       , 'rsi5'  ,'rsi6'  ,'rsi7', 'rsi8'  ,'rsi9'  , 'rsi10'  ,'rsi12',  'rsi15', 'rsi20', 'rsi50'
+                                       , 'mom5'  ,'mom6',  'mom7'  ,'mom8',  'mom9'  ,'mom10' , 'mom12'  ,'mom15', 'mom20', 'mom50'
                                        , 'isPrev1Up', 'isPrev2Up', 'target' ],
 
                         use_random_label = False,
