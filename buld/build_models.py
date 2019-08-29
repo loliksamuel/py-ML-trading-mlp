@@ -43,7 +43,7 @@ class MlpTrading_old(object):
         self.y_test = None
         self.seed = 7
         self.models_need1hot = ['mlp','lstm', 'scikit', 'gridmlp']# 'xgb', 'gridxgb',#if model_type in self.models_need1hot:
-        self.models_df       = ['svc', 'gaus', 'rf', 'mlp2']
+        self.models_df       = ['svc', 'gaus', 'rf', 'mlp2', 'xgb']
         self.params=''
         np.random.seed(self.seed)
 
@@ -235,7 +235,7 @@ class MlpTrading_old(object):
         #model = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1, max_depth=5, alpha=10,  n_estimators=10)
 
         print(self.y_train.shape)
-        model = xgb.XGBClassifier(max_depth    =19,#20=52.19 19=18 53.02% , 17=51.75
+        model = xgb.XGBClassifier(max_depth    =29,#20=52.19 19=18 53.02% , 17=51.75
                                   gamma        =0, #  misunderstood parameter, it acts as a regularization (0,1,5)
                                   learning_rate=0.001,
                                   n_estimators =epochs,# # of sub trees
