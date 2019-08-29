@@ -48,7 +48,7 @@ priority | done | name
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(symbol      ='^GSPC',
                         skip_days   =3600,  #>400  best=3600 #17460 #17505 rows
-                        model_type  ='svc',  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf
+                        model_type  ='mlp',  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf
                         epochs      =300,  # best 5000   or 300for mlp, 370 for xbg
                         size_hidden =15,  #best 15 try 170
                         batch_size  =128,  #best 128
@@ -65,13 +65,15 @@ mlp_trading_old.execute(symbol      ='^GSPC',
                                                                   , 'stoc10',    'stoc12',     'stoc15',    'stoc20',                'stoc50', 'stoc150', 'stoc175', 'stoc200', 'stoc225'
                                        , 'rsi5'  ,'rsi6'  ,'rsi7', 'rsi8'  ,'rsi9'  , 'rsi10'  ,'rsi12',  'rsi15', 'rsi20', 'rsi50'
                                        , 'mom5'  ,'mom6',  'mom7'  ,'mom8',  'mom9'  ,'mom10' , 'mom12'  ,'mom15', 'mom20', 'mom50'
-                                       , 'isPrev1Up', 'isPrev2Up', 'target' ],
+                                       ,'ADX08','ADX14', 'ADX20', 'ADX50', 'AROONUP08', 'AROONDN08', 'AROONUP14', 'AROONDN14', 'AROONUP20', 'AROONDN20', 'AROONUP50', 'AROONDN50', 'CCI08','CCI20','CCI40','CCI80'
 
+                                      , 'isPrev1Up', 'isPrev2Up', 'target' ],
                         use_random_label = False,
                         kernel_init ='glorot_uniform',
                         activation  ='softmax',  #sigmoid',#softmax',
                         loss        ='categorical_crossentropy',  #binary_crossentropy #categorical_crossentropy
-                        verbose     = 2  # 0, 1, 2
+                        verbose     = 2,  # 0, 1, 2
+                        load_raw_data = True
                         )
 print('time is')
 print(datetime.now().strftime('%H:%M:%S'))

@@ -69,6 +69,7 @@ class MlpTrading_old(object):
                 , verbose      = 0
                 , activation   = 'softmax'  #sigmoid'
                 , use_random_label = False
+                , load_raw_data = True
 
                 ):
         self.symbol = symbol
@@ -78,7 +79,7 @@ class MlpTrading_old(object):
         self.size_output  = len(self.names_output)
         self.size_input   = len(self.names_input)-1
 
-        self.data_prepare(percent_test_split, skip_days, use_random_label, model_type)
+        self.data_prepare(percent_test_split, skip_days, use_random_label, model_type, load_raw_data=load_raw_data)
 
         self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
         print(f'\nrunning with modelType {model_type}')
@@ -119,7 +120,7 @@ class MlpTrading_old(object):
             model = self.model_create_xgb(epochs)
         elif model_type == 'svc':# poly is very slow(4 hours). linear is fast
             kernel2 = 'linear'
-            model = SVC                   (random_state=5, kernel=kernel2, C=10.1, gamma=0.9)#poly, rbf, sigmoid linear
+            model = SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)#poly, rbf, sigmoid linear
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'svc')
             if kernel2 == 'linear':
@@ -127,7 +128,7 @@ class MlpTrading_old(object):
                 print(len(self.names_input))
                 self.names_input.remove('target')
                 print(len(self.names_input))
-                plot_feature_weight_coef(model, self.names_input)
+                plot_feature_weight_coef(model, self.names_input, top_features=37)
             '''     
             gridmlp
             weights=    feature  weight  std
@@ -321,31 +322,39 @@ class MlpTrading_old(object):
         return model
 
 
-    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, modelType='mlp'):
-        print('\n======================================')
-        print('\nLoading the data')
-        print('\n======================================')
-        df_all = self._data_load(skip_days, self.size_output,  use_random_label)
-        # print('\n======================================')
-        # print('\nPlotting features')
-        # print('\n======================================')
-        # self._plot_features(df_all)
-        print('\n======================================')
-        print('\nselecting features')
-        print('\n======================================')
-        df_data = self._data_select_features(df_all)
-        print('\n======================================')
-        print('\nCleaning the data')
-        print('\n======================================')
-        df_data = self._data_clean(df_data)
-        print('\n======================================')
-        print('\nRebalancing Data')
-        print('\n======================================')
-        df_data = self._data_rebalance(df_data)
-        print('\n======================================')
-        print('\nsplitting cols to data+label')
-        print('\n======================================')
-        df_data.to_csv('files/input/^GSPC_not_normalized.csv')
+    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, modelType='mlp', load_raw_data=False):
+        data_path = 'files/input/^GSPC_not_normalized.csv'
+        if (load_raw_data == False):
+            print('\n======================================')
+            print(f'Loading from disc prepared data :{data_path} ')
+            print('\n======================================')
+            df_data = pd.read_csv(data_path)
+        else:
+            print('\n======================================')
+            print('\nLoading from disc raw data')
+            print('\n======================================')
+            df_all = self._data_load(skip_days, self.size_output,  use_random_label)
+            # print('\n======================================')
+            # print('\nPlotting features')
+            # print('\n======================================')
+            # self._plot_features(df_all)
+            print('\n======================================')
+            print('\nselecting features')
+            print('\n======================================')
+            df_data = self._data_select_features(df_all)
+            print('\n======================================')
+            print('\nCleaning the data')
+            print('\n======================================')
+            df_data = self._data_clean(df_data)
+            print('\n======================================')
+            print('\nRebalancing Data')
+            print('\n======================================')
+            df_data = self._data_rebalance(df_data)
+            print('\n======================================')
+            print('\nsplitting cols to data+label')
+            print('\n======================================')
+            df_data.to_csv(data_path)
+
         df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
         df_x = df_data.drop(columns=['target'])
         # iris = load_iris()

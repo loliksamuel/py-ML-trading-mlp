@@ -97,7 +97,7 @@ def plot_feature_weight_coef(classifier, feature_names, top_features=20):
     top_coefficients = np.hstack([top_negative_coefficients, top_positive_coefficients])
     # create plot
     plt.clf()
-    plt.figure(figsize=(15, 5))
+    plt.figure(figsize=(25, 25))
     colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
     plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
     feature_names = np.array(feature_names)
@@ -586,6 +586,26 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['bb_lo50'] = bollinger_lband_indicator(df1["Close"], n=50, ndev=2, fillna=True)
     df1['bb_hi200'] = bollinger_hband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
     df1['bb_lo200'] = bollinger_lband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
+
+    df1['ADX08'] = adx(df1["High"], df1["Low"], df1["Close"], n=8, fillna=True)
+    df1['ADX14'] = adx(df1["High"], df1["Low"], df1["Close"], n=14, fillna=True)
+    df1['ADX20'] = adx(df1["High"], df1["Low"], df1["Close"], n=20, fillna=True)
+    df1['ADX50'] = adx(df1["High"], df1["Low"], df1["Close"], n=50, fillna=True)
+    df1['AROONUP08'] = aroon_up  (df1["Close"], n=8, fillna=True)
+    df1['AROONDN08'] = aroon_down(df1["Close"], n=8, fillna=True)
+    df1['AROONUP14'] = aroon_up  (df1["Close"], n=14, fillna=True)
+    df1['AROONDN14'] = aroon_down(df1["Close"], n=14, fillna=True)
+    df1['AROONUP20'] = aroon_up  (df1["Close"], n=20, fillna=True)
+    df1['AROONDN20'] = aroon_down(df1["Close"], n=20, fillna=True)
+    df1['AROONUP50'] = aroon_up  (df1["Close"], n=50, fillna=True)
+    df1['AROONDN50'] = aroon_down(df1["Close"], n=50, fillna=True)
+
+
+    df1['CCI08'] =cci(df1["High"], df1["Low"], df1["Close"], n=8, fillna=True)
+    df1['CCI20'] =cci(df1["High"], df1["Low"], df1["Close"], n=20, fillna=True)
+    df1['CCI40'] =cci(df1["High"], df1["Low"], df1["Close"], n=40, fillna=True)
+    df1['CCI80'] =cci(df1["High"], df1["Low"], df1["Close"], n=80, fillna=True)
+
 
     df1['rsi2' ] = rsi(df1["Close"], n=2 , fillna=True)
     df1['rsi3' ] = rsi(df1["Close"], n=3 , fillna=True)
