@@ -46,34 +46,36 @@ priority | done | name
 
 
 mlp_trading_old = MlpTrading_old()
-mlp_trading_old.execute(symbol      ='^GSPC',
-                        skip_days   =3600,  #>400  best=3600 #17460 #17505 rows
-                        model_type  ='xgb',  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf
-                        epochs      =1500,  # best 5000   or 300for mlp, 370 for xbg
-                        size_hidden =15,  #best 15 try 170
-                        batch_size  =128,  #best 128
-                        percent_test_split=0.33,  #best .33
-                        lr          =0.002,  # default=0.001   best=0.00001 or 0.002, for mlp, 0.0001 for lstm
-                        rho         =0.9,  # default=0.9
-                        epsilon     =None,  #None
-                        decay       =0.0,  # 0.0 - 1.0
-                        dropout     =0.2,  # 0.0 - 1.0
-                        names_output= ['Green bar', 'Red Bar'],  #, 'Hold Bar'],  #bug on adding 3rd class classify all to green
+mlp_trading_old.execute(
+                        data_type    ='random'#^GSPC GSPC2 iris random
+                        ,model_type  ='mlp'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf
+                        ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
+                        ,epochs      =500  # best 5000   or 300for mlp, 370 for xbg
+                        ,size_hidden =15  #best 15 try 170
+                        ,batch_size  =128  #best 128
+                        ,percent_test_split=0.33  #best .33
+                        ,lr          =0.002  # default=0.001   best=0.00001 or 0.002, for mlp, 0.0001 for lstm
+                        ,rho         =0.9  # default=0.9
+                        ,epsilon     =None  #None
+                        ,decay       =0.0  # 0.0 - 1.0
+                        ,dropout     =0.2  # 0.0 - 1.0
+                        ,names_output= ['Green bar', 'Red Bar']  #, 'Hold Bar'],  #bug on adding 3rd class classify all to green
 
-                        names_input = [  'rel_bol_hi08',  'rel_bol_lo08', 'rel_bol_hi09', 'rel_bol_lo09', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi12','rel_bol_lo12', 'rel_bol_hi15','rel_bol_lo15', 'rel_bol_hi20', 'rel_bol_lo20',    'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200'
+                        ,names_input = [  'rel_bol_hi08',  'rel_bol_lo08', 'rel_bol_hi09', 'rel_bol_lo09', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi12','rel_bol_lo12', 'rel_bol_hi15','rel_bol_lo15', 'rel_bol_hi20', 'rel_bol_lo20',    'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200'
                                        , 'log_sma8', 'log_sma9', 'log_sma10', 'log_sma12' , 'log_sma15', 'log_sma20','log_sma25', 'log_sma50', 'log_sma200', 'log_sma400' ,'nvo' ,'nvolog'
                                                                   , 'stoc10',    'stoc12',     'stoc15',    'stoc20',                'stoc50', 'stoc150', 'stoc175', 'stoc200', 'stoc225'
                                        , 'rsi5'  ,'rsi6'  ,'rsi7', 'rsi8'  ,'rsi9'  , 'rsi10'  ,'rsi12',  'rsi15', 'rsi20', 'rsi50'
                                        , 'mom5'  ,'mom6',  'mom7'  ,'mom8',  'mom9'  ,'mom10' , 'mom12'  ,'mom15', 'mom20', 'mom50'
-                                       ,'ADX08','ADX14', 'ADX20', 'ADX50', 'AROONUP08', 'AROONDN08', 'AROONUP14', 'AROONDN14', 'AROONUP20', 'AROONDN20', 'AROONUP50', 'AROONDN50', 'CCI08','CCI20','CCI40','CCI80'
+                                       #,'ADX08','ADX14', 'ADX20', 'ADX50'
+                                       , 'AROONUP08', 'AROONDN08', 'AROONUP14', 'AROONDN14', 'AROONUP20', 'AROONDN20', 'AROONUP50', 'AROONDN50', 'CCI08','CCI20','CCI40','CCI80'
 
-                                      , 'isPrev1Up', 'isPrev2Up', 'target' ],
-                        use_random_label = False,
-                        kernel_init ='glorot_uniform',
-                        activation  ='softmax',  #sigmoid',#softmax',
-                        loss        ='categorical_crossentropy',  #binary_crossentropy #categorical_crossentropy
-                        verbose     = 2,  # 0, 1, 2
-                        load_raw_data = True
+                                      , 'isPrev1Up', 'isPrev2Up', 'target' ]
+                        ,use_random_label = False
+                        ,kernel_init ='glorot_uniform'
+                        ,activation  ='softmax'  #sigmoid',#softmax',
+                        ,loss        ='categorical_crossentropy'  #binary_crossentropy #categorical_crossentropy
+                        ,verbose     = 2  # 0, 1, 2
+
                         )
 print('time is')
 print(datetime.now().strftime('%H:%M:%S'))

@@ -398,10 +398,19 @@ def normalize2(df, axis):
 def normalize3(x, axis):
     scaler = StandardScaler()
     x_norm = scaler.fit_transform(x)
+
     #x_norm = scaler.fit(x)
     #x_norm = pd.DataFrame(x_norm, index=x.index, columns=x.columns)
     return x_norm
 
+def normalize_min_max(x):
+    normalized = (x-min(x))/(max(x)-min(x))
+    return normalized
+
+def normalize_by_column(x, axis=0):
+    min = np.min(x, axis=axis)
+    max = np.max(x, axis=axis)
+    return (x - min) / (max - min)
 
 def symbol_to_path(symbol, base_dir="files/input"):
     """Return CSV file path given ticker symbol."""
@@ -587,10 +596,11 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['bb_hi200'] = bollinger_hband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
     df1['bb_lo200'] = bollinger_lband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
 
-    df1['ADX08'] = adx(df1["High"], df1["Low"], df1["Close"], n=8, fillna=True)
-    df1['ADX14'] = adx(df1["High"], df1["Low"], df1["Close"], n=14, fillna=True)
-    df1['ADX20'] = adx(df1["High"], df1["Low"], df1["Close"], n=20, fillna=True)
-    df1['ADX50'] = adx(df1["High"], df1["Low"], df1["Close"], n=50, fillna=True)
+    #bug in adx always return 20
+    # df1['ADX08'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=8, fillna=True)
+    # df1['ADX14'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=14, fillna=True)
+    # df1['ADX20'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=20, fillna=True)
+    # df1['ADX50'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=50, fillna=True)
     df1['AROONUP08'] = aroon_up  (df1["Close"], n=8, fillna=True)
     df1['AROONDN08'] = aroon_down(df1["Close"], n=8, fillna=True)
     df1['AROONUP14'] = aroon_up  (df1["Close"], n=14, fillna=True)
@@ -806,6 +816,23 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     # rslt_df = df[df1['isUp'] == 0]
     # print ('\ndf1 describe direction =  0\n',rslt_df.describe())
     # # print ('\ndf1=\n',df1.loc[:, ['ema','macd','stoc', 'rsi']])
+    print('\ndf12 describe=\n', df1.loc[:,
+                                [
+                                 #    'ADX08',
+                                 # 'ADX14',
+                                 # 'ADX20',
+                                 # 'ADX50',
+                                 'AROONUP08',
+                                 'AROONDN08',
+                                 'AROONUP14',
+                                 'AROONDN14',
+                                 'AROONUP20',
+                                 'AROONDN20',
+                                 'AROONUP50',
+                                 'AROONDN50'
+
+                                 ]].describe())
+
     print('\ndf11 describe=\n', df1.loc[:,
                                 ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'log_sma10', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400',
                                  # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',

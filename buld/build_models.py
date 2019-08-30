@@ -25,10 +25,11 @@ from scipy import stats
 from IPython.display import display
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.svm import SVC
+from sklearn.utils import shuffle
 
 from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
     plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, plot_roc, calc_scores, data_normalize0, \
-    plot_feature_weight_coef
+    plot_feature_weight_coef, normalize_by_column
 
 
 class MlpTrading_old(object):
@@ -43,14 +44,15 @@ class MlpTrading_old(object):
         self.y_test = None
         self.seed = 7
         self.models_need1hot = ['mlp','lstm', 'scikit', 'gridmlp']# 'xgb', 'gridxgb',#if model_type in self.models_need1hot:
-        self.models_df       = ['svc', 'gaus', 'rf', 'mlp2', 'xgb']
+        self.models_df       = [   'mlp2' ]#'gaus', 'svc','xgb','rf',
         self.params=''
         np.random.seed(self.seed)
 
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def execute(self, symbol       = '^GSPC'
+    def execute(self
+                , data_type     = '^GSPC' #^GSPC GSPC2 iris random
                 , model_type    ='drl'  #mlp lstm drl xgb gridxgb 'gridmlp','scikit',
                 , names_input  = ['nvo']
                 , names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
@@ -69,20 +71,20 @@ class MlpTrading_old(object):
                 , verbose      = 0
                 , activation   = 'softmax'  #sigmoid'
                 , use_random_label = False
-                , load_raw_data = True
+
 
                 ):
-        self.symbol = symbol
+        self.symbol = data_type
 
         self.names_output = names_output# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         self.names_input  = names_input
         self.size_output  = len(self.names_output)
         self.size_input   = len(self.names_input)-1
 
-        self.data_prepare(percent_test_split, skip_days, use_random_label, model_type, load_raw_data=load_raw_data)
+        self.data_prepare(percent_test_split, skip_days, use_random_label, model_type, data_type=data_type)
 
         self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
-        print(f'\nrunning with modelType {model_type}')
+        print(f'\nrunning with modelType {model_type}, data_type={data_type}')
         if model_type == 'all':
             models = [ GaussianNB            ()
                       ,SVC                   (random_state=5, kernel='rbf', C=0.01)#C=0.01 = accuracy 53.65 %
@@ -119,7 +121,7 @@ class MlpTrading_old(object):
         elif model_type == 'xgb':
             model = self.model_create_xgb(epochs)
         elif model_type == 'svc':# poly is very slow(4 hours). linear is fast
-            kernel2 = 'linear'
+            kernel2 = 'rbf' #SVC(kernel='rbf')#{'C': 1.0, 'gamma': 0.1} with a score of 0.97
             model = SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)#poly, rbf, sigmoid linear
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'svc')
@@ -322,14 +324,45 @@ class MlpTrading_old(object):
         return model
 
 
-    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, modelType='mlp', load_raw_data=False):
-        data_path = 'files/input/^GSPC_not_normalized.csv'
-        if (load_raw_data == False):
+    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, modelType='mlp', data_type=3):
+        data_path            = 'files/input/^GSPC_not_normalized.csv'
+        data_path_norm_train = 'files/input/^GSPC_normalized_train.csv'
+        if (data_type == 'iris'):#iris data 3 classes
+            print('\n======================================')
+            print(f'Loading  iris data ')
+            print('\n======================================')
+            X,y = load_iris(return_X_y=True)
+
+            df_x,df_y = shuffle(X, y)
+
+            # self.names_input  = names_input
+            self.size_output  = 3
+            self.size_input   = 4
+            print(f'len iris={len(df_y)}')
+        if (data_type == 'random'): #random 2 classes
+            print('\n======================================')
+            print(f'Loading random binary data ')
+            print('\n======================================')
+            random_state = np.random.RandomState(0)
+            n_samples    = 200
+            X            = random_state.rand(n_samples, 2)
+            y            = np.ones(n_samples)
+            y[X[:, 0] + 0.1 * random_state.randn(n_samples) < 0.5] = 0.0
+
+            df_x = X
+            df_y = y
+            self.size_output  = 2
+            self.size_input   = 2
+            print(f'len random={len(df_y)}')
+        elif (data_type == '^GSPC2'):
             print('\n======================================')
             print(f'Loading from disc prepared data :{data_path} ')
             print('\n======================================')
             df_data = pd.read_csv(data_path)
-        else:
+            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            df_x = df_data.drop(columns=['target'])
+
+        elif (data_type == '^GSPC'):
             print('\n======================================')
             print('\nLoading from disc raw data')
             print('\n======================================')
@@ -355,33 +388,40 @@ class MlpTrading_old(object):
             print('\n======================================')
             df_data.to_csv(data_path)
 
-        df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
-        df_x = df_data.drop(columns=['target'])
-        # iris = load_iris()
-        # df_y = iris.target
-        # df_x = iris.data
+            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            df_x = df_data.drop(columns=['target'])
 
-        print('df_y',df_y)
-        print('\ndf_x',df_x)
+
+
+        print('\ndf_y\n',df_y)
+        print('\ndf_x\n',df_x)
         #print('\ndf_x describe\n', df_x.describe())
 
         print('\n======================================')
         print('\nsplitting rows to train+test')
         print('\n======================================')
-        self._split(df_x, df_y, percent_test_split)
+        (self.x_train, self.x_test, self.y_train, self.y_test) = self._split( df_x, df_y, percent_test_split)
+        # self.x_train = self._data_normalize(self.x_train)
+        # self.x_test  = self._data_normalize(self.x_test)
+        #self.y_train  = df_y
+        #self.y_test  = df_y
 
         print('\n======================================')
         print('\nNormalizing the data(must be after split)')
         print('\n======================================')
         self.x_train = self._data_normalize(self.x_train)
         self.x_test  = self._data_normalize(self.x_test)
-
-
+        if isinstance(self.x_train,  pd.DataFrame):
+            self.x_train.to_csv(data_path_norm_train)
+        # plt.figure()
+        # plt.scatter(self.x_train[:, 0], self.x_train[:, 1], c=self.y_train)
+        # n_samples = len(self.y_train)
+        # plt.title(f"all {n_samples} train samples")
+        # plt.show()
 
 
         print('\n======================================')
-        print('\nTransform label. Convert class vectors to binary class matrices (for ex. convert digit 2 to bit array['
-              '0. 1]')
+        print('\nTransform label. Convert class vectors to binary class matrices (1 hot encoder vector)')
         print('\n======================================')
         self._label_transform(modelType)
         #return df_all
@@ -450,24 +490,7 @@ class MlpTrading_old(object):
         # sns.pairplot(df_all)
 
 
-    # |--------------------------------------------------------|
-    # |                                                        |
-    # |--------------------------------------------------------|
-    def _data_split(self, df, percent_test_split):
-        #df_data = df_data.drop(columns=['target'])
-        (self.x_train, self.x_test) = train_test_split(df, test_size=percent_test_split,  shuffle=False)  # shuffle=False in timeseries
-        # # tscv = TimeSeriesSplit(n_splits=5)
-        # print('\ntrain data', self.x_train.shape)
-        # print(self.x_train[0])
-        # print(self.x_train[1])
-        #
-        # print('\ntest data', self.x_test.shape)
-        # print(self.x_test[0])
-        # print(self.x_test[1])
-        # print(self.x_test)
-        #
-        # print(self.x_train.shape[0], 'train samples')
-        # print(self.x_test.shape[0], 'test samples')
+
 
     def _data_select_features(self, df):
         elements = df.size
@@ -487,11 +510,20 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
+    def _data_split_x(self, df, percent_test_split):
+        #df_data = df_data.drop(columns=['target'])
+        (self.x_train, self.x_test) = train_test_split(df, test_size=percent_test_split,  shuffle=False)  # shuffle=False in timeseries
+        # # tscv = TimeSeriesSplit(n_splits=5)
+
+
+    # |--------------------------------------------------------|
+    # |                                                        |
+    # |--------------------------------------------------------|
     def _split(self, df_x, df_y, percent_test_split):
 
         (self.x_train, self.x_test) = train_test_split(df_x, test_size=percent_test_split, shuffle=False)
         (self.y_train, self.y_test) = train_test_split(df_y, test_size=percent_test_split, shuffle=False)
-
+        return (self.x_train, self.x_test, self.y_train, self.y_test)
         # print(df.tail())
         # print('\nlabel describe\n', df.describe())
         # # (self.x_train, self.y_train)  = train_test_split(df.as_matrix(), test_size=0.33, shuffle=False)
@@ -514,7 +546,8 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self, df):
-        df = normalize3(df, axis=1)
+        df = normalize_by_column(df)
+        #df = normalize3(df, axis=1)
         # self.x_train = normalize3(self.x_train, axis=1)
         # self.x_test  = normalize3(self.x_test , axis=1)
         # print('columns=', self.x_train.columns)
@@ -522,7 +555,7 @@ class MlpTrading_old(object):
         # print ('\ndf1=\n',self.x_train.loc[:, ['sma10','sma20','sma50','sma200','range_sma']])
         #print('finished normalizing \n',stats.describe(df))
         #print('\ndfn0=\n',df[0])
-        #print('\ndfn=\n',self.x_train)
+        print('\nx_norm[0:2]=\n',df[0:2])
         return df
 
         '''
@@ -749,16 +782,20 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
 
         print('Y_true[0:10]=',Y_true[0:10])#Y_true[0:10]= [1 1 0 1 0 0 0 0 0 1]
         print('Y_pred[0:10]=',Y_pred[0:10])#Y_pred[0:10]= [1 0 0 1 0 0 0 1 1 1]
-        if model_type in self.models_df:
+        #if model_type in self.models_df:
+        #print (f'type of Y_true is {Y_true.dtype}')#type(Y_true)
+        if isinstance(Y_true, pd.Series): #numpy.ndarray  np.int64   pd.DataFrame  pd.Series
             Y_true = Y_true.values
             print('Y_true[0:10]=',Y_true[0:10])#Y_true[0:10]= [1 1 0 1 0 0 0 0 0 1]
 
         acc = accuracy_score(Y_true, Y_pred)
-        f1  = f1_score      (Y_true, Y_pred)
+        if (self.size_output==2):
+            f1  = f1_score      (Y_true, Y_pred)
+            print("F1 Score : {0:0.4f} ".format(f1))
         print('\nmodel :',model_type)
         print('-------------------------')
         print("Accuracy : {0:0.2f} %".format(acc * 100))
-        print("F1 Score : {0:0.4f} ".format(f1))
+
         if self.size_output == 2:#multiclass format is not supported
             plot_roc     (Y_true, Y_pred, y_pred_proba_r   , file_name=f'files/output/{self.params}_roc.png')
         plot_conf_mtx    (Y_true, Y_pred, self.names_output, file_name=f'files/output/{self.params}_confusion.png')
