@@ -1,5 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-
+import pandas as pd
 import pandas_datareader.data as pdr
 
 import itertools
@@ -15,11 +15,16 @@ from alpha_vantage.timeseries import TimeSeries
 from pycm import ConfusionMatrix
 from scipy.special.cython_special import boxcox1p
 from scipy.stats import boxcox_normmax
+from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support as scorex
 from sklearn.preprocessing import StandardScaler
+from sklearn import preprocessing
 from sklearn.utils import resample
 from ta import *
+from xgboost import plot_importance, XGBClassifier
+
+from data.features.features import Features
 
 np.set_printoptions(precision=2)
 np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
@@ -71,26 +76,52 @@ def fill(df):
 #         return recall_ratio
 #     return recall
 
-def kpi_returns(prices):
+def kpi_returns(prices)->float:
     return ((prices - prices.shift(-1)) / prices)[:-1]
 
 
-def kpi_sharpeRatio():
+def kpi_sharpeRatio()->float:
     risk_free_rate = 2.25  # 10 year US-treasury rate (annual) or 0
     sharpe = 2
     #  ((mean_daily_returns[stocks[0]] * 100 * 252) -  risk_free_rate ) / (std[stocks[0]] * 100 * np.sqrt(252))
     return sharpe
 
 
-def kpi_commulativeReturn():
-    return 2
+def kpi_commulativeReturn()->float:
+    return 2.0
 
 
-def kpi_risk(df):
+def kpi_risk(df)->float:
     return df.std()
 
+def feature_selection(model, X_train, y_train, X_test, y_test):
+    # Fit model using each importance as a threshold
+    thresholds = pl.sort(model.feature_importances_)
+    for thresh in thresholds:
+        # select features using threshold
+        selection = SelectFromModel(model, threshold=thresh, prefit=True)
+        select_X_train = selection.transform(X_train)
+        # train model
+        selection_model = XGBClassifier()
+        selection_model.fit(select_X_train, y_train)
+        # eval model
+        select_X_test = selection.transform(X_test)
+        y_pred = selection_model.predict(select_X_test)
+        predictions = [round(value) for value in y_pred]
+        accuracy = accuracy_score(y_test, predictions)
+        print("Thresh=%.3f, n=%d, Accuracy: %.2f%%" % (thresh, select_X_train.shape[1], accuracy*100.0))
+
+
+#https://machinelearningmastery.com/feature-importance-and-feature-selection-with-xgboost-in-python/
+def plot_importance_xgb(xgb_model, title='feature importance xgb'):
+
+    # plot feature importance
+    plot_importance(xgb_model)
+    plt.title(title)
+    plt.savefig('files/output/' + title + '.png')
+
 #This method of feature selection is applicable only when the input features are normalized and for linear svm https://medium.com/@aneesha/visualising-top-features-in-linear-svm-with-scikit-learn-and-matplotlib-3454ab18a14d
-def plot_feature_weight_coef(classifier, feature_names, top_features=20):
+def plot_importance_svm(classifier, feature_names, top_features=20):
     coef = classifier.coef_.ravel()
     top_positive_coefficients = np.argsort(coef)[-top_features:]
     top_negative_coefficients = np.argsort(coef)[:top_features]
@@ -386,11 +417,11 @@ def data_normalize0(x, axis=1):
 
 
 # normalize to first row  : Test accuracy:0.4978194505275206
-def normalize1(df, axis):
+def normalize1(df, axis)-> pd.DataFrame:
     return df / df.iloc[0, :]  # df/df[0]
 
 
-def normalize2(df, axis):
+def normalize2(df, axis)-> pd.DataFrame:
     train_stats = df.describe()
     return (df - train_stats['mean']) / train_stats['std']
 
@@ -402,6 +433,10 @@ def normalize3(x, axis):
     #x_norm = scaler.fit(x)
     #x_norm = pd.DataFrame(x_norm, index=x.index, columns=x.columns)
     return x_norm
+
+def normalize_min_max2(df)-> pd.DataFrame:
+    min_max_scaler = preprocessing.MinMaxScaler()
+    return min_max_scaler.transform(df)
 
 def normalize_min_max(x):
     normalized = (x-min(x))/(max(x)-min(x))
@@ -418,7 +453,7 @@ def symbol_to_path(symbol, base_dir="files/input"):
     return os.path.join(base_dir, "{}.csv".format(str(symbol)))
 
 
-def get_data_from_disc_join(symbols, dates):
+def get_data_from_disc_join(symbols, dates):#->pd.DaraFrame:
     """Read stock data (adjusted close) for given symbols from CSV files."""
     df = pd.DataFrame(index=dates)
     if 'GOOG' not in symbols:  # add GOOG for reference, if absent
@@ -530,7 +565,7 @@ def rebalance(unbalanced_data):
 
     return data_upsampled
 
-def data_select(df, columns_input):
+def data_select(df, columns_input)->pd.DataFrame:
     print('\n============================================================================')
     print(f'#Selecting columns {columns_input}')
     print('===============================================================================')
@@ -538,10 +573,14 @@ def data_select(df, columns_input):
     print ('dfs=',dfs)
     return dfs
 
-def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2, use_random_label=False):
+def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2, use_random_label=False)->pd.DataFrame:
     df1 = get_data_from_disc(symbol, usecols)
     dfc = data_clean(df1)
     dft = data_transform(dfc, skip_first_lines ,size_output, use_random_label)
+    #fetures = Features()
+    #dft  = fetures.add_features('all', dfc)
+    dft = create_label(dft, size_output, use_random_label)
+    print('\ndft describe=\n', dft.loc[:,  ['target' ]].describe())
     return dft
 
 def data_clean(df):
@@ -723,74 +762,16 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1.loc[df1.range2 <= 0.0, 'isPrev2Up'] = 0
     #df1['rangebug1'] = df1['Close'].shift(1)  - df1['Open'].shift(1) #bug!!! df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     #df1['rangebug2'] = df1['Close'].shift(0)  - df1['Open'].shift(0) #bug!!!  need to use  df.loc[i-1, 'Close'] or df1['Close'] - df1['Close'].shift(1)
-    df1 = df1.fillna(0)#https://github.com/pylablanche/gcForest/issues/2
-    df1['percentage'] = df1['range0'] / df1['Open'] * 100
-    ## smart labeling
-    if use_random_label==True:
-        df1['isUp']  = np.random.randint(size_output, size=df1.shape[0])
-    else:
-        if size_output == 2 :
-            df1.loc[df1.range0  > 0.0, 'isUp'] = 1#up
-            df1.loc[df1.range0 <= 0.0, 'isUp'] = 0#dn
-        if size_output == 3 :
-            df1['isUp'] = 2#hold
-            df1.loc[df1.percentage >= +0.1, 'isUp'] = 1#up
-            df1.loc[df1.percentage <= -0.1, 'isUp'] = 0#dn
-            # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
-    shift =-1 #-1
+    #https://github.com/pylablanche/gcForest/issues/2
 
-    df1['target'] = df1['isUp'].shift(shift)# isNextBarUp: today's dataset  procuce  prediction is tommorow is up
-    df1['target'] = df1['target'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
-    df1['target'] = df1['target'].astype(int)
 
     df1['isPrev1Up'] = df1['isPrev1Up'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
     df1['isPrev2Up'] = df1['isPrev2Up'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
     df1['isPrev1Up'] = df1['isPrev1Up'].astype(int)
     df1['isPrev2Up'] = df1['isPrev2Up'].astype(int)
-    df1['isUp'] = df1['isUp'].astype(int)
 
 
-    '''
-    df1=
-    Date            Open        Close      range      isUp
-    1964-05-01    79.459999    80.169998   0.300003   1.0
-    1964-05-04    80.169998    80.470001   0.409996   1.0
-    1964-05-05    80.470001    80.879997   0.180001   1.0
-    1964-05-06    80.879997    81.059998   0.090004   1.0
-    1964-05-07    81.059998    81.150002   0.000000   0.0
-    1964-05-08    81.000000    81.000000  -0.099998   0.0
-    1964-05-11    81.000000    80.900002   0.260002   1.0
-    '''
 
-        # direction = (close > close.shift()).astype(int)
-        # target = direction.shift(-1).fillna(0).astype(int)
-        # target.name = 'target'
-        # sma10 = sma10.rename(columns={symbol: symbol+'sma10'})
-        # sma20 = sma20.rename(columns={symbol: symbol+'sma20'})
-        # df1 = df1.rename(columns={'Close': symbol+'Close'})
-    '''
-    # loss: 0.1222 - acc: 0.9000 - val_loss: 0.1211 - val_acc: 0.9364 epoch50  sma+range+close+open (range tell model the answer)
-    # loss: 0.6932 - acc: 0.4860 - val_loss: 0.6932 - val_acc: 0.4969 random data >>> random results
-    # loss: 0.6922 - acc: 0.5205 - val_loss: 0.6911 - val_acc: 0.5364 epoch50  sma
-    # loss: 0.6923 - acc: 0.5198 - val_loss: 0.6914 - val_acc: 0.5360
-    # loss: 0.6922 - acc: 0.5217 - val_loss: 0.6911 - val_acc: 0.5353
-    # loss: 0.6431 - acc: 0.5846 - val_loss: 0.7373 - val_acc: 0.5364
-    # loss: 0.5373 - acc: 0.7114 - val_loss: 0.6112 - val_acc: 0.6773            epoch50
-    # loss: 0.5198 - acc: 0.7225 - val_loss: 0.5632 - val_acc: 0.6797            epoch100 sma+stoc+rsi
-    # loss: 0.5487 - acc: 0.7079 - val_loss: 0.6115 - val_acc: 0.6740    SPY 1970 epoch100 sma+stoc+rsi+bol 1970
-    # loss: 0.4112 - acc: 0.8140 - val_loss: 0.5576 - val_acc: 0.7324    SPY 1970 epoch500 nvo+mom+sma+stoc+rsi+bol 1970
-    
-    # loss: 0.6047 - acc: 0.6574 - val_loss: 0.6257 - val_acc: 0.6580    SPY 2000
-    # loss:    nan - acc: 0.4711 - val_loss:    nan - val_acc: 0.4563    DJI 2000
-    # loss:    nan - acc: 0.4906 - val_loss:    nan - val_acc: 0.4626    QQQ 2000
-    
-                          nvo         Open         High          Low        Close  log_sma10  isUp
-    Date                                                                                         
-    1964-05-01    748.525452    79.459999    80.470001    79.459999    80.169998   0.001821   1.0
-    1964-05-04    669.824179    80.169998    81.010002    79.870003    80.470001   0.005580   1.0
-    2019-07-11  10607.754714  2999.620117  3002.330078  2988.800049  2999.909912   0.008677   1.0
-    2019-07-12   9973.829690  3003.360107  3013.919922  3001.870117  3013.770020   0.010287   1.0
-    '''
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)
     pd.options.display.float_format = '{:.2f}'.format
@@ -806,16 +787,8 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     #print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
     #print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
     print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
-    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range0', 'isPrev2Up','isPrev1Up', 'isUp', 'target']])
-    #pd.to_pickle('sp500.csv')
-    # df = pd.DataFrame(record, columns = ['Name', 'Age', 'Stream', 'Percentage'])
-    # rslt_df = df[df1['isUp'] == 1]
-    # print ('\ndf1 describe direction = +1\n',rslt_df.describe())
-    # rslt_df = df[df1['isUp'] == -1]
-    # print ('\ndf1 describe direction = -1\n',rslt_df.describe())
-    # rslt_df = df[df1['isUp'] == 0]
-    # print ('\ndf1 describe direction =  0\n',rslt_df.describe())
-    # # print ('\ndf1=\n',df1.loc[:, ['ema','macd','stoc', 'rsi']])
+    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range0', 'isPrev2Up','isPrev1Up']])
+
     print('\ndf12 describe=\n', df1.loc[:,
                                 [
                                  #    'ADX08',
@@ -837,7 +810,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
                                 ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'log_sma10', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400',
                                  # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
                                  # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
-                                 'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20',  'isUp']].describe())
+                                 'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20']].describe())
                                                                                    #'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
                               #   'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200',]].describe())
 
@@ -845,6 +818,27 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
 
     return df1
 
+
+def create_label(df1, size_output, use_random_label):
+    df1 = df1.fillna(0)
+    df1['percentage'] = df1['range0'] / df1['Open'] * 100
+    ## smart labeling
+    if use_random_label == True:
+        df1['isUp'] = np.random.randint(size_output, size=df1.shape[0])
+    else:
+        if size_output == 2:
+            df1.loc[df1.range0 > 0.0, 'isUp'] = 1  # up
+            df1.loc[df1.range0 <= 0.0, 'isUp'] = 0  # dn
+        if size_output == 3:
+            df1['isUp'] = 2  # hold
+            df1.loc[df1.percentage >= +0.1, 'isUp'] = 1  # up
+            df1.loc[df1.percentage <= -0.1, 'isUp'] = 0  # dn  # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
+    shift = -1  # -1
+    df1['target'] = df1['isUp'].shift(shift)  # isNextBarUp: today's dataset  procuce  prediction is tommorow is up
+    df1['target'] = df1['target'].fillna(0)  # .astype(int)#https://github.com/pylablanche/gcForest/issues/2
+    df1['target'] = df1['target'].astype(int)
+    df1['isUp'  ] = df1['isUp'].astype(int)
+    return df1
 
 
 def get_data_from_disc(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']):
@@ -915,6 +909,44 @@ def format_to_lstm_regression(dataset, look_back=1):
     return np.array(dataX), np.array(dataY)
     # X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
+
+def reduce_mem_usage(df):
+    """ iterate through all the columns of a dataframe and modify the data type
+        to reduce memory usage.
+    """
+    start_mem = df.memory_usage().sum() / 1024**2
+    print('Memory usage of dataframe is {:.2f} MB'.format(start_mem))
+
+    for col in df.columns:
+        col_type = df[col].dtype
+
+        if col_type != object:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == 'int':
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                    df[col] = df[col].astype(np.int8)
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    df[col] = df[col].astype(np.int16)
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df[col] = df[col].astype(np.int32)
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    df[col] = df[col].astype(np.int64)
+            else:
+                if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                    df[col] = df[col].astype(np.float16)
+                elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                else:
+                    df[col] = df[col].astype(np.float64)
+        else:
+            df[col] = df[col].astype('category')
+
+    end_mem = df.memory_usage().sum() / 1024**2
+    print('Memory usage after optimization is: {:.2f} MB'.format(end_mem))
+    print('Decreased by {:.1f}%'.format(100 * (start_mem - end_mem) / start_mem))
+
+    return df
 #
 # y_pred = [0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,
 #           0, 1, 0, 0, 1]

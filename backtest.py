@@ -45,7 +45,7 @@ def back_test(filename, symbol, skipRows, initial, names_input, names_output, st
     df_norm  = data_normalize0    (df_features.values, axis=1)
     df_y_pred_tuples = model.predict(df_norm)
     y_pred = np.argmax(df_y_pred_tuples, axis=1)
-    print ('\ndf_features=',df_features.shape  , '\n', df_features.loc[:, ['nvo', 'rel_bol_hi10','rel_bol_hi20','rel_bol_hi50','rel_bol_hi200']])
+    print('\ndf_features=',df_features.shape  , '\n', df_features.loc[:, ['nvo', 'rel_bol_hi10','rel_bol_hi20','rel_bol_hi50','rel_bol_hi200']])
     print('\ndf_trans='    ,df_trans.shape     , '\n', df_trans.tail())
     print('y_observed='    ,df_y_observed.shape, '\n', df_y_observed)
     print(f'Predicted={y_pred}')

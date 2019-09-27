@@ -1,35 +1,31 @@
+from keras.callbacks import History
+import eli5
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
-from keras.wrappers.scikit_learn import KerasClassifier
-from keras.utils import to_categorical
+from eli5.sklearn import PermutationImportance
+from keras.callbacks import History
+from keras.layers import Dense, Dropout, LSTM
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.optimizers import RMSprop
-from sklearn.cross_validation import StratifiedShuffleSplit
+from keras.utils import to_categorical
+from keras.wrappers.scikit_learn import KerasClassifier
+# from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
-from sklearn.metrics.classification import _check_targets
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics.classification import classification_report
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import train_test_split, cross_validate, StratifiedShuffleSplit
 import xgboost as xgb
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import GridSearchCV
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import eli5
-from eli5.sklearn import PermutationImportance
-from scipy import stats
-from IPython.display import display
-from mpl_toolkits.mplot3d import Axes3D
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from buld.utils import data_load_and_transform, plot_selected, normalize1, plot_stat_loss_vs_accuracy, plot_conf_mtx, \
-    plot_histogram, normalize2, normalize3, plot_stat_loss_vs_accuracy2, plot_roc, calc_scores, data_normalize0, \
-    plot_feature_weight_coef, normalize_by_column
+from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column
 
 
 class MlpTrading_old(object):
@@ -105,6 +101,10 @@ class MlpTrading_old(object):
             model = RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'rf')
+        elif model_type == 'lr':
+            score = cross_validate(LogisticRegression(),self.x_train, self.y_train, cv=5, scoring=('roc_auc','average_precision'))
+            print (f"test_roc_auc={score['test_roc_auc'].mean()} , test_average_precision={score['test_average_precision'].mean()}")
+            print (f"score={score}")
         elif model_type == 'mlp2':
             model = MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
             model.fit(self.x_train, self.y_train)
@@ -121,16 +121,19 @@ class MlpTrading_old(object):
         elif model_type == 'xgb':
             model = self.model_create_xgb(epochs)
         elif model_type == 'svc':# poly is very slow(4 hours). linear is fast
-            kernel2 = 'rbf' #SVC(kernel='rbf')#{'C': 1.0, 'gamma': 0.1} with a score of 0.97
+            kernel2 = 'linear' #SVC(kernel='rbf')#{'C': 1.0, 'gamma': 0.1} with a score of 0.97
             model = SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)#poly, rbf, sigmoid linear
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'svc')
+
             if kernel2 == 'linear':
                 print(f'svc weights: {model._get_coef()}')
                 print(len(self.names_input))
                 self.names_input.remove('target')
                 print(len(self.names_input))
-                plot_feature_weight_coef(model, self.names_input, top_features=37)
+                plot_importance_svm(model, self.names_input, top_features=37)
+                #print('Intercept: ')
+                #print(model.class_weight_)
             '''     
             gridmlp
             weights=    feature  weight  std
@@ -144,8 +147,7 @@ class MlpTrading_old(object):
             7       x1    0.00 0.00 rel_bol_lo20
                                         '''
 
-        #print('Intercept: ')
-        #print(model.class_weight_)
+
         elif model_type == 'mlp':
             model   = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
             history = self.model_fitt    (model, batch_size=batch_size, epochs=epochs, verbose=verbose)
@@ -276,6 +278,7 @@ class MlpTrading_old(object):
         plt.title('XGBoost Classification Error')
         plt.savefig(f'files/output/{self.params}_error.png')
 
+        #plot_importance_xgb(model)
         return model
 
 
@@ -297,7 +300,7 @@ class MlpTrading_old(object):
         return model
 
 
-    def model_fitt(self, model, batch_size=128, epochs=200, verbose=2):
+    def model_fitt(self, model, batch_size=128, epochs=200, verbose=2)->History:
         print('\n======================================')
         print(f"\nTrain model for {epochs} epochs...")
         print('\n======================================')
@@ -379,10 +382,7 @@ class MlpTrading_old(object):
             print('\nCleaning the data')
             print('\n======================================')
             df_data = self._data_clean(df_data)
-            print('\n======================================')
-            print('\nRebalancing Data')
-            print('\n======================================')
-            df_data = self._data_rebalance(df_data)
+
             print('\n======================================')
             print('\nsplitting cols to data+label')
             print('\n======================================')
@@ -390,6 +390,10 @@ class MlpTrading_old(object):
 
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
+            print('\n======================================')
+            print('\nRebalancing Data')
+            print('\n======================================')
+            #df_x, df_y = self._data_rebalance(df_x, df_y)
 
 
 
@@ -412,7 +416,7 @@ class MlpTrading_old(object):
         self.x_train = self._data_normalize(self.x_train)
         self.x_test  = self._data_normalize(self.x_test)
         if isinstance(self.x_train,  pd.DataFrame):
-            self.x_train.to_csv(data_path_norm_train)
+            self.x_train.to_csv(data_path_norm_train, index=False)
         # plt.figure()
         # plt.scatter(self.x_train[:, 0], self.x_train[:, 1], c=self.y_train)
         # n_samples = len(self.y_train)
@@ -586,11 +590,12 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def _data_rebalance(self, df):
+    def _data_rebalance(self, df_x, df_y):
         #use over sampling or under sampling cause 53% green bars
-        return df
+        #df_x, df_y = obj.sample(df_x, df_y )
+        return df_x, df_y
 
-    # |--------------------------------------------------------|
+        # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
     def _label_transform(self, modelType):
@@ -700,7 +705,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def model_fit(self, model, epochs=100, batch_size=128, verbose=0):
+    def model_fit(self, model, epochs=100, batch_size=128, verbose=0)->History:
         return model.fit(self.x_train,
                          self.y_train,
                          batch_size=batch_size,
@@ -795,7 +800,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         print('\nmodel :',model_type)
         print('-------------------------')
         print("Accuracy : {0:0.2f} %".format(acc * 100))
-
+        print(classification_report(Y_true,Y_pred))
         if self.size_output == 2:#multiclass format is not supported
             plot_roc     (Y_true, Y_pred, y_pred_proba_r   , file_name=f'files/output/{self.params}_roc.png')
         plot_conf_mtx    (Y_true, Y_pred, self.names_output, file_name=f'files/output/{self.params}_confusion.png')
@@ -823,7 +828,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     # |                                                        |
     # |--------------------------------------------------------|
-    def model_save(self, model):
+    def model_save(self, model)->str:
         print('\n======================================')
         print('\nSaving the model')
         print('\n======================================')
