@@ -7,28 +7,33 @@ import os
 
 import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
-
-
+import seaborn as sns
 
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
+from ta import *
+
 from pycm import ConfusionMatrix
 from scipy.special.cython_special import boxcox1p
 from scipy.stats import boxcox_normmax
+
 from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support as scorex
 from sklearn.preprocessing import StandardScaler
 from sklearn import preprocessing
 from sklearn.utils import resample
-from ta import *
+
+from statsmodels.tsa.stattools import adfuller
 from xgboost import plot_importance, XGBClassifier
 
 from data.features.features import Features
 
-np.set_printoptions(precision=2)
-np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
 
+np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
+np.warnings.filterwarnings('ignore')
+np.set_printoptions(precision=7)
+np.seterr(divide='ignore', invalid='ignore')
 
 #todo
 def skew(df, features):
@@ -565,6 +570,41 @@ def rebalance(unbalanced_data):
 
     return data_upsampled
 
+def plot_stats(self):
+    print(f'df info=\n{self.df.info()}')
+    sns.pairplot(data=self.df[['Close', 'Volume', 'CloseVIX', 'SKEW']])  # , hue="asset_price")
+    for col in ['Close', 'Volume', 'CloseVIX', 'SKEW']:
+        sns.distplot(self.df[col], bins=30)  # , hue="asset_price")
+        #  plt.figure(i)
+        sns.countplot(x=col, data=self.df)
+
+
+def _sort_by_date(df: pd.DataFrame, inplace: bool = True) -> pd.DataFrame:
+    if inplace is True:
+        formatted = df
+    else:
+        formatted = df.copy()
+
+    formatted = formatted.sort_values('Date')#self.columns_map['Date'])
+
+    return formatted
+
+
+def print_is_stationary(df):
+    # all columns seem to be stationary
+
+    for col in df.columns:
+        t = df[col].dtype
+        if t != 'object' and t != 'str' :#and t != 'datetime' and t != 'string':
+            adf     = adfuller(df[col], regression='ct')[0]
+            p_value = adfuller(df[col], regression='ct')[1]
+            is_stationary = p_value < 0.05
+            print (f"adf={np.round(adf,1)}, p_value = {np.round(p_value,3)}. is_stationary={is_stationary} ( <0.05  means stationary) ) for column {col}. ")
+        else:
+            print(f'column {col} is not numeric. has type {t}.' )
+
+
+
 def data_select(df, columns_input)->pd.DataFrame:
     print('\n============================================================================')
     print(f'#Selecting columns {columns_input}')
@@ -579,7 +619,7 @@ def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'L
     dft = data_transform(dfc, skip_first_lines ,size_output, use_random_label)
     #fetures = Features()
     #dft  = fetures.add_features('all', dfc)
-    dft = create_label(dft, size_output, use_random_label)
+    dft = create_target_label(dft, size_output, use_random_label)
     print('\ndft describe=\n', dft.loc[:,  ['target' ]].describe())
     return dft
 
@@ -701,6 +741,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1 = df1[-(df1.shape[0] - skip_first_lines):]  # skip 1st x rows, x years due to NAN in sma, range
     df1['nvo'] = df1['Volume'] / df1['sma10'] / 100  # normalized volume
     df1['nvolog'] = np.log(df1['nvo'])  # normalized volume
+    #both not stationary
 
     # df/df.iloc[0,:]
     df1['log_sma8'  ] = np.log(df1['Close' ] / df1['sma8'])
@@ -756,6 +797,7 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     df1['range2'    ] = df1['Close'].shift(2)  - df1['Open'].shift(2) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     df1['range1'    ] = df1['Close'].shift(1)  - df1['Open'].shift(1) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
     df1['range0'    ] = df1['Close'].shift(0)  - df1['Open'].shift(0) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
+    #df1['R_C0_C1'] = df1['Close'] / df1['Close'].shift(1)
     df1.loc[df1.range1  > 0.0, 'isPrev1Up'] = 1
     df1.loc[df1.range1 <= 0.0, 'isPrev1Up'] = 0
     df1.loc[df1.range2  > 0.0, 'isPrev2Up'] = 1
@@ -819,16 +861,25 @@ def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=
     return df1
 
 
-def create_label(df1, size_output, use_random_label):
+def create_target_label(df1, size_output, use_random_label):
     df1 = df1.fillna(0)
-    df1['percentage'] = df1['range0'] / df1['Open'] * 100
+    c0 = df1['Close']
+    c1 = df1['Close'].shift(-1)
+    df1['range0'    ] = c0  - c1
+    df1['percentage'] = df1['range0'] / c1 * 100
     ## smart labeling
     if use_random_label == True:
         df1['isUp'] = np.random.randint(size_output, size=df1.shape[0])
     else:
         if size_output == 2:
-            df1.loc[df1.range0 > 0.0, 'isUp'] = 1  # up
-            df1.loc[df1.range0 <= 0.0, 'isUp'] = 0  # dn
+
+            df1['isUp'] = (c0 > c1).astype(int)
+            #df1['target'] = df1['isUp'].shift(-1).fillna(0).astype(int)
+
+
+
+            #df1.loc[df1.range0  > 0.0, 'isUp'] = 1  # up
+            #df1.loc[df1.range0 <= 0.0, 'isUp'] = 0  # dn
         if size_output == 3:
             df1['isUp'] = 2  # hold
             df1.loc[df1.percentage >= +0.1, 'isUp'] = 1  # up
@@ -837,7 +888,8 @@ def create_label(df1, size_output, use_random_label):
     df1['target'] = df1['isUp'].shift(shift)  # isNextBarUp: today's dataset  procuce  prediction is tommorow is up
     df1['target'] = df1['target'].fillna(0)  # .astype(int)#https://github.com/pylablanche/gcForest/issues/2
     df1['target'] = df1['target'].astype(int)
-    df1['isUp'  ] = df1['isUp'].astype(int)
+
+    #df1['isUp'  ] = df1['isUp'].astype(int)
     return df1
 
 

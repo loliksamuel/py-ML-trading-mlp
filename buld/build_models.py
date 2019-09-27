@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+
+from os import path
 from eli5.sklearn import PermutationImportance
 from keras.callbacks import History
 from keras.layers import Dense, Dropout, LSTM
@@ -25,8 +27,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3
-from data.features.transform import max_min_normalize
+from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label
+from data.features.transform import max_min_normalize, log_and_difference
 
 
 class MlpTrading_old(object):
@@ -329,8 +331,8 @@ class MlpTrading_old(object):
 
 
     def data_prepare(self, percent_test_split, skip_days, use_random_label=False, modelType='mlp', data_type=3):
-        data_path            = 'files/input/^GSPC_not_normalized.csv'
-        data_path_norm_train = 'files/input/^GSPC_normalized_train.csv'
+        data_path            = path.join('files', 'input', '^GSPC_not_normalized.csv')
+        data_path_norm_train = path.join('files', 'input', '^GSPC_normalized_train.csv')
         if (data_type == 'iris'):#iris data 3 classes
             print('\n======================================')
             print(f'Loading  iris data ')
@@ -360,11 +362,26 @@ class MlpTrading_old(object):
             print(f'len random={len(df_y)}')
         elif (data_type == '^GSPC2'):
             print('\n======================================')
-            print(f'Loading from disc prepared data :{data_path} ')
+            print(f'Loading from disc prepared data2 :{data_path} ')
             print('\n======================================')
             df_data = pd.read_csv(data_path)
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
+        elif (data_type == '^GSPC3'):
+            data_path = path.join('files', 'input', '^GSPC_1998_2019_v2_with_features.csv')
+            print('\n======================================')
+            print(f'Loading from disc prepared data3 :{data_path} ')
+            print('\n======================================')
+            df_data = pd.read_csv(data_path)
+            features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo', 'v_obv', 'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50', 'TRIX50']
+            df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
+            df_data = create_target_label(df_data,2,False)
+            df_data.drop(columns=[  'High', 'isUp','range0', 'percentage'], axis=1, inplace=True)
+            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            df_x = df_data.drop(columns=['target'])
+
+            self.names_input = df_x.columns
+            self.size_input = len(self.names_input)-1
 
         elif (data_type == '^GSPC'):
             print('\n======================================')
@@ -397,7 +414,7 @@ class MlpTrading_old(object):
             #df_x, df_y = self._data_rebalance(df_x, df_y)
 
 
-
+        print(f'df_y.describe()=\n{df_y.describe()}')
         print('\ndf_y\n',df_y)
         print('\ndf_x\n',df_x)
         #print('\ndf_x describe\n', df_x.describe())
@@ -552,7 +569,9 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     def _data_normalize(self, df):
         df = df.drop(columns=['Date'])
+        #print_is_stationary(df)
         #df1 = normalize_by_column(df)
+        #df = log_and_difference(df, inplace = False)
         df =  max_min_normalize(df, inplace = False)
         #df3 = normalize3(df, axis=1)
         # self.x_train = normalize3(self.x_train, axis=1)
