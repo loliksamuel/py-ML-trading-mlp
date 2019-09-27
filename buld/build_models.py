@@ -25,7 +25,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column
+from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3
+from data.features.transform import max_min_normalize
 
 
 class MlpTrading_old(object):
@@ -278,7 +279,7 @@ class MlpTrading_old(object):
         plt.title('XGBoost Classification Error')
         plt.savefig(f'files/output/{self.params}_error.png')
 
-        #plot_importance_xgb(model)
+        plot_importance_xgb(model)
         return model
 
 
@@ -550,8 +551,10 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self, df):
-        df = normalize_by_column(df)
-        #df = normalize3(df, axis=1)
+        df = df.drop(columns=['Date'])
+        #df1 = normalize_by_column(df)
+        df =  max_min_normalize(df, inplace = False)
+        #df3 = normalize3(df, axis=1)
         # self.x_train = normalize3(self.x_train, axis=1)
         # self.x_test  = normalize3(self.x_test , axis=1)
         # print('columns=', self.x_train.columns)
@@ -609,8 +612,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         if modelType in self.models_need1hot :
             self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
             self.y_test  = to_categorical(self.y_test , num_classes=self.size_output)
-        print(f'y_train[0]={self.y_train[0]}, it is in index {np.argmax(self.y_train[0])}')
-        print(f'y_test [0]={self.y_test[0]}, it is in index {np.argmax(self.y_test[0])}')
+            print(f'y_train[0]={self.y_train[0]}, it is in index {np.argmax(self.y_train[0])}')
+            print(f'y_test [0]={self.y_test[0]}, it is in index {np.argmax(self.y_test[0])}')
 
     # |--------------------------------------------------------|
     # |                                            |

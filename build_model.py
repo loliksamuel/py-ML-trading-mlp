@@ -47,8 +47,8 @@ priority | done | name
 
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(
-                        data_type    ='^GSPC'#^GSPC GSPC2 iris random
-                        ,model_type  ='lr'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf lr
+                        data_type    ='^GSPC2'#^GSPC GSPC2 iris random
+                        ,model_type  ='mlp'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf lr
                         ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
                         ,epochs      =500  # best 5000   or 300for mlp, 370 for xbg
                         ,size_hidden =15  #best 15 try 170
