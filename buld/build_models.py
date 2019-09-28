@@ -132,9 +132,9 @@ class MlpTrading_old(object):
             if kernel2 == 'linear':
                 print(f'svc weights: {model._get_coef()}')
                 print(len(self.names_input))
-                self.names_input.remove('target')
+                #self.names_input.remove('target')
                 print(len(self.names_input))
-                plot_importance_svm(model, self.names_input, top_features=37)
+                plot_importance_svm(model, self.names_input, top_features=140)
                 #print('Intercept: ')
                 #print(model.class_weight_)
             '''     
@@ -384,8 +384,7 @@ class MlpTrading_old(object):
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
 
-            self.names_input = df_x.columns
-            self.size_input = len(self.names_input)-1
+
 
         elif (data_type == '^GSPC'):
             print('\n======================================')
@@ -418,6 +417,8 @@ class MlpTrading_old(object):
             #df_x, df_y = self._data_rebalance(df_x, df_y)
 
 
+        self.names_input = df_x.columns
+        self.size_input = len(self.names_input)-1
         print(f'df_y.describe()=\n{df_y.describe()}')
         print('\ndf_y\n',df_y)
         print('\ndf_x\n',df_x)
@@ -627,8 +628,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |--------------------------------------------------------|
     def _label_transform(self, modelType):
         print(f'categorizing   {self.size_output} classes')
-        print('y_train[0:10]=',self.y_train[0:10])
-        print('y_test[0:10]=',self.y_test[0:10])
+        #print('y_train[0:10]=',self.y_train[0:10])
+        #print('y_test[0:10]=',self.y_test[0:10])
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
         self.y_train_bak = self.y_train
@@ -656,7 +657,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         model.add(Dropout(dropout))  # regularization technic by removing some nodes
         print(f'in={self.size_input} out={self.size_output} hid={size_hidden} lr={lr} rho={rho}, eps={epsilon}, dec={decay} activation={activation} optimizer={optimizer} loss={loss} init={init} ')
         model.add(Dense  (units=size_output, activation=activation))
-        #model.summary()
+        model.summary()
 
         self._model_compile(model, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay),  loss=loss, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
 
@@ -784,12 +785,12 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         y_pred_proba     = model.predict(self.x_test)# same as probs  = model.predict_proba(self.x_test)
         y_pred_proba_r = y_pred_proba
         print(f'predicting test data for model: {model_type}')
-        print(f'labeled   as {self.y_test[0]}. (highest confidence for index {np.argmax(self.y_test[0])})')
-        print(f'predicted as {y_pred_proba[0]}. (highest confidence for index {np.argmax(y_pred_proba[0])})')
+        ##print(f'labeled   as { self.y_test[0]}. (highest confidence for index {np.argmax( self.y_test[0])})')
+        ##print(f'predicted as {y_pred_proba[0]}. (highest confidence for index {np.argmax(y_pred_proba[0])})')
 #        print('y_train class distribution',self.y_train.value_counts(normalize=True))
          #print(pd.DataFrame(y_pred).describe())
         print(f'predicting train data')
-        print(f'labeled   as {self.y_test[0]}. (highest confidence for index {np.argmax(self.y_test[0])})')
+        #print(f'labeled   as {     self.y_test[0]}. (highest confidence for index {np.argmax(     self.y_test[0])})')
         print(f'predicted as {y_pred_proba_all[0]}. (highest confidence for index {np.argmax(y_pred_proba_all[0])})')
 
         # print('Y_true[0]=',Y_true[0])
