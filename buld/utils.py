@@ -31,9 +31,10 @@ from data.features.features import Features
 
 
 np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
-np.warnings.filterwarnings('ignore')
-np.set_printoptions(precision=7)
-np.seterr(divide='ignore', invalid='ignore')
+np.set_printoptions(precision=6)
+np.set_printoptions(threshold=100)
+# np.warnings.filterwarnings('ignore')
+# np.seterr(divide='ignore', invalid='ignore')
 
 #todo
 def skew(df, features):

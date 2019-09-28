@@ -1,5 +1,5 @@
 from buld.build_models import MlpTrading_old
-import pandas_datareader.data as pd
+import pandas as pd
 from datetime import datetime
 import time
 print('time is')
@@ -38,9 +38,9 @@ priority | done | name
  
 '''
 
-# pd.set_option('display.max_columns', 500)
-# pd.set_option('display.width', 1000)
-# pd.options.display.float_format = '{:.2f}'.format
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
+pd.options.display.float_format = '{:.2f}'.format
 
 
 
@@ -51,7 +51,7 @@ mlp_trading_old.execute(
                         ,model_type  ='mlp'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf lr
                         ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
                         ,epochs      =500  # best 5000   or 300for mlp, 370 for xbg
-                        ,size_hidden =15  #best 15 try 170
+                        ,size_hidden =150  #best 15 try 170
                         ,batch_size  =128  #best 128
                         ,percent_test_split=0.33  #best .33
                         ,lr          =0.002  # default=0.001   best=0.00001 or 0.002, for mlp, 0.0001 for lstm

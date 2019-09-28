@@ -373,7 +373,11 @@ class MlpTrading_old(object):
             print(f'Loading from disc prepared data3 :{data_path} ')
             print('\n======================================')
             df_data = pd.read_csv(data_path)
-            features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo', 'v_obv', 'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50', 'TRIX50']
+
+            df_data.drop(columns=[  'TRIX50', 'v_obv'], axis=1, inplace=True)
+            features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo',  'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50']#,'v_obv', 'TRIX50']
+            print(f'stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
+            #df_data = max_min_normalize (df_data, inplace = False, columns=features_to_stationarize)
             df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
             df_data = create_target_label(df_data,2,False)
             df_data.drop(columns=[  'High', 'isUp','range0', 'percentage'], axis=1, inplace=True)
@@ -569,10 +573,11 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     def _data_normalize(self, df):
         df = df.drop(columns=['Date'])
-        #print_is_stationary(df)
         #df1 = normalize_by_column(df)
         #df = log_and_difference(df, inplace = False)
         df =  max_min_normalize(df, inplace = False)
+        #print_is_stationary(df)
+
         #df3 = normalize3(df, axis=1)
         # self.x_train = normalize3(self.x_train, axis=1)
         # self.x_test  = normalize3(self.x_test , axis=1)
