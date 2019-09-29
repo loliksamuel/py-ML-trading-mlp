@@ -48,7 +48,7 @@ pd.options.display.float_format = '{:.2f}'.format
 mlp_trading_old = MlpTrading_old()
 mlp_trading_old.execute(
                         data_type    ='^GSPC3'#^GSPC GSPC2 iris random
-                        ,model_type  ='svc'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf lr
+                        ,model_type  ='gridxgb'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf lr
                         ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
                         ,epochs      =3  # best 5000   or 300for mlp, 370 for xbg
                         ,size_hidden =250  #best 15 try 170

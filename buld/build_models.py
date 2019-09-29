@@ -213,7 +213,7 @@ class MlpTrading_old(object):
     def model_create_grid_xgb(self):
         grid_model = xgb.XGBClassifier()
         cv          = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
-        param_grid = {'max_depth'    : [18,19,20],
+        param_grid = {'max_depth'    : [18,19,20],#The best parameters are {'learning_rate': 0.001, 'max_depth': 19, 'n_estimators': 420} with a score of 0.52
                       'n_estimators' : [320,370,420],
                       'learning_rate': [0.001]
                       }
@@ -289,12 +289,16 @@ class MlpTrading_old(object):
 
 
     def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid',   model_type='scikit'):
-        sk_params = {'size_input': self.size_input, 'size_output': self.size_output, 'size_hidden': size_hidden, 'dropout': dropout,
-                     'optimizer': optimizer, 'activation': activation}
+        sk_params = { 'size_input' : self.size_input
+                    , 'size_output': self.size_output
+                    , 'size_hidden': size_hidden
+                    , 'dropout'    : dropout
+                    , 'optimizer'  : optimizer
+                    , 'activation' : activation}
         model = KerasClassifier(build_fn=self.model_create_mlp, **sk_params)
         history = model.fit(self.x_train, self.y_train, sample_weight=None, batch_size=batch_size, epochs=epochs,  verbose=1)  # validation_data=(self.x_test, self.y_test) kwargs=kwargs)
 
-        self.model_weights(model, self.x_test, self.y_test, self.names_input.remove('target'))
+        self.model_weights(model, self.x_test, self.y_test, self.names_input)
         plot_stat_loss_vs_accuracy2(history.history)
         plt.savefig(f'files/output/{self.params}_Accuracy.png')
         score = model.score(self.x_test, self.y_test)
@@ -380,7 +384,7 @@ class MlpTrading_old(object):
             #df_data = max_min_normalize (df_data, inplace = False, columns=features_to_stationarize)
             df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
             df_data = create_target_label(df_data,2,False)
-            df_data.drop(columns=[  'High', 'isUp','range0', 'percentage'], axis=1, inplace=True)
+            df_data.drop(columns=[  'High', 'isUp','range0', 'percentage', 'Date'], axis=1, inplace=True)
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
 
@@ -417,8 +421,8 @@ class MlpTrading_old(object):
             #df_x, df_y = self._data_rebalance(df_x, df_y)
 
 
-        self.names_input = df_x.columns
-        self.size_input = len(self.names_input)-1
+        self.names_input = df_x.columns.tolist()
+        self.size_input = len(self.names_input)
         print(f'df_y.describe()=\n{df_y.describe()}')
         print('\ndf_y\n',df_y)
         print('\ndf_x\n',df_x)
@@ -573,7 +577,7 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_normalize(self, df):
-        df = df.drop(columns=['Date'])
+
         #df1 = normalize_by_column(df)
         #df = log_and_difference(df, inplace = False)
         df =  max_min_normalize(df, inplace = False)
