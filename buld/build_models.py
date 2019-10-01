@@ -74,6 +74,7 @@ class MlpTrading_old(object):
                 , activation   = 'softmax'  #sigmoid'
                 , use_random_label = False
                 , use_raw_data     = False
+                , use_feature_tool = True
 
 
                 ):
@@ -84,10 +85,10 @@ class MlpTrading_old(object):
         #self.size_output  = len(self.names_output)
         #self.size_input   = len(self.names_input)-1
 
-        data_path_all = path.join('files', 'input', '^GSPC_all')
+        data_path_all = path.join('files', 'input', f'{data_type}')
         if (use_raw_data):
             print(f'Loading from disc raw data   ')
-            df_x, df_y = self.data_prepare(percent_test_split, skip_days, use_random_label, data_type=data_type)
+            df_x, df_y = self.data_prepare(percent_test_split, skip_days, use_random_label, data_type=data_type, use_feature_tool=use_feature_tool)
             if isinstance(df_x,  pd.DataFrame):
                 df_x.to_csv( data_path_all + '_x.csv', index=False, header=True)
                 df_y.to_csv( data_path_all + '_y.csv', index=False, header=True)
@@ -136,8 +137,9 @@ class MlpTrading_old(object):
         self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
         print(f'\nrunning with modelType {model_type}, data_type={data_type}')
         if model_type == 'all':
+            kernel2 = 'linear' #SVC(kernel='rbf')#{'C': 1.0, 'gamma': 0.1} with a score of 0.97
             models = [ GaussianNB            ()
-                      ,SVC                   (random_state=5, kernel='rbf', C=0.01)#C=0.01 = accuracy 53.65 %
+                      ,SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)
                       ,RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
                       ,MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
                      ]
@@ -378,7 +380,7 @@ class MlpTrading_old(object):
         return model
 
 
-    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, data_type=3):
+    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, data_type=3, use_feature_tool=True):
         data_path     = path.join('files', 'input', '^GSPC_not_normalized.csv')
 
         if (data_type == 'iris'):#iris data 3 classes
@@ -395,6 +397,7 @@ class MlpTrading_old(object):
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
 
+
         if (data_type == 'random'): #random 2 classes
             print('\n======================================')
             print(f'Loading random binary data ')
@@ -404,9 +407,9 @@ class MlpTrading_old(object):
             X            = random_state.rand(n_samples, 2)
             y            = np.ones(n_samples)
             y[X[:, 0] + 0.1 * random_state.randn(n_samples) < 0.5] = 0.0
-            df_x = X
             df_y = y
-            print(f'len random={len(df_y)}')
+            df_x = X
+
 
         elif (data_type == '^GSPC2'):
             print('\n======================================')
@@ -458,9 +461,11 @@ class MlpTrading_old(object):
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
 
+        print(f'len {data_type}={len(df_y)}')
         #df_x, df_y = self._data_rebalance(df_x, df_y)
         #df_x = reduce_mem_usage(df_x)
-        df_x = feature_tool(df_x)
+        if use_feature_tool == True:
+            df_x = feature_tool(df_x)
 
 
         return df_x, df_y
