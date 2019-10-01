@@ -90,13 +90,13 @@ class MlpTrading_old(object):
             print(f'Loading from disc raw data   ')
             df_x, df_y = self.data_prepare(percent_test_split, skip_days, use_random_label, data_type=data_type, use_feature_tool=use_feature_tool)
             if isinstance(df_x,  pd.DataFrame):
-                df_x.to_csv( data_path_all + '_x.csv', index=False, header=True)
-                df_y.to_csv( data_path_all + '_y.csv', index=False, header=True)
+                df_x.to_csv( f'{data_path_all}_x_{use_feature_tool}.csv', index=False, header=True)
+                df_y.to_csv( f'{data_path_all}_y_{use_feature_tool}.csv', index=False, header=True)
 
         else:
             print(f'Loading from disc prepared data :{data_path_all + "_x.csv"} ')
-            df_x = pd.read_csv(data_path_all + '_x.csv')
-            df_y = pd.read_csv(data_path_all + '_y.csv')
+            df_x = pd.read_csv(f'{data_path_all}_x_{use_feature_tool}.csv')
+            df_y = pd.read_csv(f'{data_path_all}_y_{use_feature_tool}.csv')
 
         if isinstance(df_y,  pd.DataFrame):
             self.names_output = df_y['target'].unique()
