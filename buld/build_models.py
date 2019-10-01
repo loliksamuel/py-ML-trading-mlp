@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+
 from os import path
 from eli5.sklearn import PermutationImportance
 from keras.callbacks import History
@@ -27,8 +28,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label
+from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label, reduce_mem_usage, feature_tool, reduce_mem_usage2
 from data.features.transform import max_min_normalize, log_and_difference
+
+
 
 
 class MlpTrading_old(object):
@@ -53,8 +56,8 @@ class MlpTrading_old(object):
     def execute(self
                 , data_type     = '^GSPC' #^GSPC GSPC2 iris random
                 , model_type    ='drl'  #mlp lstm drl xgb gridxgb 'gridmlp','scikit',
-                , names_input  = ['nvo']
-                , names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+                #, names_input  = ['nvo']
+                #, names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                 , skip_days    = 3600
                 , epochs       = 500
                 , size_hidden  = 15
@@ -70,17 +73,65 @@ class MlpTrading_old(object):
                 , verbose      = 0
                 , activation   = 'softmax'  #sigmoid'
                 , use_random_label = False
+                , use_raw_data     = False
 
 
                 ):
         self.symbol = data_type
 
-        self.names_output = names_output# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
-        self.names_input  = names_input
-        self.size_output  = len(self.names_output)
-        self.size_input   = len(self.names_input)-1
+        #self.names_output = names_output# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+        #self.names_input  = names_input
+        #self.size_output  = len(self.names_output)
+        #self.size_input   = len(self.names_input)-1
 
-        self.data_prepare(percent_test_split, skip_days, use_random_label, model_type, data_type=data_type)
+        data_path_all = path.join('files', 'input', '^GSPC_all')
+        if (use_raw_data):
+            print(f'Loading from disc raw data   ')
+            df_x, df_y = self.data_prepare(percent_test_split, skip_days, use_random_label, data_type=data_type)
+            if isinstance(df_x,  pd.DataFrame):
+                df_x.to_csv( data_path_all + '_x.csv', index=False, header=True)
+                df_y.to_csv( data_path_all + '_y.csv', index=False, header=True)
+
+        else:
+            print(f'Loading from disc prepared data :{data_path_all + "_x.csv"} ')
+            df_x = pd.read_csv(data_path_all + '_x.csv')
+            df_y = pd.read_csv(data_path_all + '_y.csv')
+
+        if isinstance(df_y,  pd.DataFrame):
+            self.names_output = df_y['target'].unique()
+        else:
+            self.names_output = pd.Series(df_y, name='target').unique()#df_y.unique()#list(iris.target_names)
+        self.names_input  = df_x.columns.tolist()
+        self.names_input = list(map(str, self.names_input))
+        self.size_input   = len(self.names_input)
+        self.size_output  = len(self.names_output)
+        print(f'size in {self.size_input}, out {self.size_output}, names out {self.names_output }')
+        print(f'df_y.describe()=\n{df_y.describe()}')
+        print(f'\ndf_y[5]={df_y.shape}\n',df_y.head(5))
+        print(f'\ndf_x[1]={df_x.shape}\n',df_x.head(1))
+        #print('\ndf_x describe\n', df_x.describe())
+
+        print('\n======================================')
+        print('\nsplitting rows to train+test')
+        print('\n======================================')
+        (self.x_train, self.x_test, self.y_train, self.y_test) = self._split( df_x, df_y, percent_test_split)
+        #self.y_train = self.y_train.values
+        print('\n======================================')
+        print('\nNormalizing the data(must be after split)')
+        print('\n======================================')
+        self.x_train = self._data_normalize(self.x_train)
+        self.x_test  = self._data_normalize(self.x_test)
+
+        # plt.figure()
+        # plt.scatter(self.x_train[:, 0], self.x_train[:, 1], c=self.y_train)
+        # n_samples = len(self.y_train)
+        # plt.title(f"all {n_samples} train samples")
+        # plt.show()
+
+        print('\n======================================')
+        print('\nTransform label. Convert class vectors to binary class matrices (1 hot encoder vector)')
+        print('\n======================================')
+        self._label_transform(model_type)
 
         self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{model_type}'
         print(f'\nrunning with modelType {model_type}, data_type={data_type}')
@@ -102,10 +153,10 @@ class MlpTrading_old(object):
             self.model_predict(model,  'gaus')
         elif model_type == 'rf':
             model = RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
-            model.fit(self.x_train, self.y_train)
+            model.fit(self.x_train, self.y_train.values.ravel())
             self.model_predict(model,  'rf')
-        elif model_type == 'lr':
-            score = cross_validate(LogisticRegression(),self.x_train, self.y_train, cv=5, scoring=('roc_auc','average_precision'))
+        elif model_type == 'lr': #  binary class only
+            score = cross_validate(LogisticRegression(),self.x_train, self.y_train, cv=5, scoring=('roc_auc','average_precision'))#test_roc_auc=0.5018094629156009 , test_average_precision=0.5233818847206579
             print (f"test_roc_auc={score['test_roc_auc'].mean()} , test_average_precision={score['test_average_precision'].mean()}")
             print (f"score={score}")
         elif model_type == 'mlp2':
@@ -113,7 +164,7 @@ class MlpTrading_old(object):
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'mlp2')
         elif model_type == 'scikit':
-            model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer='rmsprop' )
+            model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay) )
         elif model_type == 'gridmlp':
             model = self.model_create_grid_mlp()
         elif model_type == 'gridsvc':# gridsvc is very slow(4 days). use it  only with fraction of data
@@ -126,31 +177,16 @@ class MlpTrading_old(object):
         elif model_type == 'svc':# poly is very slow(4 hours). linear is fast
             kernel2 = 'linear' #SVC(kernel='rbf')#{'C': 1.0, 'gamma': 0.1} with a score of 0.97
             model = SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)#poly, rbf, sigmoid linear
-            model.fit(self.x_train, self.y_train)
+            model.fit(self.x_train, self.y_train)#df.iloc[:,1:].values
             self.model_predict(model,  'svc')
 
             if kernel2 == 'linear':
                 print(f'svc weights: {model._get_coef()}')
-                print(len(self.names_input))
+                print(f'len={len(self.names_input)}, shape(n_targets, n_features)={model.coef_.shape}')#  features={self.names_input}, ')
                 #self.names_input.remove('target')
-                print(len(self.names_input))
-                plot_importance_svm(model, self.names_input, top_features=140)
+                plot_importance_svm(model, self.names_input, top_features=int(self.size_input/2-1))
                 #print('Intercept: ')
                 #print(model.class_weight_)
-            '''     
-            gridmlp
-            weights=    feature  weight  std
-            0      x26    0.01 0.00 stoc15
-            1       x0    0.01 0.00 rel_bol_hi20
-            2       x9    0.01 0.00 log_sma20
-            3       x2    0.01 0.00 rel_bol_hi10
-            4      x25    0.01 0.00
-            5      x16    0.01 0.00
-            6       x4    0.00 0.00 rel_bol_lo50
-            7       x1    0.00 0.00 rel_bol_lo20
-                                        '''
-
-
         elif model_type == 'mlp':
             model   = self.model_create_mlp(size_input=self.size_input, size_output=self.size_output ,activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay), loss=loss, init=kernel_init, size_hidden=size_hidden, dropout=dropout, lr=lr, rho=rho, epsilon=epsilon, decay=decay)
             history = self.model_fitt    (model, batch_size=batch_size, epochs=epochs, verbose=verbose)
@@ -242,40 +278,48 @@ class MlpTrading_old(object):
         #model = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1, max_depth=5, alpha=10,  n_estimators=10)
 
         print(self.y_train.shape)
-        model = xgb.XGBClassifier(max_depth    =29,#20=52.19 19=18 53.02% , 17=51.75
-                                  gamma        =0, #  misunderstood parameter, it acts as a regularization (0,1,5)
-                                  learning_rate=0.001,
-                                  n_estimators =epochs,# # of sub trees
-                                  subsample        =1,#  % of rows used for each tree (0.5-1)
-                                  colsample_bytree =1, #  % of cols used for each tree.(0.5-1)
-                                  colsample_bylevel=1, reg_alpha=0, reg_lambda=0,max_delta_step=0,
-                                  min_child_weight =1, silent=True, objective='binary:logistic',
-                                  scale_pos_weight =1, seed=1, missing=None)
+        model = xgb.XGBClassifier(max_depth         =29,#20=52.19 19=18 53.02% , 17=51.75
+                                  gamma             =0, #  misunderstood parameter, it acts as a regularization (0,1,5)
+                                  learning_rate     =0.001,
+                                  n_estimators      =epochs,# # of sub trees
+                                  subsample         =1,#  % of rows used for each tree (0.5-1)
+                                  colsample_bytree  =1, #  % of cols used for each tree.(0.5-1)
+                                  colsample_bylevel =1, reg_alpha=0, reg_lambda=0,max_delta_step=0,
+                                  min_child_weight  =1, silent=True,
+                                  scale_pos_weight  =1, seed=1, missing=None
+                                  , objective='multi:softprob')# multi:softprob   or    binary:logistic)
 
         eval_set = [(self.x_train, self.y_train), (self.x_test, self.y_test)]
-        model.fit(self.x_train, self.y_train, eval_metric=["error", "logloss"], verbose=True, eval_set=eval_set)
+        METRIC1 = "merror" # merror or error
+        METRIC2 = "mlogloss" # mlogloss or logloss
+
+        model.fit(self.x_train
+                  , self.y_train
+                  , eval_metric=[METRIC1, METRIC2]
+                  , verbose=True
+                  , eval_set=eval_set)
         self.model_predict(model,  model_type='xgb')
 
         score = model.score(self.x_test, self.y_test)
         print(f'error= {score} (#(wrong cases)/#(all cases)')
 
         results = model.evals_result()
-        epochs = len(results['validation_0']['error'])
+        epochs = len(results['validation_0'][METRIC1])
         x_axis = range(0, epochs)
 
         # plot log loss
         fig, ax = plt.subplots()
-        ax.plot(x_axis, results['validation_0']['logloss'], label='Train')
-        ax.plot(x_axis, results['validation_1']['logloss'], label='Test')
+        ax.plot(x_axis, results['validation_0'][METRIC2], label='Train')
+        ax.plot(x_axis, results['validation_1'][METRIC2], label='Test')
         ax.legend()
-        plt.ylabel('Log Loss')
+        plt.ylabel('mLog Loss')
         plt.title('XGBoost Log Loss')
         plt.savefig(f'files/output/{self.params}_logloss.png')
 
         # plot classification error
         fig, ax = plt.subplots()
-        ax.plot(x_axis, results['validation_0']['error'], label='Train')
-        ax.plot(x_axis, results['validation_1']['error'], label='Test')
+        ax.plot(x_axis, results['validation_0'][METRIC1], label='Train')
+        ax.plot(x_axis, results['validation_1'][METRIC1], label='Test')
         ax.legend()
         plt.ylabel('Classification Error')
         plt.title('XGBoost Classification Error')
@@ -334,21 +378,23 @@ class MlpTrading_old(object):
         return model
 
 
-    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, modelType='mlp', data_type=3):
-        data_path            = path.join('files', 'input', '^GSPC_not_normalized.csv')
-        data_path_norm_train = path.join('files', 'input', '^GSPC_normalized_train.csv')
+    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, data_type=3):
+        data_path     = path.join('files', 'input', '^GSPC_not_normalized.csv')
+
         if (data_type == 'iris'):#iris data 3 classes
             print('\n======================================')
             print(f'Loading  iris data ')
             print('\n======================================')
-            X,y = load_iris(return_X_y=True)
+            iris = load_iris()#return_X_y=True)
 
-            df_x,df_y = shuffle(X, y)
+            #df_data = pd.DataFrame(iris.data, columns=iris.feature_names)
+            df_data = pd.DataFrame( data   = np.c_[iris['data'], iris['target']]
+                                  , columns= iris ['feature_names'] + ['target'])
+            df_data = df_data.sample(frac=1)#shuffle cause the first 100 samples are 0
+            #df_x,df_y = shuffle(X, y)
+            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            df_x = df_data.drop(columns=['target'])
 
-            # self.names_input  = names_input
-            self.size_output  = 3
-            self.size_input   = 4
-            print(f'len iris={len(df_y)}')
         if (data_type == 'random'): #random 2 classes
             print('\n======================================')
             print(f'Loading random binary data ')
@@ -358,12 +404,10 @@ class MlpTrading_old(object):
             X            = random_state.rand(n_samples, 2)
             y            = np.ones(n_samples)
             y[X[:, 0] + 0.1 * random_state.randn(n_samples) < 0.5] = 0.0
-
             df_x = X
             df_y = y
-            self.size_output  = 2
-            self.size_input   = 2
             print(f'len random={len(df_y)}')
+
         elif (data_type == '^GSPC2'):
             print('\n======================================')
             print(f'Loading from disc prepared data2 :{data_path} ')
@@ -380,15 +424,13 @@ class MlpTrading_old(object):
 
             df_data.drop(columns=[  'TRIX50', 'v_obv'], axis=1, inplace=True)
             features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo',  'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50']#,'v_obv', 'TRIX50']
-            print(f'stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
+            print(f'before stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
             #df_data = max_min_normalize (df_data, inplace = False, columns=features_to_stationarize)
             df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
             df_data = create_target_label(df_data,2,False)
             df_data.drop(columns=[  'High', 'isUp','range0', 'percentage', 'Date'], axis=1, inplace=True)
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
-
-
 
         elif (data_type == '^GSPC'):
             print('\n======================================')
@@ -411,51 +453,18 @@ class MlpTrading_old(object):
             print('\n======================================')
             print('\nsplitting cols to data+label')
             print('\n======================================')
-            df_data.to_csv(data_path)
+            #df_data.to_csv(data_path)
 
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
-            print('\n======================================')
-            print('\nRebalancing Data')
-            print('\n======================================')
-            #df_x, df_y = self._data_rebalance(df_x, df_y)
+
+        #df_x, df_y = self._data_rebalance(df_x, df_y)
+        #df_x = reduce_mem_usage(df_x)
+        df_x = feature_tool(df_x)
 
 
-        self.names_input = df_x.columns.tolist()
-        self.size_input = len(self.names_input)
-        print(f'df_y.describe()=\n{df_y.describe()}')
-        print('\ndf_y\n',df_y)
-        print('\ndf_x\n',df_x)
-        #print('\ndf_x describe\n', df_x.describe())
+        return df_x, df_y
 
-        print('\n======================================')
-        print('\nsplitting rows to train+test')
-        print('\n======================================')
-        (self.x_train, self.x_test, self.y_train, self.y_test) = self._split( df_x, df_y, percent_test_split)
-        # self.x_train = self._data_normalize(self.x_train)
-        # self.x_test  = self._data_normalize(self.x_test)
-        #self.y_train  = df_y
-        #self.y_test  = df_y
-
-        print('\n======================================')
-        print('\nNormalizing the data(must be after split)')
-        print('\n======================================')
-        self.x_train = self._data_normalize(self.x_train)
-        self.x_test  = self._data_normalize(self.x_test)
-        if isinstance(self.x_train,  pd.DataFrame):
-            self.x_train.to_csv(data_path_norm_train, index=False)
-        # plt.figure()
-        # plt.scatter(self.x_train[:, 0], self.x_train[:, 1], c=self.y_train)
-        # n_samples = len(self.y_train)
-        # plt.title(f"all {n_samples} train samples")
-        # plt.show()
-
-
-        print('\n======================================')
-        print('\nTransform label. Convert class vectors to binary class matrices (1 hot encoder vector)')
-        print('\n======================================')
-        self._label_transform(modelType)
-        #return df_all
 
 
 
@@ -784,7 +793,10 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
     # |                                                        |
     # |--------------------------------------------------------|
     def model_predict(self, model,   model_type='xxx'):
-        x_all = np.concatenate((self.x_train, self.x_test), axis=0)
+        dfs = [self.x_train, self.x_test]
+
+        x_all = pd.concat(dfs)
+        #x_all = np.concatenate(dfs, axis=0)
         y_pred_proba_all = model.predict(x_all)
         y_pred_proba     = model.predict(self.x_test)# same as probs  = model.predict_proba(self.x_test)
         y_pred_proba_r = y_pred_proba
@@ -821,7 +833,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         print('Y_pred[0:10]=',Y_pred[0:10])#Y_pred[0:10]= [1 0 0 1 0 0 0 1 1 1]
         #if model_type in self.models_df:
         #print (f'type of Y_true is {Y_true.dtype}')#type(Y_true)
-        if isinstance(Y_true, pd.Series): #numpy.ndarray  np.int64   pd.DataFrame  pd.Series
+        if isinstance(Y_true, pd.Series) or isinstance(Y_true, pd.DataFrame):#  pd.Series
             Y_true = Y_true.values
             print('Y_true[0:10]=',Y_true[0:10])#Y_true[0:10]= [1 1 0 1 0 0 0 0 0 1]
 

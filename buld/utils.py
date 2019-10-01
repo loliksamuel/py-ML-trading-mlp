@@ -9,6 +9,7 @@ import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import featuretools as ft
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from ta import *
@@ -127,7 +128,9 @@ def plot_importance_xgb(xgb_model, title='feature importance xgb'):
     plt.savefig('files/output/' + title + '.png')
 
 #This method of feature selection is applicable only when the input features are normalized and for linear svm https://medium.com/@aneesha/visualising-top-features-in-linear-svm-with-scikit-learn-and-matplotlib-3454ab18a14d
-def plot_importance_svm(classifier, feature_names, top_features=20):
+def plot_importance_svm(classifier, feature_names, top_features=None):
+    if top_features == None:
+        top_features = int(len(feature_names)/2)
     coef = classifier.coef_.ravel()
     top_positive_coefficients = np.argsort(coef)[-top_features:]
     top_negative_coefficients = np.argsort(coef)[:top_features]
@@ -138,7 +141,7 @@ def plot_importance_svm(classifier, feature_names, top_features=20):
     colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
     plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
     feature_names = np.array(feature_names)
-    plt.xticks(np.arange(1, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')
+    plt.xticks(ticks=np.arange(1, 1 + 2 * top_features), labels=feature_names[top_coefficients], rotation=60, ha='right')
     title = f'top {top_features*2} features'
     plt.title(title)
     plt.savefig('files/output/' + title + '.png')
@@ -240,8 +243,7 @@ def plot_conf_mtx(Y_true, Y_pred, target_names, file_name='files/output/Confusio
     # Plot normalized confusion matrix
     # plt.figure()
     title = 'normalized'
-    plot_confusion_matrix(cnf_matrix, classes=target_names, normalize=True,
-                          title=title)
+    plot_confusion_matrix(cnf_matrix, classes=target_names, normalize=True,  title=title)
 
     plt.savefig(file_name)
 
@@ -961,6 +963,55 @@ def format_to_lstm_regression(dataset, look_back=1):
         dataY.append(y)
     return np.array(dataX), np.array(dataY)
     # X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+
+def feature_tool(df_x):
+    '''
+    :param df_x: df
+    :return: 80,089 features: 283 + ( 283/2*283 ) * 2
+    '''
+    print(f'start featuretools')
+
+    # Make an entityset and add the entity
+    es = ft.EntitySet(id = 'sp500')
+    es.entity_from_dataframe(entity_id = 'data'
+                             , dataframe = df_x
+                             , make_index = True
+                             , index = 'index')
+
+    primitives_aggregate      = None #  ['std', 'min', 'max', 'mean', 'count', 'mode', 'num_unique', 'percent_true', 'last', 'trend', 'n_most_common', 'time_since_last','avg_time_between'] #create a single value
+    primitives_where          = None #  ['std', 'min', 'max', 'mean', 'count']
+    primitives_groupby        = None #  ['CumSum', 'CumCount', 'CumMean', 'CumMin', 'CumMax'] #group by id  # [1, 2, 3, 4, 5]).tolist() = [1, 3, 6, 10, 15]
+    primitives_transform      = ['add_numeric'       #create 283/2*283 = 40,044 new features
+                                , 'multiply_numeric' #create 283/2*283 = 40,044 new features
+                                 ]
+    #'years', 'month', 'weekday', 'percentile',  'isin', 'cum_mean', 'subtract', 'divide','time_since_previous', 'latitude', 'longitude', log]
+    # Run deep feature synthesis with transformation primitives
+    feature_matrix, feature_defs = ft.dfs(entityset                 = es
+                                          , target_entity             = 'data'
+                                          , agg_primitives            = primitives_aggregate
+                                          , trans_primitives          = primitives_transform
+                                          , groupby_trans_primitives  = primitives_groupby
+                                          , where_primitives          = primitives_where
+                                         #, drop_contains             = 'target'
+                                          , max_depth                 = 1
+                                          , n_jobs                    = 1 #-1 will use all cores
+                                          , verbose                   = True  )
+
+    print(f'finished featuretools. feature_matrix=\n{feature_matrix.head()}')
+    return feature_matrix
+
+def reduce_mem_usage2(df):
+    for col in df.columns:
+        col_type = df[col].dtype
+        col_items = df[col].count()
+        col_unique_itmes = df[col].nunique()
+        if (col_type == 'object') and (col_unique_itmes < col_items):
+            df[col] = df[col].astype('category')
+        if (col_type == 'int64'):
+            df[col] = df[col].astype('int32')
+        if (col_type == 'float64'):
+            df[col] = df[col].astype('float32')
+    return df
 
 
 def reduce_mem_usage(df):
