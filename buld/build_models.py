@@ -45,7 +45,7 @@ class MlpTrading_old(object):
         self.y_train = None
         self.y_test = None
         self.seed = 7
-        self.models_need1hot = ['mlp','lstm', 'scikit', 'gridmlp']# 'xgb', 'gridxgb',#if model_type in self.models_need1hot:
+        self.models_need1hot = ['mlp','lstm', 'ker', 'gridmlp']# 'xgb', 'gridxgb',#if model_type in self.models_need1hot:
         self.models_df       = [   'mlp2' ]#'gaus', 'svc','xgb','rf',
         self.params=''
         np.random.seed(self.seed)
@@ -55,7 +55,7 @@ class MlpTrading_old(object):
     # |--------------------------------------------------------|
     def execute(self
                 , data_type     = '^GSPC' #^GSPC GSPC2 iris random
-                , model_type    ='drl'  #mlp lstm drl xgb gridxgb 'gridmlp','scikit',
+                , model_type    ='drl'  #mlp lstm drl xgb gridxgb 'gridmlp','ker',
                 #, names_input  = ['nvo']
                 #, names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                 , skip_days    = 3600
@@ -165,7 +165,7 @@ class MlpTrading_old(object):
             model = MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'mlp2')
-        elif model_type == 'scikit':
+        elif model_type == 'ker':
             model = self.model_create_scikit(epochs=epochs, batch_size=batch_size, size_hidden=size_hidden, dropout=dropout, activation=activation, optimizer=RMSprop(lr=lr, rho=rho, epsilon=epsilon, decay=decay) )
         elif model_type == 'gridmlp':
             model = self.model_create_grid_mlp()
@@ -186,7 +186,7 @@ class MlpTrading_old(object):
                 print(f'svc weights: {model._get_coef()}')
                 print(f'len={len(self.names_input)}, shape(n_targets, n_features)={model.coef_.shape}')#  features={self.names_input}, ')
                 #self.names_input.remove('target')
-                plot_importance_svm(model, self.names_input, top_features=int(self.size_input/2-1))
+                plot_importance_svm(model, self.names_input, top_features=int(self.size_input/2))
                 #print('Intercept: ')
                 #print(model.class_weight_)
         elif model_type == 'mlp':
@@ -289,11 +289,11 @@ class MlpTrading_old(object):
                                   colsample_bylevel =1, reg_alpha=0, reg_lambda=0,max_delta_step=0,
                                   min_child_weight  =1, silent=True,
                                   scale_pos_weight  =1, seed=1, missing=None
-                                  , objective='multi:softprob')# multi:softprob   or    binary:logistic)
+                                  , objective='binary:logistic')# multi:softprob   or    binary:logistic)
 
         eval_set = [(self.x_train, self.y_train), (self.x_test, self.y_test)]
-        METRIC1 = "merror" # merror or error
-        METRIC2 = "mlogloss" # mlogloss or logloss
+        METRIC1 = "error" # merror or error
+        METRIC2 = "logloss" # mlogloss or logloss
 
         model.fit(self.x_train
                   , self.y_train
@@ -334,7 +334,7 @@ class MlpTrading_old(object):
 
 
 
-    def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid',   model_type='scikit'):
+    def model_create_scikit(self, epochs=100, batch_size=128, size_hidden=15, dropout=0.2, optimizer='rmsprop', activation='sigmoid',   model_type='ker'):
         sk_params = { 'size_input' : self.size_input
                     , 'size_output': self.size_output
                     , 'size_hidden': size_hidden
@@ -407,8 +407,19 @@ class MlpTrading_old(object):
             X            = random_state.rand(n_samples, 2)
             y            = np.ones(n_samples)
             y[X[:, 0] + 0.1 * random_state.randn(n_samples) < 0.5] = 0.0
-            df_y = y
-            df_x = X
+            df_data = pd.DataFrame( data   = np.c_[X, y]
+                                    , columns= ['f1','f2','target']
+                                    )
+            df_y = pd.DataFrame( data   = np.c_[y]
+                                 , columns= ['target']
+                                 )
+            df_x = pd.DataFrame( data   = np.c_[X]
+                                 , columns= ['f1','f2']
+                                 )
+            # df_y = y
+            # df_x = X
+            # df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            # df_x = df_data.drop(columns=['target'])
 
 
         elif (data_type == '^GSPC2'):
@@ -650,7 +661,7 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
         #print('y_test[0:10]=',self.y_test[0:10])
         # self.y_train = shift(self.y_train,1)
         # self.y_test  = shift(self.y_test,1)
-        self.y_train_bak = self.y_train
+        #self.y_train_bak = self.y_train
 
         if modelType in self.models_need1hot :
             self.y_train = to_categorical(self.y_train, num_classes=self.size_output)
@@ -816,8 +827,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
 
         # print('Y_true[0]=',Y_true[0])
         # print('Y_pred[0]=',Y_pred[0])
-        if model_type in self.models_need1hot:# and model_type != 'scikit':
-            if (model_type=='scikit'):
+        if model_type in self.models_need1hot:# and model_type != 'ker':
+            if (model_type=='ker'):
                 Y_pred = y_pred_proba
 
             else:
@@ -826,8 +837,8 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
 
             Y_true = np.argmax(self.y_test, axis=1)
 
-            # if isinstance(y_pred_proba[0],(np.int64)):#for scikit learn model
-            #     print('probably scikit')
+            # if isinstance(y_pred_proba[0],(np.int64)):#for ker learn model
+            #     print('probably ker')
             #     Y_pred = y_pred_proba
         else:
             Y_true = self.y_test

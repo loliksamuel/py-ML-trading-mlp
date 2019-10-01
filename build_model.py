@@ -44,13 +44,13 @@ pd.options.display.float_format = '{:.2f}'.format
 
 
 
-
+                                    #random          88                       90      92   how????
 mlp_trading_old = MlpTrading_old()  # iris-ft        92                       90      94            92    86         94  90  -
 mlp_trading_old.execute(            # iris+ft        94                       92      94            90    84    -    96  92  -
-                         model_type  ='all'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2 scikit lstm gaus rf lr
+                         model_type  ='svc'  # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2   ker  lstm gaus rf lr
                         ,data_type    ='iris'#^GSPC GSPC2 iris random
                         ,use_random_label = False
-                        ,use_raw_data     = False
+                        ,use_raw_data     = True
                         ,use_feature_tool = False
                         ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
                         ,epochs      =600  # best 5000   or 300for mlp, 370 for xbg
