@@ -154,7 +154,7 @@ class MlpTrading_old(object):
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'gaus')
         elif model_type == 'rf':
-            model = RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
+            model = RandomForestClassifier(random_state=5, n_estimators=100, max_depth=50)#50.84 %
             model.fit(self.x_train, self.y_train.values.ravel())
             self.model_predict(model,  'rf')
         elif model_type == 'lr': #  binary class only
@@ -162,7 +162,7 @@ class MlpTrading_old(object):
             print (f"test_roc_auc={score['test_roc_auc'].mean()} , test_average_precision={score['test_average_precision'].mean()}")
             print (f"score={score}")
         elif model_type == 'mlp2':
-            model = MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
+            model = MLPClassifier         (random_state=5, hidden_layer_sizes=(950,))#50.86 %
             model.fit(self.x_train, self.y_train)
             self.model_predict(model,  'mlp2')
         elif model_type == 'ker':
@@ -178,7 +178,7 @@ class MlpTrading_old(object):
             model = self.model_create_xgb(epochs)
         elif model_type == 'svc':# poly is very slow(4 hours). linear is fast
             kernel2 = 'linear' #SVC(kernel='rbf')#{'C': 1.0, 'gamma': 0.1} with a score of 0.97
-            model = SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)#poly, rbf, sigmoid linear
+            model = SVC                   (random_state=5, kernel=kernel2, C=0.1, gamma=0.1)#gamma is only for 'rbf', 'poly' and 'sigmoid'.  poly, rbf, sigmoid linear
             model.fit(self.x_train, self.y_train)#df.iloc[:,1:].values
             self.model_predict(model,  'svc')
 
@@ -381,7 +381,6 @@ class MlpTrading_old(object):
 
 
     def data_prepare(self, percent_test_split, skip_days, use_random_label=False, data_type=3, use_feature_tool=True):
-        data_path     = path.join('files', 'input', '^GSPC_not_normalized.csv')
 
         if (data_type == 'iris'):#iris data 3 classes
             print('\n======================================')
@@ -398,7 +397,7 @@ class MlpTrading_old(object):
             df_x = df_data.drop(columns=['target'])
 
 
-        if (data_type == 'random'): #random 2 classes
+        elif (data_type == 'random'): #random 2 classes
             print('\n======================================')
             print(f'Loading random binary data ')
             print('\n======================================')
@@ -407,30 +406,14 @@ class MlpTrading_old(object):
             X            = random_state.rand(n_samples, 2)
             y            = np.ones(n_samples)
             y[X[:, 0] + 0.1 * random_state.randn(n_samples) < 0.5] = 0.0
-            df_data = pd.DataFrame( data   = np.c_[X, y]
-                                    , columns= ['f1','f2','target']
-                                    )
+
             df_y = pd.DataFrame( data   = np.c_[y]
-                                 , columns= ['target']
-                                 )
+                                 , columns= ['target'] )
             df_x = pd.DataFrame( data   = np.c_[X]
-                                 , columns= ['f1','f2']
-                                 )
-            # df_y = y
-            # df_x = X
-            # df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
-            # df_x = df_data.drop(columns=['target'])
+                                 , columns= ['f1','f2']  )
 
-
-        elif (data_type == '^GSPC2'):
-            print('\n======================================')
-            print(f'Loading from disc prepared data2 :{data_path} ')
-            print('\n======================================')
-            df_data = pd.read_csv(data_path)
-            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
-            df_x = df_data.drop(columns=['target'])
         elif (data_type == '^GSPC3'):
-            data_path = path.join('files', 'input', '^GSPC_1998_2019_v2_with_features.csv')
+            data_path = path.join('files', 'input', '^GSPC_1998_2019_v2_vec283.csv')
             print('\n======================================')
             print(f'Loading from disc prepared data3 :{data_path} ')
             print('\n======================================')
@@ -443,6 +426,16 @@ class MlpTrading_old(object):
             df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
             df_data = create_target_label(df_data,2,False)
             df_data.drop(columns=[  'High', 'isUp','range0', 'percentage', 'Date'], axis=1, inplace=True)
+            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            df_x = df_data.drop(columns=['target'])
+
+        elif (data_type == '^GSPC2'):
+            data_path     = path.join('files', 'input', '^GSPC_1964_2019_v1_vec71.csv')
+            print('\n======================================')
+            print(f'Loading from disc prepared data2 :{data_path} ')
+            print('\n======================================')
+            df_data = pd.read_csv(data_path)
+            df_data.drop(columns=['Date'], axis=1, inplace=True)
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
 
@@ -471,6 +464,9 @@ class MlpTrading_old(object):
 
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
+
+        else:
+            raise ValueError(  'Error: unknown data type')
 
         print(f'len {data_type}={len(df_y)}')
         #df_x, df_y = self._data_rebalance(df_x, df_y)
