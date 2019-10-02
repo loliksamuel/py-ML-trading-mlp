@@ -616,15 +616,23 @@ def data_select(df, columns_input)->pd.DataFrame:
     print ('dfs=',dfs)
     return dfs
 
-def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2, use_random_label=False)->pd.DataFrame:
-    df1 = get_data_from_disc(symbol, usecols)
-    dfc = data_clean(df1)
-    dft = data_transform(dfc, skip_first_lines ,size_output, use_random_label)
-    #fetures = Features()
-    #dft  = fetures.add_features('all', dfc)
-    dft = create_target_label(dft, size_output, use_random_label)
-    print('\ndft describe=\n', dft.loc[:,  ['target' ]].describe())
-    return dft
+# def data_load_and_transform(symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = 1, size_output=2, use_random_label=False, feature_src= 'ta')->pd.DataFrame:
+#     print('\n======================================')
+#     print('\nLoading from disc raw data using ta(74 features) or talib(283 features)')
+#     print('\n======================================')
+#     df1 = get_data_from_disc(symbol, usecols)
+#     dfc = data_clean(df1)
+#     if feature_src == 'ta':
+#         dft = data_transform(dfc, skip_first_lines ,size_output, use_random_label)
+#     elif feature_src == 'talib':
+#         fetures = Features()
+#         dft  = fetures.add_features('all', dfc)
+#     dft = create_target_label(dft, size_output, use_random_label)
+#     print('\ndft describe=\n', dft.loc[:,  ['target' ]].describe())
+#     #  https://www.oipapio.com/question-3322022
+#     # df_all = df_all.values.reshape(samples,timestamps,features)
+#     print(dft.tail())
+#     return dft
 
 def data_clean(df):
     # Clean NaN values
@@ -634,234 +642,6 @@ def data_clean(df):
     dfc = utils.dropna(df)
     return dfc
 
-
-def data_transform(df1, skip_first_lines = 400, size_output=2, use_random_label=False):
-    if  skip_first_lines < 400:
-        print (f'error: skip_first_lines must be > 400 existing...')
-        exit(1)
-    print('\n============================================================================')
-    print(f'#Transform raw data skip_first_lines={skip_first_lines}, size_output={size_output}, use_random_label={use_random_label}')
-    print('===============================================================================')
-
-
-    # Add ta features filling NaN values
-    # df1 = add_all_ta_features(df, "Open", "High", "Low", "Close",  fillna=True)#, "Volume_BTC",
-
-
-    #these sma+bol are not normalized. do not use those
-    df1['sma8'  ] = df1['Close'].rolling(window=8).mean()  # .shift(1, axis = 0)
-    df1['sma9'  ] = df1['Close'].rolling(window=9).mean()  # .shift(1, axis = 0)
-    df1['sma10' ] = df1['Close'].rolling(window=10).mean()  # .shift(1, axis = 0)
-    df1['sma12' ] = df1['Close'].rolling(window=12).mean()  # .shift(1, axis = 0)
-    df1['sma15' ] = df1['Close'].rolling(window=15).mean()
-    df1['sma20' ] = df1['Close'].rolling(window=20).mean()
-    df1['sma25' ] = df1['Close'].rolling(window=25).mean()
-    df1['sma50' ] = df1['Close'].rolling(window=50).mean()
-    df1['sma200'] = df1['Close'].rolling(window=200).mean()
-    df1['sma400'] = df1['Close'].rolling(window=400).mean()
-
-    # Add bollinger band high indicator filling NaN values
-    df1['bb_hi08'] = bollinger_hband_indicator(df1["Close"], n=8, ndev=2, fillna=True)
-    df1['bb_lo08'] = bollinger_lband_indicator(df1["Close"], n=8, ndev=2, fillna=True)
-    df1['bb_hi09'] = bollinger_hband_indicator(df1["Close"], n=9, ndev=2, fillna=True)
-    df1['bb_lo09'] = bollinger_lband_indicator(df1["Close"], n=9, ndev=2, fillna=True)
-    df1['bb_hi10'] = bollinger_hband_indicator(df1["Close"], n=10, ndev=2, fillna=True)
-    df1['bb_lo10'] = bollinger_lband_indicator(df1["Close"], n=10, ndev=2, fillna=True)
-    df1['bb_hi12'] = bollinger_hband_indicator(df1["Close"], n=12, ndev=2, fillna=True)
-    df1['bb_lo12'] = bollinger_lband_indicator(df1["Close"], n=12, ndev=2, fillna=True)
-    df1['bb_hi15'] = bollinger_hband_indicator(df1["Close"], n=15, ndev=2, fillna=True)
-    df1['bb_lo15'] = bollinger_lband_indicator(df1["Close"], n=15, ndev=2, fillna=True)
-    df1['bb_hi20'] = bollinger_hband_indicator(df1["Close"], n=20, ndev=2, fillna=True)
-    df1['bb_lo20'] = bollinger_lband_indicator(df1["Close"], n=20, ndev=2, fillna=True)
-    df1['bb_hi50'] = bollinger_hband_indicator(df1["Close"], n=50, ndev=2, fillna=True)
-    df1['bb_lo50'] = bollinger_lband_indicator(df1["Close"], n=50, ndev=2, fillna=True)
-    df1['bb_hi200'] = bollinger_hband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
-    df1['bb_lo200'] = bollinger_lband_indicator(df1["Close"], n=200, ndev=2, fillna=True)
-
-    #bug in adx always return 20
-    # df1['ADX08'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=8, fillna=True)
-    # df1['ADX14'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=14, fillna=True)
-    # df1['ADX20'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=20, fillna=True)
-    # df1['ADX50'     ] = adx      (df1["High"], df1["Low"], df1["Close"], n=50, fillna=True)
-    df1['AROONUP08'] = aroon_up  (df1["Close"], n=8, fillna=True)
-    df1['AROONDN08'] = aroon_down(df1["Close"], n=8, fillna=True)
-    df1['AROONUP14'] = aroon_up  (df1["Close"], n=14, fillna=True)
-    df1['AROONDN14'] = aroon_down(df1["Close"], n=14, fillna=True)
-    df1['AROONUP20'] = aroon_up  (df1["Close"], n=20, fillna=True)
-    df1['AROONDN20'] = aroon_down(df1["Close"], n=20, fillna=True)
-    df1['AROONUP50'] = aroon_up  (df1["Close"], n=50, fillna=True)
-    df1['AROONDN50'] = aroon_down(df1["Close"], n=50, fillna=True)
-
-
-    df1['CCI08'] =cci(df1["High"], df1["Low"], df1["Close"], n=8, fillna=True)
-    df1['CCI20'] =cci(df1["High"], df1["Low"], df1["Close"], n=20, fillna=True)
-    df1['CCI40'] =cci(df1["High"], df1["Low"], df1["Close"], n=40, fillna=True)
-    df1['CCI80'] =cci(df1["High"], df1["Low"], df1["Close"], n=80, fillna=True)
-
-
-    df1['rsi2' ] = rsi(df1["Close"], n=2 , fillna=True)
-    df1['rsi3' ] = rsi(df1["Close"], n=3 , fillna=True)
-    df1['rsi4' ] = rsi(df1["Close"], n=4 , fillna=True)
-    df1['rsi5' ] = rsi(df1["Close"], n=5 , fillna=True)
-    df1['rsi6' ] = rsi(df1["Close"], n=6 , fillna=True)
-    df1['rsi7' ] = rsi(df1["Close"], n=7 , fillna=True)
-    df1['rsi8' ] = rsi(df1["Close"], n=8 , fillna=True)
-    df1['rsi9' ] = rsi(df1["Close"], n=9 , fillna=True)
-    df1['rsi10'] = rsi(df1["Close"], n=10, fillna=True)
-    df1['rsi12'] = rsi(df1["Close"], n=12, fillna=True)
-    df1['rsi15'] = rsi(df1["Close"], n=15, fillna=True)
-    df1['rsi20'] = rsi(df1["Close"], n=20, fillna=True)
-    df1['rsi50'] = rsi(df1["Close"], n=50, fillna=True)
-
-    df1['stoc10' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=10 , fillna=True)
-    df1['stoc12' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=12 , fillna=True)
-    df1['stoc15' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=15 , fillna=True)
-    df1['stoc20' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=20 , fillna=True)
-    df1['stoc50' ] = stoch(df1["High"], df1["Low"], df1["Close"], n=50 , fillna=True)
-    df1['stoc150'] = stoch(df1["High"], df1["Low"], df1["Close"], n=150, fillna=True)
-    df1['stoc175'] = stoch(df1["High"], df1["Low"], df1["Close"], n=175, fillna=True)
-    df1['stoc200'] = stoch(df1["High"], df1["Low"], df1["Close"], n=200, fillna=True)
-    df1['stoc225'] = stoch(df1["High"], df1["Low"], df1["Close"], n=225, fillna=True)
-
-    df1['mom5' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=5 , fillna=True)
-    df1['mom6' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=6 , fillna=True)
-    df1['mom7' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=7 , fillna=True)
-    df1['mom8' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=8 , fillna=True)
-    df1['mom9' ] = wr(df1["High"], df1["Low"], df1["Close"], lbp=9 , fillna=True)
-    df1['mom10'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=10, fillna=True)
-    df1['mom12'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=12, fillna=True)
-    df1['mom15'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=15, fillna=True)
-    df1['mom20'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=20, fillna=True)
-    df1['mom50'] = wr(df1["High"], df1["Low"], df1["Close"], lbp=50, fillna=True)
-
-    # df1['pct_change1']=df1.pct_change()
-    # df1['pct_change2']=df1.pct_change(periods=2)
-    # for i in range(10):
-    #     #res.append(sigmoid(block[i + 1] - block[i]))
-    #     df1[f'diff{i}'] = np.log(df1[i + 1] / df1[i])
-
-    # df1['mom']=pandas.stats.
-    df1 = df1[-(df1.shape[0] - skip_first_lines):]  # skip 1st x rows, x years due to NAN in sma, range
-    df1['nvo'] = df1['Volume'] / df1['sma10'] / 100  # normalized volume
-    df1['nvolog'] = np.log(df1['nvo'])  # normalized volume
-    #both not stationary
-
-    # df/df.iloc[0,:]
-    df1['log_sma8'  ] = np.log(df1['Close' ] / df1['sma8'])
-    df1['log_sma9'  ] = np.log(df1['Close' ] / df1['sma9'])
-    df1['log_sma10' ] = np.log(df1['Close' ] / df1['sma10'])
-    df1['log_sma12' ] = np.log(df1['sma10' ] / df1['sma12'])
-    df1['log_sma15' ] = np.log(df1['sma10' ] / df1['sma15'])  # small sma above big sma indicates that price is going up
-    df1['log_sma20' ] = np.log(df1['sma10' ] / df1['sma20'])  # small sma above big sma indicates that price is going up
-    df1['log_sma25' ] = np.log(df1['sma10' ] / df1['sma25'])  # small sma above big sma indicates that price is going up
-    df1['log_sma50' ] = np.log(df1['sma20' ] / df1['sma50'])  # small sma above big sma indicates that price is going up
-    df1['log_sma200'] = np.log(df1['sma50' ] / df1['sma200']) # small sma above big sma indicates that price is going up
-    df1['log_sma400'] = np.log(df1['sma200'] / df1['sma400']) # small sma above big sma indicates that price is going up
-
-    df1['rel_bol_hi08' ] = np.log(df1['High'] / df1['bb_hi08'])
-    df1['rel_bol_lo08' ] = np.log(df1['Low' ] / df1['bb_lo08'])
-    df1['rel_bol_hi09' ] = np.log(df1['High'] / df1['bb_hi09'])
-    df1['rel_bol_lo09' ] = np.log(df1['Low' ] / df1['bb_lo09'])
-    df1['rel_bol_hi10' ] = np.log(df1['High'] / df1['bb_hi10'])
-    df1['rel_bol_lo10' ] = np.log(df1['Low' ] / df1['bb_lo10'])
-    df1['rel_bol_hi12' ] = np.log(df1['High'] / df1['bb_hi12'])
-    df1['rel_bol_lo12' ] = np.log(df1['Low' ] / df1['bb_lo12'])
-    df1['rel_bol_hi15' ] = np.log(df1['High'] / df1['bb_hi15'])
-    df1['rel_bol_lo15' ] = np.log(df1['Low' ] / df1['bb_lo15'])
-    df1['rel_bol_hi20' ] = np.log(df1['High'] / df1['bb_hi20'])
-    df1['rel_bol_lo20' ] = np.log(df1['Low' ] / df1['bb_lo20'])
-    df1['rel_bol_hi50' ] = np.log(df1['High'] / df1['bb_hi50'])
-    df1['rel_bol_lo50' ] = np.log(df1['Low' ] / df1['bb_lo50'])
-    df1['rel_bol_hi200'] = np.log(df1['High'] / df1['bb_hi200'])
-    df1['rel_bol_lo200'] = np.log(df1['Low' ] / df1['bb_lo200'])
-
-    # df1['isUp'] = 0
-    print(df1)
-    # print ('\ndf1=\n',df1.tail())
-    # print ('\nsma_10=\n',df1['sma10'] )
-    # print ('\nsma_200=\n',df1['sma200'] )
-    # print ('\nrsi10=\n',df1['rsi10'] )
-    # print ('\nrsi5=\n',df1['rsi5'] )
-    # print ('\nstoc10=\n',df1['stoc10'] )
-    # print ('\nstoc200=\n',df1['stoc200'] )
-    # print ('\nrangesma=\n',df1['rangesma'])
-    # print ('\nrangesma4=\n',df1['rangesma4'])
-    # print ('\nrel_bol_hi10=\n',df1['rel_bol_hi10'])
-    # print ('\nrel_bol_hi200=\n',df1['rel_bol_hi200'])
-
-    # df1['sma4002' ] = sma
-    # df1['ema' ] = ema
-    # df1['macd' ] = macd
-    # df1['stoc' ] = stoc
-    # df1['rsi' ] = rsi
-    # tech_ind = pd.concat([sma, ema, macd, stoc, rsi, adx, cci, aroon, bands, ad, obv, wma, mom, willr], axis=1)
-
-    ## labeling
-    df1['range2'    ] = df1['Close'].shift(2)  - df1['Open'].shift(2) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
-    df1['range1'    ] = df1['Close'].shift(1)  - df1['Open'].shift(1) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
-    df1['range0'    ] = df1['Close'].shift(0)  - df1['Open'].shift(0) #df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
-    #df1['R_C0_C1'] = df1['Close'] / df1['Close'].shift(1)
-    df1.loc[df1.range1  > 0.0, 'isPrev1Up'] = 1
-    df1.loc[df1.range1 <= 0.0, 'isPrev1Up'] = 0
-    df1.loc[df1.range2  > 0.0, 'isPrev2Up'] = 1
-    df1.loc[df1.range2 <= 0.0, 'isPrev2Up'] = 0
-    #df1['rangebug1'] = df1['Close'].shift(1)  - df1['Open'].shift(1) #bug!!! df1['Close'].shift() - df1['Open'].shift()  or df1['Close'].shift(1) - df1['Close']
-    #df1['rangebug2'] = df1['Close'].shift(0)  - df1['Open'].shift(0) #bug!!!  need to use  df.loc[i-1, 'Close'] or df1['Close'] - df1['Close'].shift(1)
-    #https://github.com/pylablanche/gcForest/issues/2
-
-
-    df1['isPrev1Up'] = df1['isPrev1Up'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
-    df1['isPrev2Up'] = df1['isPrev2Up'] .fillna(0)#.astype(int)#https://github.com/pylablanche/gcForest/issues/2
-    df1['isPrev1Up'] = df1['isPrev1Up'].astype(int)
-    df1['isPrev2Up'] = df1['isPrev2Up'].astype(int)
-
-
-
-    pd.set_option('display.max_columns', 500)
-    pd.set_option('display.width', 1000)
-    pd.options.display.float_format = '{:.2f}'.format
-    print('columns=', df1.columns)
-    print('\ndf1=\n', df1.loc[:, ['sma10', 'sma20', 'sma50', 'sma200', 'log_sma20']])
-    print('\ndf1=\n', df1.loc[:, ['rsi10', 'rsi20', 'rsi50', 'rsi5', 'nvo', 'High', 'Low']])
-    print('\ndf1=\n', df1.loc[:, ['stoc10', 'stoc20', 'stoc50', 'stoc200']])
-    print('\ndf1=\n', df1.loc[:, ['bb_hi10', 'bb_hi20', 'bb_hi50', 'bb_hi200']])  # , 'sma4002']])
-    print('\ndf1=\n', df1.loc[:, ['bb_lo10', 'bb_lo20', 'bb_lo50', 'bb_lo200']])  # , 'sma4002']])
-    print('\ndf1=\n', df1.loc[:, ['rel_bol_hi10', 'rel_bol_hi20', 'rel_bol_hi50', 'rel_bol_hi200']])  # , 'sma4002']])
-    print('\ndf1[ 0]=\n', df1.iloc[0])  # , 'sma4002']])
-    #print('\ndf1[ 1]=\n', df1.iloc[1])  # , 'sma4002']])
-    #print('\ndf1[9308]=\n', df1.iloc[9308])  # , 'sma4002']])
-    #print('\ndf1[-2]=\n', df1.iloc[-2])  # , 'sma4002']])
-    print('\ndf1[-1]=\n', df1.iloc[-1])  # , 'sma4002']])
-    print('\ndf1=\n', df1.loc[:, [ 'Open', 'Close',  'range0', 'isPrev2Up','isPrev1Up']])
-
-    print('\ndf12 describe=\n', df1.loc[:,
-                                [
-                                 #    'ADX08',
-                                 # 'ADX14',
-                                 # 'ADX20',
-                                 # 'ADX50',
-                                 'AROONUP08',
-                                 'AROONDN08',
-                                 'AROONUP14',
-                                 'AROONDN14',
-                                 'AROONUP20',
-                                 'AROONDN20',
-                                 'AROONUP50',
-                                 'AROONDN50'
-
-                                 ]].describe())
-
-    print('\ndf11 describe=\n', df1.loc[:,
-                                ['nvo', 'mom5', 'mom10', 'mom20', 'mom50',       'log_sma10', 'log_sma20', 'log_sma50', 'log_sma200', 'log_sma400',
-                                 # 'sma10', 'sma20', 'sma50', 'sma200', 'sma400', 'bb_hi10', 'bb_lo10',
-                                 # 'bb_hi20', 'bb_lo20', 'bb_hi50', 'bb_lo50', 'bb_hi200', 'bb_lo200'
-                                 'rel_bol_hi10',  'rel_bol_lo10', 'rel_bol_hi20']].describe())
-                                                                                   #'rel_bol_lo20', 'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200',
-                              #   'rsi10', 'rsi20', 'rsi50', 'rsi5',        'stoc10', 'stoc20', 'stoc50', 'stoc200',]].describe())
-
-    df1 = df1.round(4)
-
-    return df1
 
 
 def create_target_label(df1, size_output, use_random_label):
@@ -883,10 +663,12 @@ def create_target_label(df1, size_output, use_random_label):
 
             #df1.loc[df1.range0  > 0.0, 'isUp'] = 1  # up
             #df1.loc[df1.range0 <= 0.0, 'isUp'] = 0  # dn
-        if size_output == 3:
+        elif size_output == 3:
             df1['isUp'] = 2  # hold
             df1.loc[df1.percentage >= +0.1, 'isUp'] = 1  # up
             df1.loc[df1.percentage <= -0.1, 'isUp'] = 0  # dn  # df1.loc[(-0.1 < df1.percentage <  +0.1), 'isUp'] =  0
+        else:
+            raise ValueError(f'Error. {size_output} is unsupported size_output. only 2 and 3 are supported')
     shift = -1  # -1
     df1['target'] = df1['isUp'].shift(shift)  # isNextBarUp: today's dataset  procuce  prediction is tommorow is up
     df1['target'] = df1['target'].fillna(0)  # .astype(int)#https://github.com/pylablanche/gcForest/issues/2

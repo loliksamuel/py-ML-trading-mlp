@@ -47,14 +47,14 @@ pd.options.display.float_format = '{:.2f}'.format
                                     #random          88                       90      92   how????
 mlp_trading_old = MlpTrading_old()  # iris-ft        92                       90      94            92    86         94  90  -
 mlp_trading_old.execute(            # iris+ft        94                       92      94            90    84    -    96  92  -
-                         model_type   ='all' # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2   ker  lstm gaus rf lr
-                        ,data_type    ='iris'#^GSPC ^GSPC2 ^GSPC3 iris random
+                         model_type   ='gaus' # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2   ker  lstm gaus rf lr
+                        ,data_type    ='spy283'# spy71  spy283   spyp71  spyp283  iris  random
                         ,use_random_label = False
-                        ,use_raw_data     = False
+                        ,use_raw_data     = True
                         ,use_feature_tool = False
                         ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
-                        ,epochs      =600  # best 600
-                        ,size_hidden =160  #best 160 for GSPC  or 16 for iris, random
+                        ,epochs      =60  # best 600
+                        ,size_hidden =16  #best 160 for GSPC  or 16 for iris, random
                         ,batch_size  =128  #best 128 for GSPC  or  1 for iris, random
                         ,percent_test_split=0.33  #best .33
                         ,lr          =0.002  # default=0.001   best=0.00001 or 0.002, for mlp, 0.0001 for lstm
@@ -66,7 +66,7 @@ mlp_trading_old.execute(            # iris+ft        94                       92
                         ,activation  ='softmax'  #sigmoid',#softmax',
                         ,loss        ='categorical_crossentropy'  #binary_crossentropy #categorical_crossentropy
                         ,verbose     = 2  # 0, 1, 2
-                        #,names_output= ['Green bar', 'Red Bar']  #, 'Hold Bar'],  #bug on adding 3rd class classify all to green
+                        ,names_output= ['Green bar', 'Red Bar']  #, 'Hold Bar'],  #bug on adding 3rd class classify all to green
 
                         #,names_input = []
                         #   'rel_bol_hi08',  'rel_bol_lo08', 'rel_bol_hi09', 'rel_bol_lo09', 'rel_bol_hi10', 'rel_bol_lo10', 'rel_bol_hi12','rel_bol_lo12', 'rel_bol_hi15','rel_bol_lo15', 'rel_bol_hi20', 'rel_bol_lo20',    'rel_bol_hi50', 'rel_bol_lo50',  'rel_bol_hi200', 'rel_bol_lo200'

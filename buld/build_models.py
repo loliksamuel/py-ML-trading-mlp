@@ -28,7 +28,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from buld.utils import data_load_and_transform, plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label, reduce_mem_usage, feature_tool, reduce_mem_usage2
+from buld.utils import plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label, reduce_mem_usage, feature_tool, reduce_mem_usage2, symbol_to_path, data_clean
+from data.features.features import Features
 from data.features.transform import max_min_normalize, log_and_difference
 
 
@@ -57,7 +58,7 @@ class MlpTrading_old(object):
                 , data_type     = '^GSPC' #^GSPC GSPC2 iris random
                 , model_type    ='drl'  #mlp lstm drl xgb gridxgb 'gridmlp','ker',
                 #, names_input  = ['nvo']
-                #, names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
+                , names_output = ['Green bar', 'Red Bar']  # # , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
                 , skip_days    = 3600
                 , epochs       = 500
                 , size_hidden  = 15
@@ -82,7 +83,7 @@ class MlpTrading_old(object):
 
         #self.names_output = names_output# , 'Hold Bar']#Green bar', 'Red Bar', 'Hold Bar'
         #self.names_input  = names_input
-        #self.size_output  = len(self.names_output)
+        self.size_output  = len(names_output)
         #self.size_input   = len(self.names_input)-1
 
         data_path_all = path.join('files', 'input', f'{data_type}')
@@ -106,12 +107,14 @@ class MlpTrading_old(object):
         self.names_input = list(map(str, self.names_input))
         self.size_input   = len(self.names_input)
         self.size_output  = len(self.names_output)
-        print(f'size in {self.size_input}, out {self.size_output}, names out {self.names_output }')
+        print(f'size in={self.size_input}, out={self.size_output}, names out={self.names_output }')
         print(f'df_y.describe()=\n{df_y.describe()}')
         print(f'\ndf_y[5]={df_y.shape}\n',df_y.head(5))
         print(f'\ndf_x[1]={df_x.shape}\n',df_x.head(1))
         #print('\ndf_x describe\n', df_x.describe())
-
+        #print(f'length of {data_type}={len(df_y)}')
+        #print('\ndft describe=\n', dft.loc[:,  ['target' ]].describe())
+        #print(dft.tail())
         print('\n======================================')
         print('\nsplitting rows to train+test')
         print('\n======================================')
@@ -202,6 +205,111 @@ class MlpTrading_old(object):
         else:
             print('unsupported model. exiting')
             exit(0)
+
+
+    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, data_type=3, use_feature_tool=True):
+
+        if (data_type == 'iris'):#iris data 3 classes
+            print('\n======================================')
+            print(f'Loading  iris data ')
+            print('\n======================================')
+            iris = load_iris()#return_X_y=True)
+
+            #df_data = pd.DataFrame(iris.data, columns=iris.feature_names)
+            df_data = pd.DataFrame( data   = np.c_[iris['data'], iris['target']]
+                                    , columns= iris ['feature_names'] + ['target'])
+            df_data = df_data.sample(frac=1)#shuffle cause the first 100 samples are 0
+            #df_x,df_y = shuffle(X, y)
+            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            df_x = df_data.drop(columns=['target'])
+
+
+        elif (data_type == 'random'): #random 2 classes
+            print('\n======================================')
+            print(f'Loading random binary data ')
+            print('\n======================================')
+            random_state = np.random.RandomState(0)
+            n_samples    = 200
+            X            = random_state.rand(n_samples, 2)
+            y            = np.ones(n_samples)
+            y[X[:, 0] + 0.1 * random_state.randn(n_samples) < 0.5] = 0.0
+
+            df_y = pd.DataFrame( data   = np.c_[y]
+                                 , columns= ['target'] )
+            df_x = pd.DataFrame( data   = np.c_[X]
+                                 , columns= ['f1','f2']  )
+
+        elif data_type.startswith('spy'):
+            if (data_type == 'spyp283'):
+                data_path = path.join('files', 'input', '^GSPC_1998_2019_v2_vec283.csv')
+                print(f'Loading from disc prepared data3 :{data_path} ')
+                df_data = pd.read_csv(data_path)
+
+                df_data.drop(columns=[  'TRIX50', 'v_obv'], axis=1, inplace=True)
+                features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo',  'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50']#,'v_obv', 'TRIX50']
+                print(f'before stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
+                #df_data = max_min_normalize (df_data, inplace = False, columns=features_to_stationarize)
+                df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
+                df_data = create_target_label(df_data,2,False)
+                df_data.drop(columns=[ 'High', 'range0', 'isUp', 'percentage'], axis=1, inplace=True)
+
+            elif (data_type == 'spyp71'):
+                data_path     = path.join('files', 'input', '^GSPC_1964_2019_v1_vec71.csv')
+                print(f'Loading from disc prepared data2 :{data_path} ')
+                df_data = pd.read_csv(data_path)
+                #df_data.drop(columns=[ 'High', 'range0', 'isUp', 'percentage'], axis=1, inplace=True)
+
+            elif (data_type == 'spy71' or data_type == 'spy283'):
+                #df_data = data_load_and_transform  (self.symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = skip_days, size_output=self.size_output, use_random_label=use_random_label, feature_src='ta')
+                print(f'\nLoading from disc raw data using {data_type} features')
+                fetures = Features(skip_first_lines=skip_days)
+
+                #dfc = data_clean(df1)
+                if data_type == 'spy71':
+                    data_path     = path.join('files', 'input', '^GSPC_1950_2019_v1_vec7.csv')
+                    data_path = pd.read_csv(data_path#symbol_to_path('^GSPC')#^GSPC.csv
+                                      # , index_col='Date'
+                                      # , parse_dates=True
+                                      , usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume']
+                                      , na_values=['nan'])
+                    df_data  = fetures.add_features(data_path, 71)
+                    #features_to_stationarize = [ 'High', 'Close']
+                    #print(f'before stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
+                    #df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
+                    ###df_data = data_transform(dfc, skip_days ,self.size_output, use_random_label)
+                elif data_type == 'spy283': #^GSPC_1998_2019_v2_vec12
+                    data_path     = path.join('files', 'input', '^GSPC_1998_2019_v2_vec12.csv')
+                    data_path = pd.read_csv(data_path)
+                    df_data  = fetures.add_features(data_path, 283)
+                    df_data.drop(columns=[  'TRIX50', 'v_obv'], axis=1, inplace=True)
+                    features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo',  'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50']#,'v_obv', 'TRIX50']
+                    print(f'before stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
+                    #df_data = max_min_normalize (df_data, inplace = False, columns=features_to_stationarize)
+                    df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
+                    #df_data.drop(columns=[ 'isUp'], axis=1, inplace=True)
+
+                df_data = create_target_label(df_data, self.size_output, use_random_label)
+                df_data.drop(columns=[ 'High', 'range0', 'isUp', 'percentage'], axis=1, inplace=True)
+
+            df_data.drop(columns=['Date'], axis=1, inplace=True)
+            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
+            df_x = df_data.drop(columns=['target'])
+            #df_x = data_clean(df_x)
+        else:
+            raise ValueError(  'Error: unknown data type')
+
+        # self._plot_features(dft)
+        #  https://www.oipapio.com/question-3322022
+        # df_all = df_all.values.reshape(samples,timestamps,features)
+        df_x = df_x.round(self.precision)
+        df_x.style.format("{:.4f}")
+        #df_x, df_y = self._data_rebalance(df_x, df_y)
+        #df_x = reduce_mem_usage(df_x)
+        if use_feature_tool == True:
+            df_x = feature_tool(df_x)
+
+
+        return df_x, df_y
 
     def model_create_grid_mlp(self):
         print("use_grid_search")
@@ -380,129 +488,9 @@ class MlpTrading_old(object):
         return model
 
 
-    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, data_type=3, use_feature_tool=True):
-
-        if (data_type == 'iris'):#iris data 3 classes
-            print('\n======================================')
-            print(f'Loading  iris data ')
-            print('\n======================================')
-            iris = load_iris()#return_X_y=True)
-
-            #df_data = pd.DataFrame(iris.data, columns=iris.feature_names)
-            df_data = pd.DataFrame( data   = np.c_[iris['data'], iris['target']]
-                                  , columns= iris ['feature_names'] + ['target'])
-            df_data = df_data.sample(frac=1)#shuffle cause the first 100 samples are 0
-            #df_x,df_y = shuffle(X, y)
-            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
-            df_x = df_data.drop(columns=['target'])
-
-
-        elif (data_type == 'random'): #random 2 classes
-            print('\n======================================')
-            print(f'Loading random binary data ')
-            print('\n======================================')
-            random_state = np.random.RandomState(0)
-            n_samples    = 200
-            X            = random_state.rand(n_samples, 2)
-            y            = np.ones(n_samples)
-            y[X[:, 0] + 0.1 * random_state.randn(n_samples) < 0.5] = 0.0
-
-            df_y = pd.DataFrame( data   = np.c_[y]
-                                 , columns= ['target'] )
-            df_x = pd.DataFrame( data   = np.c_[X]
-                                 , columns= ['f1','f2']  )
-
-        elif (data_type == '^GSPC3'):
-            data_path = path.join('files', 'input', '^GSPC_1998_2019_v2_vec283.csv')
-            print('\n======================================')
-            print(f'Loading from disc prepared data3 :{data_path} ')
-            print('\n======================================')
-            df_data = pd.read_csv(data_path)
-
-            df_data.drop(columns=[  'TRIX50', 'v_obv'], axis=1, inplace=True)
-            features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo',  'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50']#,'v_obv', 'TRIX50']
-            print(f'before stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
-            #df_data = max_min_normalize (df_data, inplace = False, columns=features_to_stationarize)
-            df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
-            df_data = create_target_label(df_data,2,False)
-            df_data.drop(columns=[  'High', 'isUp','range0', 'percentage', 'Date'], axis=1, inplace=True)
-            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
-            df_x = df_data.drop(columns=['target'])
-
-        elif (data_type == '^GSPC2'):
-            data_path     = path.join('files', 'input', '^GSPC_1964_2019_v1_vec71.csv')
-            print('\n======================================')
-            print(f'Loading from disc prepared data2 :{data_path} ')
-            print('\n======================================')
-            df_data = pd.read_csv(data_path)
-            df_data.drop(columns=['Date'], axis=1, inplace=True)
-            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
-            df_x = df_data.drop(columns=['target'])
-
-        elif (data_type == '^GSPC'):
-            print('\n======================================')
-            print('\nLoading from disc raw data')
-            print('\n======================================')
-            df_all = self._data_load(skip_days, self.size_output,  use_random_label)
-            # print('\n======================================')
-            # print('\nPlotting features')
-            # print('\n======================================')
-            # self._plot_features(df_all)
-            print('\n======================================')
-            print('\nselecting features')
-            print('\n======================================')
-            df_data = self._data_select_features(df_all)
-            print('\n======================================')
-            print('\nCleaning the data')
-            print('\n======================================')
-            df_data = self._data_clean(df_data)
-
-            print('\n======================================')
-            print('\nsplitting cols to data+label')
-            print('\n======================================')
-            #df_data.to_csv(data_path)
-
-            df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
-            df_x = df_data.drop(columns=['target'])
-
-        else:
-            raise ValueError(  'Error: unknown data type')
-
-        print(f'len {data_type}={len(df_y)}')
-        #df_x, df_y = self._data_rebalance(df_x, df_y)
-        #df_x = reduce_mem_usage(df_x)
-        if use_feature_tool == True:
-            df_x = feature_tool(df_x)
-
-
-        return df_x, df_y
 
 
 
-
-
-    # |--------------------------------------------------------|
-    # |                                                        |
-    # |--------------------------------------------------------|
-    def _data_load(self, skip_days, size_output, use_random_label=False):
-        df_all = data_load_and_transform(self.symbol, usecols=['Date', 'Close', 'Open', 'High', 'Low', 'Adj Close', 'Volume'], skip_first_lines = skip_days, size_output=size_output, use_random_label=use_random_label)
-        # df_all = df_all.loc[:, self.names_input]
-        # print('\ndf_all describe=\n', df_all.loc[:,
-        #                               self.names_input].describe())
-
-        # print('df_all.shape=',df_all.shape)
-        # df_all = format_to_lstm(df_all)
-        # print('df_all.shape=',df_all.shape)
-        #columns = [df_all.shift(i) for i in range()]
-        #df_all = pd.concat(columns, axis=1)
-        # samples    = df_all.shape[0]
-        # timestamps = 3
-        # features   = df_all.shape[1]
-        # #df_all = df_all.reshape ((df_all.shape[0], df_all.shape[1], 1))
-        #  https://www.oipapio.com/question-3322022
-        # df_all = df_all.values.reshape(samples,timestamps,features)
-        print(df_all.tail())
-        return df_all
 
 
     # |--------------------------------------------------------|
@@ -544,20 +532,7 @@ class MlpTrading_old(object):
 
 
 
-    def _data_select_features(self, df):
-        elements = df.size
-        shape = df.shape
-        df_data = df.loc[:, self.names_input]
-        print(df_data.dtypes)
-        df_data = df_data.round(self.precision)
-        df_data.style.format("{:.4f}")
-        # today = datetime.date.today()
-        # file_name = self.symbol+'_prepared_'+str(today)+'.csv'
-        # df_data.to_csv(file_name)
-        print('columns=', df_data.columns)
-        print('\ndata describe=\n', df_data.describe())
-        print(f'shape={str(shape)} >> {df_data.shape},  elements={str(elements)}, rows={str(shape[0])}')
-        return df_data
+
 
     # |--------------------------------------------------------|
     # |                                                        |
@@ -592,6 +567,9 @@ class MlpTrading_old(object):
     # |                                                        |
     # |--------------------------------------------------------|
     def _data_clean(self, df):
+        print('\n======================================')
+        print('\nCleaning the data')
+        print('\n======================================')
         return df
 
     # |--------------------------------------------------------|
@@ -909,3 +887,22 @@ var =      [ 0.  , 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0
                        , title='TA-diff bw 2 sma - Gaussian data'
                        , xlabel='diff bw 2 sma 10,20  '
                        , ylabel='count')
+
+
+
+    #def _data_select_features(self, df):
+    #print('\n======================================')
+    #print('\nselecting features')
+    #print('\n======================================')
+    #elements = df.size
+    #shape = df.shape
+    #df_data = df.loc[:, self.names_input]
+    #print(df_data.dtypes)
+
+    # today = datetime.date.today()
+    # file_name = self.symbol+'_prepared_'+str(today)+'.csv'
+    # df_data.to_csv(file_name)
+    #print('columns=', df_data.columns)
+    #print('\ndata describe=\n', df_data.describe())
+    #print(f'shape={str(shape)} >> {df_data.shape},  elements={str(elements)}, rows={str(shape[0])}')
+    #return df_data
