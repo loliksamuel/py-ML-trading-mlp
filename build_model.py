@@ -41,16 +41,16 @@ priority | done | name
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 pd.options.display.float_format = '{:.2f}'.format
-                                    #GSPC3+ft
+                                    #GSPC3+ft                                         53            53               53  51
                                     #GSPC3-ft                                         53            49               53  51
                                     #GSPC2                                            49            48               52  51
                                     #random          88                       90      92   how????
 mlp_trading_old = MlpTrading_old()  # iris-ft        92                       90      94            92    86         94  90  -
 mlp_trading_old.execute(            # iris+ft        94                       92      94            90    84    -    96  92  -
                          model_type   ='all' # all  xgb  gridxgb     gridmlp  mlp    svc gridsvc   mlp2   ker  lstm gaus rf lr
-                        ,data_type    ='^GSPC2'#^GSPC ^GSPC2 ^GSPC3 iris random
+                        ,data_type    ='iris'#^GSPC ^GSPC2 ^GSPC3 iris random
                         ,use_random_label = False
-                        ,use_raw_data     = True
+                        ,use_raw_data     = False
                         ,use_feature_tool = False
                         ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
                         ,epochs      =600  # best 600
