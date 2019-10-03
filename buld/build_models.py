@@ -28,7 +28,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from buld.utils import plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label, reduce_mem_usage, feature_tool, reduce_mem_usage2, symbol_to_path, data_clean
+from buld.utils import plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label, reduce_mem_usage, feature_tool, reduce_mem_usage2, symbol_to_path, data_clean, format_col_date
 from data.features.features import Features
 from data.features.transform import max_min_normalize, log_and_difference
 
@@ -141,11 +141,11 @@ class MlpTrading_old(object):
         print(f'\nrunning with modelType {model_type}, data_type={data_type}')
         if model_type == 'all':
             kernel2 = 'linear' #SVC(kernel='rbf')#{'C': 1.0, 'gamma': 0.1} with a score of 0.97
-            models = [ GaussianNB            ()
-                      ,SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)
-                      ,RandomForestClassifier(random_state=5, n_estimators=170, max_depth=20)#50.84 %
-                      ,MLPClassifier         (random_state=5, hidden_layer_sizes=(350,))#50.86 %
-                     ]
+            models =  [SVC                   (random_state=5, kernel=kernel2, C=1, gamma=0.1)
+                      ,MLPClassifier         (random_state=5, hidden_layer_sizes= (250,150,100,50,20,10,5,), shuffle=False, activation='relu', solver='adam', batch_size=batch_size, max_iter=epochs, learning_rate_init=lr)#50.86 %  #activation=('identity', 'logistic', 'tanh', 'relu'),  solver : {'lbfgs', 'sgd', 'adam'}, default 'adam'
+                      ,GaussianNB            (var_smoothing=10000000e-9)
+                      ,RandomForestClassifier(random_state=5, n_estimators=370, max_depth=380)#50.84 %
+                     ]# solvers ('sgd', 'adam'), note that this determines the number of epochs
             for model in models:
                 self.params = f'hid{size_hidden}_rms{lr}_epo{epochs}_bat{batch_size}_dro{dropout}_sym{self.symbol}_inp{self.size_input}_out{self.size_output}_{type(model).__name__}'
                 model.fit(self.x_train, self.y_train)
@@ -240,7 +240,7 @@ class MlpTrading_old(object):
                                  , columns= ['f1','f2']  )
 
         elif data_type.startswith('spy'):
-            if (data_type == 'spyp283'):
+            if (data_type == 'spyp283'):#stationarized data
                 data_path = path.join('files', 'input', '^GSPC_1998_2019_v2_vec283.csv')
                 print(f'Loading from disc prepared data3 :{data_path} ')
                 df_data = pd.read_csv(data_path)
@@ -277,17 +277,27 @@ class MlpTrading_old(object):
                     #print(f'before stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
                     #df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
                     ###df_data = data_transform(dfc, skip_days ,self.size_output, use_random_label)
+
+                    #     Date            ,High          , Close            ,  Volume                            , CloseVIX,  SKEW,     STOCH_SLOWK,STOCH_SLOWD,STOCHF_FASTK,STOCHF_FASTD,STOCHRSI_FASTK,STOCHRSI_FASTD,MACD,MACDSIGNAL,MACDHIST,MACDEXT,MACDEXTSIGNAL,MACDEXTHIST,PPO,APO,ULTOSC,BOP,CMO2,MOM2,RSI2,TRIX2,ROC2,ROCP2,ROCR2,ROCR1002,MFI2,ADX2,ADXR2,CCI2,DX2,WILLR2,MINUS_DI2,PLUS_DI2,MINUS_DM2,PLUS_DM2,AROONOSC2,AROONDN2,AROONUP2,MACDFIX2,MACDSIGNALFIX2,MACDHISTFIX2,BBANDH2,BBANDM2,BBANDL2,CMO4,MOM4,RSI4,TRIX4,ROC4,ROCP4,ROCR4,ROCR1004,MFI4,ADX4,ADXR4,CCI4,DX4,WILLR4,MINUS_DI4,PLUS_DI4,MINUS_DM4,PLUS_DM4,AROONOSC4,AROONDN4,AROONUP4,MACDFIX4,MACDSIGNALFIX4,MACDHISTFIX4,BBANDH4,BBANDM4,BBANDL4,CMO8,MOM8,RSI8,TRIX8,ROC8,ROCP8,ROCR8,ROCR1008,MFI8,ADX8,ADXR8,CCI8,DX8,WILLR8,MINUS_DI8,PLUS_DI8,MINUS_DM8,PLUS_DM8,AROONOSC8,AROONDN8,AROONUP8,MACDFIX8,MACDSIGNALFIX8,MACDHISTFIX8,BBANDH8,BBANDM8,BBANDL8,CMO14,MOM14,RSI14,TRIX14,ROC14,ROCP14,ROCR14,ROCR10014,MFI14,ADX14,ADXR14,CCI14,DX14,WILLR14,MINUS_DI14,PLUS_DI14,MINUS_DM14,PLUS_DM14,AROONOSC14,AROONDN14,AROONUP14,MACDFIX14,MACDSIGNALFIX14,MACDHISTFIX14,BBANDH14,BBANDM14,BBANDL14,CMO20,MOM20,RSI20,TRIX20,ROC20,ROCP20,ROCR20,ROCR10020,MFI20,ADX20,ADXR20,CCI20,DX20,WILLR20,MINUS_DI20,PLUS_DI20,MINUS_DM20,PLUS_DM20,AROONOSC20,AROONDN20,AROONUP20,MACDFIX20,MACDSIGNALFIX20,MACDHISTFIX20,BBANDH20,BBANDM20,BBANDL20,CMO30,MOM30,RSI30,TRIX30,ROC30,ROCP30,ROCR30,ROCR10030,MFI30,ADX30,ADXR30,CCI30,DX30,WILLR30,MINUS_DI30,PLUS_DI30,MINUS_DM30,PLUS_DM30,AROONOSC30,AROONDN30,AROONUP30,MACDFIX30,MACDSIGNALFIX30,MACDHISTFIX30,BBANDH30,BBANDM30,BBANDL30,CMO50,MOM50,RSI50,TRIX50,ROC50,ROCP50,ROCR50,ROCR10050,MFI50,ADX50,ADXR50,CCI50,DX50,WILLR50,MINUS_DI50,PLUS_DI50,MINUS_DM50,PLUS_DM50,AROONOSC50,AROONDN50,AROONUP50,MACDFIX50,MACDSIGNALFIX50,MACDHISTFIX50,BBANDH50,BBANDM50,BBANDL50,HT_DCPERIOD,HT_DCPHASE,INPHASE,QUADRATURE,SINE,LEADSINE,HT_TRENDMODE,ATR,NATR,TRANGE,CDL3INSIDE,CDL3LINESTRIKE,CDL3OUTSIDE,CDL3WHITESOLDIERS,CDLADVANCEBLOCK,CDLBELTHOLD,CDLCLOSINGMARUBOZU,CDLDARKCLOUDCOVER,CDLDOJI,CDLDOJISTAR,CDLDRAGONFLYDOJI,CDLENGULFING,CDLEVENINGDOJISTAR,CDLEVENINGSTAR,CDLGAPSIDESIDEWHITE,CDLGRAVESTONEDOJI,CDLHAMMER,CDLHANGINGMAN,CDLHARAMI,CDLHARAMICROSS,CDLHIGHWAVE,CDLHIKKAKE,CDLHIKKAKEMOD,CDLHOMINGPIGEON,CDLIDENTICAL3CROWS,CDLINNECK,CDLINVERTEDHAMMER,CDLLADDERBOTTOM,CDLLONGLEGGEDDOJI,CDLLONGLINE,CDLMARUBOZU,CDLMATCHINGLOW,CDLMORNINGDOJISTAR,CDLMORNINGSTAR,CDLONNECK,CDLPIERCING,CDLRICKSHAWMAN,CDLSEPARATINGLINES,CDLSHOOTINGSTAR,CDLSHORTLINE,CDLSPINNINGTOP,CDLSTALLEDPATTERN,CDLSTICKSANDWICH,CDLTAKURI,CDLTASUKIGAP,CDLTHRUSTING,CDLUNIQUE3RIVER,CDLXSIDEGAP3METHODS,v_nvo,v_obv,v_ad,v_ado,dt_day_sin,dt_wk_sin,dt_month_sin,dt_day_cos,dt_wk_cos,dt_month_cos,R_H0_L0,R_C0_C1,R_C0_C2,R_H0_L0VX,R_C0_C1VX,R_C0_C2VX,range0,range1,range2
+                    #148 ,902275200       ,1084.8        , 1081.4           , 851600000                          , 29.83   , 121.17,
+                    #5431,1566259200      ,2923.6        , 2900.5           ,3066300000                          , 17.5    ,114.78 , 69.34,48.55806891586209,71.09679316492492,69.34
+
+                    #    Date    , Open  , High  , Low  , Close  , Adj Close,  Volume,    OpenVIX,HighVIX,LowVIX,  CloseVIX,  SKEW
+                    #1997-12-31,  970.8 , 975.0 , 967.4,  970.4  ,  970.429 , 467280000  , 24.2  ,24.52  ,23.59 ,  24.01   , 119.62
+                    #2019-08-20,  2919  ,2923.6 ,2899.6,  2900.5 ,  2900.5  ,3066300000  , 16.7  ,17.70  ,16.45 ,  17.5    , 114.78
                 elif data_type == 'spy283': #^GSPC_1998_2019_v2_vec12
-                    data_path     = path.join('files', 'input', '^GSPC_1998_2019_v2_vec12.csv')
+                    data_path = path.join('files', 'input', '^GSPC_1998_2019_v2_vec12.csv')
                     data_path = pd.read_csv(data_path)
-                    df_data  = fetures.add_features(data_path, 283)
+                    df_data   = fetures.add_features(data_path, 283)
+                    df_data   = format_col_date(df_data)
+                    #df_data  = sort_by_date      (df_data     )
                     df_data.drop(columns=[  'TRIX50', 'v_obv'], axis=1, inplace=True)
                     features_to_stationarize = [ 'High', 'Close', 'CloseVIX', 'Volume', 'v_nvo',  'v_ad', 'BBANDH2', 'BBANDM2', 'BBANDL2',  'BBANDH4', 'BBANDM4', 'BBANDL4', 'BBANDH8', 'BBANDM8', 'BBANDL8', 'BBANDH14', 'BBANDM14', 'BBANDL14', 'BBANDH20', 'BBANDM20', 'BBANDL20', 'BBANDH30', 'BBANDM30', 'BBANDL30', 'BBANDH50', 'BBANDM50', 'BBANDL50'  ,    'MINUS_DM30', 'PLUS_DM30', 'MINUS_DM50', 'PLUS_DM50']#,'v_obv', 'TRIX50']
                     print(f'before stationarize describe=\n{df_data.loc[:,  features_to_stationarize].describe()}')
                     #df_data = max_min_normalize (df_data, inplace = False, columns=features_to_stationarize)
                     df_data = log_and_difference(df_data, inplace = False, columns=features_to_stationarize)
                     #df_data.drop(columns=[ 'isUp'], axis=1, inplace=True)
-
+                    #df.drop(columns=['Open', 'Low', 'Adj Close', 'OpenVIX', 'HighVIX', 'LowVIX']
                 df_data = create_target_label(df_data, self.size_output, use_random_label)
                 df_data.drop(columns=[ 'High', 'range0', 'isUp', 'percentage'], axis=1, inplace=True)
 

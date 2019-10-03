@@ -135,9 +135,8 @@ class Features():
         df['dt_day_cos'] = np.cos(pi2 * df['dt_day'] / 7)
         df['dt_wk_cos'] = np.cos(pi2 * df['dt_wk'] / 52)
         df['dt_month_cos'] = np.cos(pi2 * df['dt_month'] / 12)
-        df.drop('dt_day', axis=1, inplace=True)
-        df.drop('dt_wk', axis=1, inplace=True)
-        df.drop('dt_month', axis=1, inplace=True)
+        df.drop(columns=['dt_day', 'dt_wk', 'dt_month'], axis=1, inplace=True)
+
         # data['isFri']
         # data['isMon']
         # data['isDec']

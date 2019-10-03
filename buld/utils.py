@@ -5,6 +5,7 @@ import pandas_datareader.data as pdr
 import itertools
 import os
 
+from datetime import datetime
 import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -28,6 +29,7 @@ from sklearn.utils import resample
 from statsmodels.tsa.stattools import adfuller
 from xgboost import plot_importance, XGBClassifier
 
+from data.features import ProviderDateFormat
 from data.features.features import Features
 
 
@@ -833,6 +835,41 @@ def reduce_mem_usage(df):
     print('Decreased by {:.1f}%'.format(100 * (start_mem - end_mem) / start_mem))
 
     return df
+
+def format_col_date(df: pd.DataFrame, inplace: bool = True) -> pd.DataFrame:
+    if inplace is True:
+        formatted = df
+    else:
+        formatted = df.copy()
+
+    COL_DATE = 'Date'#self.columns_map['Date']
+    dfc = formatted.loc[:, COL_DATE]
+    PP = ProviderDateFormat.ProviderDateFormat
+    date_format = PP.DATETIME_HOUR_24
+    if date_format is PP.TIMESTAMP_UTC:
+        formatted[COL_DATE] = dfc.apply(lambda x: datetime.utcfromtimestamp(x).strftime('%Y-%m-%d %H:%M'))
+        formatted[COL_DATE] = pd.to_datetime(dfc, format='%Y-%m-%d %H:%M')
+    elif date_format is PP.TIMESTAMP_MS:
+        formatted[COL_DATE] = pd.to_datetime(dfc, unit='ms')
+    elif date_format is PP.DATETIME_HOUR_12:
+        formatted[COL_DATE] = pd.to_datetime(dfc, format='%Y-%m-%d %I-%p')
+    elif date_format is PP.DATETIME_HOUR_24:
+        formatted[COL_DATE] = pd.to_datetime(dfc, format='%Y-%m-%d %H')
+    elif date_format is PP.DATETIME_MINUTE_12:
+        formatted[COL_DATE] = pd.to_datetime(dfc, format='%Y-%m-%d %I:%M-%p')
+    elif date_format is PP.DATETIME_MINUTE_24:
+        formatted[COL_DATE] = pd.to_datetime(dfc, format='%Y-%m-%d %H:%M')
+    elif date_format is PP.DATE:
+        formatted[COL_DATE] = pd.to_datetime(dfc, format='%Y-%m-%d')
+    elif date_format is PP.CUSTOM_DATIME:
+        formatted[COL_DATE] = pd.to_datetime(dfc, format=None, infer_datetime_format=True)
+    else:
+        raise NotImplementedError
+
+
+    formatted[COL_DATE] = formatted[COL_DATE].values.astype(np.int64) // 10 ** 9
+
+    return formatted
 #
 # y_pred = [0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,
 #           0, 1, 0, 0, 1]

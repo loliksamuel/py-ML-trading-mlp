@@ -1,24 +1,24 @@
 import pandas as pd
+import numpy as np
 import os
 from typing import Tuple, Dict
-from lib.data.features.features import Features
-from lib.data.providers.dates import ProviderDateFormat
-from lib.data.providers import BaseDataProvider
+
+from buld.utils import format_col_date
+from data.features import ProviderDateFormat
+from data.features.features import Features
 
 
-class StaticDataProvider(BaseDataProvider):
+class StaticDataProvider():
     _current_index = 0
 
-    def __init__(self, date_format: ProviderDateFormat
+    def __init__(self
                  , df       : pd.DataFrame = None
                  , csv_data_path    : str  = None
                  , do_prepare_data: bool = True
                  #, columns_map:Dict = None
                  , features_to_add ='none'
                  , **kwargs):
-        BaseDataProvider.__init__(self, date_format
-                                  #, columns_map
-                                  , **kwargs)
+
 
         self.kwargs = kwargs
 
@@ -46,7 +46,9 @@ class StaticDataProvider(BaseDataProvider):
 
         if do_prepare_data:
             #self.columns = self.df.columns
-            self.df = self.data_prepare(self.df)
+            #self.df = self.data_prepare(self.df)
+            self.df = format_col_date(self.df)
+            #self.df = self._sort_by_date      (self.df )
             if isinstance(self.df,  pd.DataFrame):
                 d = csv_data_path.replace('.csv', '_with_features.csv')
                 self.df.to_csv(d, index=False )
@@ -60,12 +62,13 @@ class StaticDataProvider(BaseDataProvider):
 
 
 
+
     @staticmethod
     def from_prepared(df: pd.DataFrame, date_format: ProviderDateFormat, **kwargs):
         return StaticDataProvider(date_format=date_format, df=df, csv_data_path=None, do_prepare_data=False, **kwargs)
 
 
-    def split_data_train_test(self, train_split_percentage: float = 0.8) -> Tuple[BaseDataProvider, BaseDataProvider]:
+    def split_data_train_test(self, train_split_percentage: float = 0.8) :
         len_train = int(train_split_percentage * len(self.df))
 
         train_df = self.df[:len_train].copy()
