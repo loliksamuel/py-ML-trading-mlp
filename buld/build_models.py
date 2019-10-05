@@ -107,7 +107,7 @@ class MlpTrading_old(object):
         self.names_input = list(map(str, self.names_input))
         self.size_input   = len(self.names_input)
         self.size_output  = len(self.names_output)
-        print(f'size in={self.size_input}, out={self.size_output}, names out={self.names_output }')
+        print(f'#features={self.size_input}, out={self.size_output}, names out={self.names_output }')
         print(f'df_y.describe()=\n{df_y.describe()}')
         print(f'\ndf_y[5]={df_y.shape}\n',df_y.head(5))
         print(f'\ndf_x[1]={df_x.shape}\n',df_x.head(1))
@@ -223,7 +223,7 @@ class MlpTrading_old(object):
             #df_x,df_y = shuffle(X, y)
             df_y = df_data['target']  # np.random.randint(0,2,size=(shape[0], ))
             df_x = df_data.drop(columns=['target'])
-
+            print('\ndf_x describe=\n', df_x.describe())
 
         elif (data_type == 'random'): #random 2 classes
             print('\n======================================')
@@ -239,6 +239,7 @@ class MlpTrading_old(object):
                                  , columns= ['target'] )
             df_x = pd.DataFrame( data   = np.c_[X]
                                  , columns= ['f1','f2']  )
+            print('\ndf_x describe=\n', df_x.describe())
 
         elif data_type.startswith('spy'):
             if (data_type == 'spyp283'):#stationarized data
@@ -316,6 +317,11 @@ class MlpTrading_old(object):
         df_x.style.format("{:.4f}")
         #df_x, df_y = self._data_rebalance(df_x, df_y)
         #df_x = reduce_mem_usage(df_x)
+        self.names_input  = df_x.columns.tolist()
+        self.size_input   = len(self.names_input)
+        #self.size_output  = len(self.names_output)
+        print(f'#features={self.size_input}, out={self.size_output}')
+
         if use_feature_tool == True:
             df_x = feature_tool(df_x)
 

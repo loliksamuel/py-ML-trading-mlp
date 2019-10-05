@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import featuretools as ft
+from featuretools import selection
+from featuretools.primitives import MultiplyNumeric, Std, ModuloNumeric, Count
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
 from ta import *
@@ -752,36 +754,61 @@ def feature_tool(df_x):
     '''
     :param df_x: df
     :return: 80,089 features: 283 + ( 283/2*283 ) * 2
+    #https://danwertheimer.github.io/rapid-model-prototyping-with-deep-feature-synthesis-and-xgboost
     '''
     print(f'start featuretools')
 
     # Make an entityset and add the entity
     es = ft.EntitySet(id = 'sp500')
-    es.entity_from_dataframe(entity_id = 'data'
-                             , dataframe = df_x
-                             , make_index = True
-                             , index = 'index')
+    es = es.entity_from_dataframe( entity_id  = 'sp500'
+                                 , dataframe  = df_x
+                                 , make_index = True
+                                 , index      = 'index'
+                                 )
 
-    primitives_aggregate      = None #  ['std', 'min', 'max', 'mean', 'count', 'mode', 'num_unique', 'percent_true', 'last', 'trend', 'n_most_common', 'time_since_last','avg_time_between'] #create a single value
-    primitives_where          = None #  ['std', 'min', 'max', 'mean', 'count']
-    primitives_groupby        = None #  ['CumSum', 'CumCount', 'CumMean', 'CumMin', 'CumMax'] #group by id  # [1, 2, 3, 4, 5]).tolist() = [1, 3, 6, 10, 15]
-    primitives_transform      = ['add_numeric'       #create 283/2*283 = 40,044 new features
-                                , 'multiply_numeric' #create 283/2*283 = 40,044 new features
+    # es.normalize_entity(base_entity_id='sp500',
+    #                      new_entity_id='sessions',
+    #                      index        ='session'
+    #                       )
+
+
+    primitives_aggregate      = [Std, Count]#'std', 'min', 'count', 'max', 'mean', 'median',  'mode', 'num_true', 'num_unique', 'sum','skew', 'percent_true', 'last', 'trend', 'n_most_common', 'time_since_last','avg_time_between'] #create a single value
+    primitives_where          = ['std', 'min', 'max', 'mean', 'count']
+    primitives_groupby        = ['cum_sum', 'cum_count', 'cum_mean', 'cum_min', 'cum_max'] #group by id  # [1, 2, 3, 4, 5]).tolist() = [1, 3, 6, 10, 15]
+    primitives_transform      = [#'add_numeric'       #Element-wise       addition of 2 lists. create 283/2*283 = 40,044 new features
+                                    MultiplyNumeric
+                                , ModuloNumeric
+                               #, 'multiply_numeric'  #Element-wise multiplication of 2 lists. create 283/2*283 = 40,044 new features
+                               # 'subtract_numeric'  #Element-wise subtraction    of 2 lists. create 283/2*283 = 40,044 new features
+                               # , 'modulo_numeric'    #Element-wise modulo         of 2 lists. create 283/2*283 = 40,044 new features
+                               #, 'and'               #Element-wise logical AND    of 2 lists. create 283/2*283 = 40,044 new features
+                               #, 'or'                #Element-wise logical OR     of 2 lists. create 283/2*283 = 40,044 new features
+                               , 'absolute', 'percentile'#, 'cum_count', 'cum_sum', 'cum_mean', 'cum_min', 'cum_max', 'cum_mean'
                                  ]
-    #'years', 'month', 'weekday', 'percentile',  'isin', 'cum_mean', 'subtract', 'divide','time_since_previous', 'latitude', 'longitude', log]
+    # 'absolute','percentile', 'cum_count', 'cum_sum', 'cum_mean', 'cum_min', 'cum_max', 'cum_mean', 'subtract', 'divide','time_since_previous', 'latitude', 'longitude', isin is_null is_weekend year week log]
     # Run deep feature synthesis with transformation primitives
-    feature_matrix, feature_defs = ft.dfs(entityset                 = es
-                                          , target_entity             = 'data'
+    feature_matrix, feature_defs = ft.dfs(  entityset                 = es
+                                          , target_entity             = 'sp500'
+
                                           , agg_primitives            = primitives_aggregate
                                           , trans_primitives          = primitives_transform
                                           , groupby_trans_primitives  = primitives_groupby
                                           , where_primitives          = primitives_where
-                                         #, drop_contains             = 'target'
+                                          , max_features              = 89000
+                                          #, drop_contains             = 'target'
+                                          #, seed_features             = ['sepal length']
                                           , max_depth                 = 1
                                           , n_jobs                    = 1 #-1 will use all cores
                                           , verbose                   = True  )
 
     print(f'finished featuretools. feature_matrix=\n{feature_matrix.head()}')
+    #print(f'finished2 es={es}')
+    #print(f'finished3 es={es["sp500"]}')
+    #print(f'feature_matrix.columns.tolist()={feature_matrix.columns.tolist()}')
+    #print(f'ft.list_primitives() {ft.list_primitives()}')
+    #print(f'ft.list_primitives() {ft.show_info()}')
+
+    feature_matrix = selection.remove_low_information_features(feature_matrix)
     return feature_matrix
 
 def reduce_mem_usage2(df):
