@@ -41,18 +41,18 @@ priority | done | name
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 pd.options.display.float_format = '{:.2f}'.format
-                                                 # all  xgb  gridxgb34h  gridmlp  mlp    svc gridsvc   mlp2   ker  lstm gaus rf lr
+                                                 # all  xgb  gridxgb34h  gridmlp  mlp    svc gridsvc   mlp2   ker  lstm gaus rf lr dummy
                                     #GSPC3+ft       -    -                                53            53               53  51  -
                                     #GSPC3-ft       -    -                                53            49               53  51  -
                                     #GSPC2          -    -                                49            48               52  51  -
                                     #random         -    88                       90      92   how????
 mlp_trading_old = MlpTrading_old()  # iris-ft       -    92     -           -     90      94    -       92    86    -    94  90  -
 mlp_trading_old.execute(            # iris+ft       -    94     -           -     92      94    -       90    84    -    96  92  -
-                         model_type   ='gaus'
-                        ,data_type    ='iris'# spy71  spy283   spyp71  spyp283  iris  random
+                         model_type   ='dummy'
+                        ,data_type    ='spy283'# spy71  spy283   spyp71  spyp283  iris  random
                         ,use_random_label = False
-                        ,use_raw_data     = True
-                        ,use_feature_tool = True
+                        ,use_raw_data     = False
+                        ,use_feature_tool = False
                         ,skip_days   =3600  #>400  best=3600 #17460 #17505 rows
                         ,epochs      =80  # best 600
                         ,size_hidden =16  #best 160 for GSPC  or 16 for iris, random

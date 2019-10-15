@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 
 
-from os import path
+from os import path, cpu_count
 from eli5.sklearn import PermutationImportance
 from keras.callbacks import History
 from keras.layers import Dense, Dropout, LSTM
@@ -15,6 +15,7 @@ from keras.optimizers import RMSprop
 from keras.utils import to_categorical
 from keras.wrappers.scikit_learn import KerasClassifier
 # from sklearn.cross_validation import StratifiedShuffleSplit
+from sklearn.dummy import DummyClassifier
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -28,7 +29,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from buld.utils import plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label, reduce_mem_usage, feature_tool, reduce_mem_usage2, symbol_to_path, data_clean, format_col_date
+from buld.utils import plot_selected, plot_stat_loss_vs_accuracy, plot_conf_mtx, plot_histogram, plot_stat_loss_vs_accuracy2, plot_roc, plot_importance_svm, normalize_by_column, plot_importance_xgb, normalize3, print_is_stationary, create_target_label, reduce_mem_usage, feature_tool, reduce_mem_usage2, symbol_to_path, data_clean, format_col_date, GridSearchCVProgressBar
 from data.features.features import Features
 from data.features.transform import max_min_normalize, log_and_difference
 
@@ -152,6 +153,10 @@ class MlpTrading_old(object):
                 self.model_predict(model,  type(model).__name__)#
             #calc_scores(models, self.x_test, self.y_test)
 
+        elif model_type == 'dummy':
+            model = DummyClassifier(strategy= 'most_frequent')
+            model.fit(self.x_train, self.y_train)
+            self.model_predict(model,  'dummy')
         elif model_type == 'gaus':
             model = GaussianNB            ()
             model.fit(self.x_train, self.y_train)
@@ -208,7 +213,7 @@ class MlpTrading_old(object):
             exit(0)
 
 
-    def data_prepare(self, percent_test_split, skip_days, use_random_label=False, data_type=3, use_feature_tool=True):
+    def data_prepare(self, skip_days, use_random_label=False, data_type='iris', use_feature_tool=False):
 
         if (data_type == 'iris'):#iris data 3 classes
             print('\n======================================')
@@ -370,6 +375,7 @@ class MlpTrading_old(object):
                             , verbose=2
                             , scoring=None#If None, the estimator's score method is used.
                             )
+        #grid = GridSearchCVProgressBar(estimator=model, param_grid=param_grid,  scoring='accuracy', cv=cv_(), n_jobs=cpu_count()-1)
         grid_result = grid.fit(self.x_train, self.y_train, verbose=2)
         # summarize results
         print("The best parameters are %s with a score of %0.2f  "  % (grid.best_params_, grid.best_score_))
@@ -393,6 +399,7 @@ class MlpTrading_old(object):
         model = xgb.XGBClassifier()
         cv          = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
         grid      = GridSearchCV(estimator=model, param_grid=param_grid,  scoring='accuracy', verbose=1)#, cv=cv)
+
         grid_result = grid.fit(self.x_train, self.y_train, verbose=1)
         print("The best parameters are %s with a score of %0.2f"  % (grid.best_params_, grid.best_score_))
 

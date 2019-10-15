@@ -21,25 +21,49 @@ from pycm import ConfusionMatrix
 from scipy.special.cython_special import boxcox1p
 from scipy.stats import boxcox_normmax
 
+import sklearn.model_selection
+from sklearn import model_selection
 from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support as scorex
 from sklearn.preprocessing import StandardScaler
 from sklearn import preprocessing
 from sklearn.utils import resample
+from sklearn.model_selection import StratifiedShuffleSplit as sss
 
 from statsmodels.tsa.stattools import adfuller
 from xgboost import plot_importance, XGBClassifier
 
 from data.features import ProviderDateFormat
 from data.features.features import Features
-
+try: from tqdm import tqdm
+except: tqdm = lambda x: x
 
 np.set_printoptions(suppress=True) #prevent numpy exponential #notation on print, default False
 np.set_printoptions(precision=6)
 np.set_printoptions(threshold=100)
 # np.warnings.filterwarnings('ignore')
 # np.seterr(divide='ignore', invalid='ignore')
+
+
+class GridSearchCVProgressBar(sklearn.model_selection.GridSearchCV):
+    def _get_param_iterator(self):
+        iterator = super(GridSearchCVProgressBar, self)._get_param_iterator()
+        iterator = list(iterator)
+        n_candidates = len(iterator)
+        cv = sklearn.model_selection._split.check_cv(self.cv, None)
+        n_splits = getattr(cv, 'n_splits', 3)
+        max_value = n_candidates * n_splits
+        class ParallelProgressBar(sklearn.model_selection._search.Parallel):
+            def __call__(self, iterable):
+                iterable = tqdm(iterable, total=max_value)
+                iterable.set_description("GridSearchCV")
+                return super(ParallelProgressBar, self).__call__(iterable)
+        sklearn.model_selection._search.Parallel = ParallelProgressBar
+        return iterator
+
+
+
 
 #todo
 def skew(df, features):
